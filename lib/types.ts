@@ -89,20 +89,44 @@ export interface Gamificacao {
   nivel: number;
   xp: number;
   xpProximoNivel: number;
-  conquistas: Conquista[];
+  xpTotal: number;
+  pontosPorTarefa: number;
+  pontosPorQuestao: number;
+  pontosPorAcerto: number;
   progresso: {
     tarefasCompletas: number;
+    questoesRespondidas: number;
+    questoesAcertadas: number;
     sequenciaDias: number;
     melhorSequencia: number;
   };
+  historicoPontos: {
+    tarefas: number;
+    questoes: number;
+    acertos: number;
+  };
 }
 
-export interface Conquista {
-  id: string;
-  titulo: string;
-  descricao: string;
-  icone: string;
-  desbloqueada: boolean;
-  dataDesbloqueio?: Date;
+export interface SistemaPontos {
+  pontosPorTarefa: number;
+  pontosPorQuestao: number;
+  pontosPorAcerto: number;
+  calcularXPProximoNivel: (nivel: number) => number;
 }
 
+export interface DiagnosticoAluno {
+  areasMelhoria: {
+    componente: ComponenteCurricular;
+    habilidade: string;
+    percentual: number;
+  }[];
+  pontosFortes: {
+    componente: ComponenteCurricular;
+    habilidade: string;
+    percentual: number;
+  }[];
+  desempenhoGeral: {
+    componente: ComponenteCurricular;
+    percentual: number;
+  }[];
+}

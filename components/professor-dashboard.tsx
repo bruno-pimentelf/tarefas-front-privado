@@ -7,8 +7,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { TarefaCard } from "@/components/tarefa-card"
 import { RelatorioPedagogico } from "@/components/relatorio-pedagogico"
 import { CriarTarefaDialog } from "@/components/criar-tarefa-dialog"
-import { mockTarefas, mockRelatorios } from "@/lib/mock-data"
+import { mockTarefas, mockRelatorios, mockGamificacao } from "@/lib/mock-data"
 import { Tarefa, RelatorioPedagogico as RelatorioType } from "@/lib/types"
+import { Gamification } from "@/components/gamification"
 import { Plus, BookOpen, BarChart3, Users } from "lucide-react"
 
 export function ProfessorDashboard() {
@@ -76,13 +77,15 @@ export function ProfessorDashboard() {
         </Card>
       </div>
 
-      <Tabs defaultValue="ativas" className="space-y-4 mt-0">
-        <TabsList>
-          <TabsTrigger value="ativas">Ativas</TabsTrigger>
-          <TabsTrigger value="agendadas">Agendadas</TabsTrigger>
-          <TabsTrigger value="finalizadas">Finalizadas</TabsTrigger>
-          <TabsTrigger value="relatorios">Relatórios</TabsTrigger>
-        </TabsList>
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        <div className="lg:col-span-3">
+          <Tabs defaultValue="ativas" className="space-y-4 mt-0">
+            <TabsList>
+              <TabsTrigger value="ativas">Ativas</TabsTrigger>
+              <TabsTrigger value="agendadas">Agendadas</TabsTrigger>
+              <TabsTrigger value="finalizadas">Finalizadas</TabsTrigger>
+              <TabsTrigger value="relatorios">Relatórios</TabsTrigger>
+            </TabsList>
 
         <TabsContent value="ativas" className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -129,14 +132,20 @@ export function ProfessorDashboard() {
           </div>
         </TabsContent>
 
-        <TabsContent value="relatorios" className="space-y-4">
-          <div className="space-y-4">
-            {relatorios.map((relatorio) => (
-              <RelatorioPedagogico key={relatorio.tarefaId} relatorio={relatorio} />
-            ))}
-          </div>
-        </TabsContent>
-      </Tabs>
+            <TabsContent value="relatorios" className="space-y-4">
+              <div className="space-y-4">
+                {relatorios.map((relatorio) => (
+                  <RelatorioPedagogico key={relatorio.tarefaId} relatorio={relatorio} />
+                ))}
+              </div>
+            </TabsContent>
+          </Tabs>
+        </div>
+
+        <div>
+          <Gamification gamificacao={mockGamificacao} />
+        </div>
+      </div>
 
       <CriarTarefaDialog
         open={showCriarTarefa}

@@ -5,7 +5,7 @@ import {
   TarefaRealizada,
   RelatorioPedagogico,
   Gamificacao,
-  Conquista,
+  DiagnosticoAluno,
 } from "./types";
 
 // Usuários mockados
@@ -195,47 +195,67 @@ export const mockTarefas: Tarefa[] = [
 ];
 
 // Gamificação mockada
+// Nível 3: precisa de 300 XP total (100 + 200)
+// XP atual: 250 (faltam 50 para nível 4)
+// Próximo nível (4): precisa de 300 XP adicionais
 export const mockGamificacao: Gamificacao = {
-  nivel: 5,
-  xp: 1250,
-  xpProximoNivel: 2000,
-  conquistas: [
-    {
-      id: "conq-1",
-      titulo: "Primeiros Passos",
-      descricao: "Complete sua primeira tarefa",
-      icone: "",
-      desbloqueada: true,
-      dataDesbloqueio: new Date("2024-01-10"),
-    },
-    {
-      id: "conq-2",
-      titulo: "Estudante Dedicado",
-      descricao: "Complete 10 tarefas",
-      icone: "",
-      desbloqueada: true,
-      dataDesbloqueio: new Date("2024-01-12"),
-    },
-    {
-      id: "conq-3",
-      titulo: "Mestre da Matemática",
-      descricao: "Acerte todas as questões de matemática em uma tarefa",
-      icone: "",
-      desbloqueada: false,
-    },
-    {
-      id: "conq-4",
-      titulo: "Escritor em Formação",
-      descricao: "Complete 5 tarefas de Língua Portuguesa",
-      icone: "",
-      desbloqueada: false,
-    },
-  ],
+  nivel: 3,
+  xp: 250,
+  xpProximoNivel: 300,
+  xpTotal: 300,
+  pontosPorTarefa: 50,
+  pontosPorQuestao: 10,
+  pontosPorAcerto: 20,
   progresso: {
     tarefasCompletas: 8,
+    questoesRespondidas: 48,
+    questoesAcertadas: 36,
     sequenciaDias: 3,
     melhorSequencia: 5,
   },
+  historicoPontos: {
+    tarefas: 400, // 8 tarefas * 50 pontos
+    questoes: 480, // 48 questões * 10 pontos
+    acertos: 720, // 36 acertos * 20 pontos
+  },
+};
+
+// Diagnóstico mockado do aluno
+export const mockDiagnosticoAluno: DiagnosticoAluno = {
+  areasMelhoria: [
+    {
+      componente: "Matemática",
+      habilidade: "Cálculo de porcentagens",
+      percentual: 45,
+    },
+    {
+      componente: "Língua Portuguesa",
+      habilidade: "Análise sintática",
+      percentual: 52,
+    },
+  ],
+  pontosFortes: [
+    {
+      componente: "Matemática",
+      habilidade: "Geometria e cálculo de áreas",
+      percentual: 88,
+    },
+    {
+      componente: "Língua Portuguesa",
+      habilidade: "Produção textual",
+      percentual: 82,
+    },
+  ],
+  desempenhoGeral: [
+    {
+      componente: "Matemática",
+      percentual: 68,
+    },
+    {
+      componente: "Língua Portuguesa",
+      percentual: 72,
+    },
+  ],
 };
 
 // Relatórios mockados

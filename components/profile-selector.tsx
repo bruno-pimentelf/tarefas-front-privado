@@ -15,7 +15,7 @@ export function ProfileSelector({ onSelectProfile }: ProfileSelectorProps) {
       <div className="w-full max-w-4xl">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-semibold tracking-tight mb-2">
-            Plataforma de Tarefas Escolares
+            Tarefas
           </h1>
           <p className="text-muted-foreground">
             Selecione seu perfil para acessar o sistema

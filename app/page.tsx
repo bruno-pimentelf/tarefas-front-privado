@@ -34,7 +34,7 @@ export default function Home() {
                   {perfilSelecionado === "aluno" ? "Dashboard do Aluno" : "Dashboard do Professor"}
                 </h1>
                 <p className="text-xs text-muted-foreground leading-tight">
-                  Plataforma de Tarefas Escolares
+                  Tarefas
                 </p>
               </div>
             </div>

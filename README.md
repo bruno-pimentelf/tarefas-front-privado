@@ -1,4 +1,4 @@
-# Plataforma de Tarefas Escolares
+# Tarefas
 
 Sistema completo de gestão de tarefas escolares desenvolvido com Next.js e shadcn/ui, atendendo aos requisitos da POC do edital.
 

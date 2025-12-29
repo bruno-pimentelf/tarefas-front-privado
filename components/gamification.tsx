@@ -1,10 +1,9 @@
 "use client"
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { Gamificacao } from "@/lib/types"
-import { Trophy, Award, Target, CheckCircle2 } from "lucide-react"
+import { Trophy, Zap } from "lucide-react"
 
 interface GamificationProps {
   gamificacao: Gamificacao
@@ -12,6 +11,9 @@ interface GamificationProps {
 
 export function Gamification({ gamificacao }: GamificationProps) {
   const progressoXP = (gamificacao.xp / gamificacao.xpProximoNivel) * 100
+  const taxaAcerto = gamificacao.progresso.questoesRespondidas > 0
+    ? Math.round((gamificacao.progresso.questoesAcertadas / gamificacao.progresso.questoesRespondidas) * 100)
+    : 0
 
   return (
     <div className="space-y-4">
@@ -31,20 +33,40 @@ export function Gamification({ gamificacao }: GamificationProps) {
               </span>
             </div>
             <Progress value={progressoXP} className="h-2" />
+            <div className="text-xs text-muted-foreground text-center">
+              {gamificacao.xpProximoNivel - gamificacao.xp} XP para o próximo nível
+            </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-3 pt-2 border-t">
+          <div className="space-y-2 pt-2 border-t">
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-muted-foreground">XP Total</span>
+              <span className="font-semibold">{gamificacao.xpTotal} XP</span>
+            </div>
+            <div className="grid grid-cols-3 gap-2 text-xs">
+              <div className="text-center p-2 bg-muted/30 rounded">
+                <div className="font-semibold">{gamificacao.historicoPontos.tarefas}</div>
+                <div className="text-muted-foreground">Tarefas</div>
+              </div>
+              <div className="text-center p-2 bg-muted/30 rounded">
+                <div className="font-semibold">{gamificacao.historicoPontos.questoes}</div>
+                <div className="text-muted-foreground">Questões</div>
+              </div>
+              <div className="text-center p-2 bg-muted/30 rounded">
+                <div className="font-semibold">{gamificacao.historicoPontos.acertos}</div>
+                <div className="text-muted-foreground">Acertos</div>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 pt-2 border-t">
             <div className="text-center">
-              <div className="text-xl font-semibold">{gamificacao.progresso.tarefasCompletas}</div>
-              <div className="text-xs text-muted-foreground mt-1">Tarefas</div>
+              <div className="text-lg font-semibold">{gamificacao.progresso.tarefasCompletas}</div>
+              <div className="text-xs text-muted-foreground mt-0.5">Tarefas</div>
             </div>
             <div className="text-center">
-              <div className="text-xl font-semibold">{gamificacao.progresso.sequenciaDias}</div>
-              <div className="text-xs text-muted-foreground mt-1">Dias seguidos</div>
-            </div>
-            <div className="text-center">
-              <div className="text-xl font-semibold">{gamificacao.progresso.melhorSequencia}</div>
-              <div className="text-xs text-muted-foreground mt-1">Melhor sequência</div>
+              <div className="text-lg font-semibold">{taxaAcerto}%</div>
+              <div className="text-xs text-muted-foreground mt-0.5">Taxa de acerto</div>
             </div>
           </div>
         </CardContent>
@@ -53,44 +75,28 @@ export function Gamification({ gamificacao }: GamificationProps) {
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-base font-semibold flex items-center gap-2">
-            <Award className="h-4 w-4 text-primary" />
-            Conquistas
+            <Zap className="h-4 w-4 text-primary" />
+            Sistema de Pontos
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="space-y-2">
-            {gamificacao.conquistas.map((conquista) => (
-              <div
-                key={conquista.id}
-                className={`flex items-start gap-3 p-3 rounded-lg border transition-colors ${
-                  conquista.desbloqueada
-                    ? "bg-muted/30 border-primary/20"
-                    : "bg-muted/10 border-border opacity-50"
-                }`}
-              >
-                <div className="mt-0.5">
-                  {conquista.desbloqueada ? (
-                    <CheckCircle2 className="h-5 w-5 text-primary" />
-                  ) : (
-                    <Target className="h-5 w-5 text-muted-foreground" />
-                  )}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="font-medium text-sm">{conquista.titulo}</div>
-                  <div className="text-xs text-muted-foreground mt-0.5">
-                    {conquista.descricao}
-                  </div>
-                </div>
-                {conquista.desbloqueada && (
-                  <Badge variant="secondary" className="text-xs shrink-0">
-                    Concluída
-                  </Badge>
-                )}
-              </div>
-            ))}
+        <CardContent className="space-y-2.5">
+          <div className="flex items-center justify-between text-sm p-2 bg-muted/30 rounded">
+            <span className="text-muted-foreground">Tarefa concluída</span>
+            <span className="font-semibold">+{gamificacao.pontosPorTarefa} XP</span>
+          </div>
+          <div className="flex items-center justify-between text-sm p-2 bg-muted/30 rounded">
+            <span className="text-muted-foreground">Questão respondida</span>
+            <span className="font-semibold">+{gamificacao.pontosPorQuestao} XP</span>
+          </div>
+          <div className="flex items-center justify-between text-sm p-2 bg-muted/30 rounded">
+            <span className="text-muted-foreground">Questão acertada</span>
+            <span className="font-semibold text-green-600 dark:text-green-400">
+              +{gamificacao.pontosPorAcerto} XP
+            </span>
           </div>
         </CardContent>
       </Card>
+
     </div>
   )
 }

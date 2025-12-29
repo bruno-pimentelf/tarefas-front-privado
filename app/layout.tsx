@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Plataforma de Tarefas Escolares",
+  title: "Tarefas",
   description: "Sistema de gestão de tarefas escolares com correção automatizada e relatórios pedagógicos",
 };
 

@@ -1,14 +1,14 @@
 "use client"
 
 import { useState } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { TarefaCard } from "@/components/tarefa-card"
+import { DiagnosticoAluno } from "@/components/diagnostico-aluno"
 import { Gamification } from "@/components/gamification"
 import { RealizarTarefa } from "@/components/realizar-tarefa"
-import { mockTarefas, mockGamificacao } from "@/lib/mock-data"
+import { mockTarefas, mockGamificacao, mockDiagnosticoAluno } from "@/lib/mock-data"
 import { Tarefa } from "@/lib/types"
-import { BookOpen, CheckCircle2, Clock } from "lucide-react"
 
 export function AlunoDashboard() {
   const [tarefas] = useState<Tarefa[]>(mockTarefas)
@@ -33,112 +33,88 @@ export function AlunoDashboard() {
 
   return (
     <div className="container mx-auto px-6 py-8 max-w-7xl">
-      <div className="mb-6">
-        <h1 className="text-2xl font-semibold tracking-tight">Minhas Tarefas</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Complete suas atividades e acompanhe seu progresso
-        </p>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Tarefas Ativas</CardTitle>
-            <BookOpen className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{tarefasAtivas.length}</div>
-            <p className="text-xs text-muted-foreground">
-              Disponíveis para fazer
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        <div className="lg:col-span-3">
+          <div className="mb-6">
+            <h1 className="text-2xl font-semibold tracking-tight mb-1">Minhas Tarefas</h1>
+            <p className="text-sm text-muted-foreground">
+              Complete suas atividades e acompanhe seu progresso
             </p>
-          </CardContent>
-        </Card>
+          </div>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Concluídas</CardTitle>
-            <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{tarefasConcluidas.length}</div>
-            <p className="text-xs text-muted-foreground">
-              Tarefas finalizadas
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Agendadas</CardTitle>
-            <Clock className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{tarefasAgendadas.length}</div>
-            <p className="text-xs text-muted-foreground">
-              Em breve
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2">
-          <Tabs defaultValue="ativas" className="space-y-4 mt-0">
+          <Tabs defaultValue="ativas" className="space-y-4">
             <TabsList>
               <TabsTrigger value="ativas">Ativas</TabsTrigger>
               <TabsTrigger value="agendadas">Agendadas</TabsTrigger>
               <TabsTrigger value="concluidas">Concluídas</TabsTrigger>
             </TabsList>
 
-            <TabsContent value="ativas" className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {tarefasAtivas.map((tarefa) => (
-                  <TarefaCard
-                    key={tarefa.id}
-                    tarefa={tarefa}
-                    role="aluno"
-                    onIniciar={() => setTarefaSelecionada(tarefa)}
-                  />
-                ))}
-              </div>
+            <TabsContent value="ativas" className="space-y-4 mt-4">
+              {tarefasAtivas.length === 0 ? (
+                <Card>
+                  <CardContent className="py-12 text-center text-muted-foreground">
+                    Nenhuma tarefa ativa no momento
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {tarefasAtivas.map((tarefa) => (
+                    <TarefaCard
+                      key={tarefa.id}
+                      tarefa={tarefa}
+                      role="aluno"
+                      onIniciar={() => setTarefaSelecionada(tarefa)}
+                    />
+                  ))}
+                </div>
+              )}
             </TabsContent>
 
-            <TabsContent value="agendadas" className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {tarefasAgendadas.map((tarefa) => (
-                  <TarefaCard
-                    key={tarefa.id}
-                    tarefa={tarefa}
-                    role="aluno"
-                  />
-                ))}
-              </div>
+            <TabsContent value="agendadas" className="space-y-4 mt-4">
+              {tarefasAgendadas.length === 0 ? (
+                <Card>
+                  <CardContent className="py-12 text-center text-muted-foreground">
+                    Nenhuma tarefa agendada
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {tarefasAgendadas.map((tarefa) => (
+                    <TarefaCard
+                      key={tarefa.id}
+                      tarefa={tarefa}
+                      role="aluno"
+                    />
+                  ))}
+                </div>
+              )}
             </TabsContent>
 
-            <TabsContent value="concluidas" className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {tarefasConcluidas.length === 0 ? (
-                  <Card>
-                    <CardContent className="py-8 text-center text-muted-foreground">
-                      Nenhuma tarefa concluída ainda
-                    </CardContent>
-                  </Card>
-                ) : (
-                  tarefasConcluidas.map((tarefa) => (
+            <TabsContent value="concluidas" className="space-y-4 mt-4">
+              {tarefasConcluidas.length === 0 ? (
+                <Card>
+                  <CardContent className="py-12 text-center text-muted-foreground">
+                    Nenhuma tarefa concluída ainda
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {tarefasConcluidas.map((tarefa) => (
                     <TarefaCard
                       key={tarefa.id}
                       tarefa={tarefa}
                       role="aluno"
                       concluida={true}
                     />
-                  ))
-                )}
-              </div>
+                  ))}
+                </div>
+              )}
             </TabsContent>
           </Tabs>
         </div>
 
-        <div>
+        <div className="space-y-4">
+          <DiagnosticoAluno diagnostico={mockDiagnosticoAluno} />
           <Gamification gamificacao={mockGamificacao} />
         </div>
       </div>
