@@ -15,7 +15,7 @@ export function AlunoDashboard() {
   const [tarefaSelecionada, setTarefaSelecionada] = useState<Tarefa | null>(null)
 
   const tarefasAtivas = tarefas.filter((t) => t.status === "ativa")
-  const tarefasConcluidas = [] // Mock - normalmente viria do backend
+  const tarefasConcluidas: Tarefa[] = [] // Mock - normalmente viria do backend
   const tarefasAgendadas = tarefas.filter((t) => t.status === "agendada")
 
   if (tarefaSelecionada) {
