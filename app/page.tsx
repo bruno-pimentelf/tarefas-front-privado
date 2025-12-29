@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { ProfileSelector } from "@/components/profile-selector"
+import { AuthScreen } from "@/components/auth/auth-screen"
 import { AlunoDashboard } from "@/components/aluno-dashboard"
 import { ProfessorDashboard } from "@/components/professor-dashboard"
 import { UserRole } from "@/lib/types"
@@ -11,8 +12,10 @@ import { GamificationDialog } from "@/components/gamification-dialog"
 import { DiagnosticoDialog } from "@/components/diagnostico-dialog"
 import { EstatisticasDialog } from "@/components/estatisticas-dialog"
 import { mockGamificacao, mockDiagnosticoAluno, mockTarefas } from "@/lib/mock-data"
+import { useAuth } from "@/contexts/auth-context"
 
 export default function Home() {
+  const { currentUser, logout } = useAuth()
   const [perfilSelecionado, setPerfilSelecionado] = useState<UserRole | null>(null)
   const [showGamificacao, setShowGamificacao] = useState(false)
   const [showDiagnostico, setShowDiagnostico] = useState(false)
@@ -24,10 +27,17 @@ export default function Home() {
     setPerfilSelecionado(role)
   }
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await logout()
     setPerfilSelecionado(null)
   }
 
+  // Se não estiver autenticado, mostrar tela de autenticação
+  if (!currentUser) {
+    return <AuthScreen />
+  }
+
+  // Se estiver autenticado mas não selecionou perfil, mostrar seletor
   if (!perfilSelecionado) {
     return <ProfileSelector onSelectProfile={handleSelectProfile} />
   }
@@ -87,7 +97,7 @@ export default function Home() {
               )}
               <Button variant="ghost" onClick={handleLogout} size="sm" className="gap-1.5 h-8">
                 <LogOut className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline text-xs">Trocar Perfil</span>
+                <span className="hidden sm:inline text-xs">Sair</span>
               </Button>
             </div>
           </div>

@@ -287,14 +287,14 @@ export function BancoItens({ onVoltar }: BancoItensProps) {
                 </Badge>
               </div>
             </CardHeader>
-            <CardContent className="space-y-2 max-h-[calc(100vh-250px)] overflow-y-auto">
+            <CardContent className="space-y-3 max-h-[calc(100vh-250px)] overflow-y-auto">
               {colecoes.length === 0 ? (
-                <div className="text-center py-6">
-                  <FolderPlus className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                <div className="text-center py-8">
+                  <div className="h-12 w-12 rounded-full bg-muted/30 flex items-center justify-center mx-auto mb-3">
+                    <FolderPlus className="h-6 w-6 text-muted-foreground" />
+                  </div>
+                  <p className="text-sm font-medium mb-1">Nenhuma coleção criada</p>
                   <p className="text-xs text-muted-foreground">
-                    Nenhuma coleção criada ainda
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1">
                     Selecione questões e clique em "Criar Coleção"
                   </p>
                 </div>
@@ -303,14 +303,15 @@ export function BancoItens({ onVoltar }: BancoItensProps) {
                   const questoesNaColecao = todasQuestoes.filter((q) =>
                     colecao.questoes.includes(q.id)
                   )
+                  const podeAdicionar = questoesSelecionadas.size > 0
                   return (
-                    <Card key={colecao.id} className="p-3">
-                      <div className="space-y-2">
+                    <Card key={colecao.id} className="p-4 border-2 hover:border-primary/30 transition-colors">
+                      <div className="space-y-3">
                         <div className="flex items-start justify-between gap-2">
                           <div className="flex-1 min-w-0">
-                            <h3 className="text-xs font-semibold line-clamp-1">{colecao.nome}</h3>
+                            <h3 className="text-sm font-semibold mb-1">{colecao.nome}</h3>
                             {colecao.descricao && (
-                              <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
+                              <p className="text-xs text-muted-foreground line-clamp-2">
                                 {colecao.descricao}
                               </p>
                             )}
@@ -319,53 +320,80 @@ export function BancoItens({ onVoltar }: BancoItensProps) {
                             variant="ghost"
                             size="sm"
                             onClick={() => handleDeletarColecao(colecao.id)}
-                            className="h-6 w-6 p-0 shrink-0 text-destructive hover:text-destructive"
+                            className="h-7 w-7 p-0 shrink-0 text-destructive hover:text-destructive hover:bg-destructive/10"
                           >
-                            <Trash2 className="h-3 w-3" />
+                            <Trash2 className="h-3.5 w-3.5" />
                           </Button>
                         </div>
+
                         <div className="flex items-center justify-between text-xs">
+                          <div className="flex items-center gap-1.5">
+                            <Badge variant="outline" className="text-xs">
+                              {colecao.questoes.length} questão(ões)
+                            </Badge>
+                          </div>
                           <span className="text-muted-foreground">
-                            {colecao.questoes.length} questão(ões)
-                          </span>
-                          <Badge variant="outline" className="text-xs shrink-0">
                             {new Date(colecao.dataCriacao).toLocaleDateString("pt-BR")}
-                          </Badge>
+                          </span>
                         </div>
+
                         {questoesNaColecao.length > 0 && (
-                          <div className="space-y-1.5 pt-2 border-t">
-                            {questoesNaColecao.slice(0, 2).map((q) => (
-                              <div
-                                key={q.id}
-                                className="flex items-start justify-between gap-2 text-xs p-2 bg-muted/30 rounded"
-                              >
-                                <span className="line-clamp-2 flex-1 leading-relaxed">{q.enunciado}</span>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => handleRemoverQuestaoColecao(colecao.id, q.id)}
-                                  className="h-5 w-5 p-0 shrink-0"
+                          <div className="space-y-2 pt-2 border-t">
+                            <p className="text-xs font-medium text-muted-foreground">Questões na coleção:</p>
+                            <div className="space-y-1.5 max-h-48 overflow-y-auto">
+                              {questoesNaColecao.map((q) => (
+                                <Card
+                                  key={q.id}
+                                  className="p-2.5 bg-muted/20 hover:bg-muted/40 transition-colors cursor-pointer"
+                                  onClick={() => setQuestaoPreview(q)}
                                 >
-                                  <X className="h-3 w-3" />
-                                </Button>
-                              </div>
-                            ))}
-                            {questoesNaColecao.length > 2 && (
-                              <p className="text-xs text-muted-foreground text-center">
-                                +{questoesNaColecao.length - 2} mais
-                              </p>
-                            )}
+                                  <div className="flex items-start justify-between gap-2">
+                                    <div className="flex-1 min-w-0">
+                                      <div className="flex items-center gap-1.5 mb-1">
+                                        <Badge
+                                          className={cn(
+                                            getComponenteColor(q.componente),
+                                            "text-xs"
+                                          )}
+                                          variant="outline"
+                                        >
+                                          {q.componente}
+                                        </Badge>
+                                        <Badge variant="outline" className="text-xs">
+                                          {q.tipo === "objetiva" ? "Objetiva" : "Dissertativa"}
+                                        </Badge>
+                                      </div>
+                                      <p className="text-xs line-clamp-2 leading-relaxed">
+                                        {q.enunciado}
+                                      </p>
+                                    </div>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        handleRemoverQuestaoColecao(colecao.id, q.id)
+                                      }}
+                                      className="h-6 w-6 p-0 shrink-0 hover:text-destructive"
+                                    >
+                                      <X className="h-3 w-3" />
+                                    </Button>
+                                  </div>
+                                </Card>
+                              ))}
+                            </div>
                           </div>
                         )}
-                        {questoesSelecionadas.size > 0 && (
+
+                        {podeAdicionar && (
                           <Button
                             variant="outline"
                             size="sm"
                             onClick={() => handleAdicionarAColecao(colecao.id)}
-                            className="w-full h-7 text-xs gap-1.5"
+                            className="w-full h-8 text-xs gap-1.5 border-primary/20 hover:bg-primary/5"
                           >
-                            <Plus className="h-3 w-3" />
-                            Adicionar {questoesSelecionadas.size} questão(ões)
+                            <Plus className="h-3.5 w-3.5" />
+                            Adicionar {questoesSelecionadas.size} questão(ões) selecionada(s)
                           </Button>
                         )}
                       </div>
