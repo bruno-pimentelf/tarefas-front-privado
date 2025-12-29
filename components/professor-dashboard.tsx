@@ -7,18 +7,24 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { TarefaCard } from "@/components/tarefa-card"
 import { RelatorioPedagogico } from "@/components/relatorio-pedagogico"
 import { CriarTarefaDialog } from "@/components/criar-tarefa-dialog"
+import { BancoItens } from "@/components/banco-itens"
 import { mockTarefas, mockRelatorios } from "@/lib/mock-data"
 import { Tarefa, RelatorioPedagogico as RelatorioType } from "@/lib/types"
-import { Plus } from "lucide-react"
+import { Plus, Database } from "lucide-react"
 
 export function ProfessorDashboard() {
   const [tarefas] = useState<Tarefa[]>(mockTarefas)
   const [relatorios] = useState<RelatorioType[]>(mockRelatorios)
   const [showCriarTarefa, setShowCriarTarefa] = useState(false)
+  const [showBancoItens, setShowBancoItens] = useState(false)
 
   const tarefasAtivas = tarefas.filter((t) => t.status === "ativa")
   const tarefasAgendadas = tarefas.filter((t) => t.status === "agendada")
   const tarefasFinalizadas = tarefas.filter((t) => t.status === "finalizada")
+
+  if (showBancoItens) {
+    return <BancoItens onVoltar={() => setShowBancoItens(false)} />
+  }
 
   return (
     <div className="container mx-auto px-4 py-4 max-w-7xl">
@@ -30,10 +36,21 @@ export function ProfessorDashboard() {
             <TabsTrigger value="finalizadas">Finalizadas</TabsTrigger>
             <TabsTrigger value="relatorios">Relatórios</TabsTrigger>
           </TabsList>
-          <Button onClick={() => setShowCriarTarefa(true)} size="default" className="gap-1.5">
-            <Plus className="h-4 w-4" />
-            Nova Tarefa
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="default"
+              className="gap-1.5"
+              onClick={() => setShowBancoItens(true)}
+            >
+              <Database className="h-4 w-4" />
+              Banco de Itens
+            </Button>
+            <Button onClick={() => setShowCriarTarefa(true)} size="default" className="gap-1.5">
+              <Plus className="h-4 w-4" />
+              Nova Tarefa
+            </Button>
+          </div>
         </div>
 
         <TabsContent value="ativas" className="space-y-3 mt-3">
