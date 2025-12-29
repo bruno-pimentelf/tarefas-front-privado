@@ -20,19 +20,14 @@ export function QuestaoObjetiva({
 }: QuestaoObjetivaProps) {
   return (
     <Card>
-      <CardHeader>
-        <div className="flex items-start justify-between gap-4">
-          <CardTitle className="text-lg flex-1">{questao.enunciado}</CardTitle>
-          <Badge variant="outline">Objetiva</Badge>
+      <CardHeader className="pb-3">
+        <div className="flex items-start justify-between gap-3">
+          <CardTitle className="text-base flex-1">{questao.enunciado}</CardTitle>
+          <Badge variant="outline" className="text-xs">Objetiva</Badge>
         </div>
-        {questao.habilidade && (
-          <div className="text-sm text-muted-foreground mt-2">
-            Habilidade: {questao.habilidade}
-          </div>
-        )}
       </CardHeader>
-      <CardContent>
-        <div className="space-y-2">
+      <CardContent className="pt-0">
+        <div className="space-y-1.5">
           {questao.alternativas?.map((alternativa, index) => {
             const letra = String.fromCharCode(65 + index) // A, B, C, D
             const isSelecionada = respostaAtual === alternativa

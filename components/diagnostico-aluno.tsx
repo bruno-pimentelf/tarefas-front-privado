@@ -27,20 +27,20 @@ export function DiagnosticoAluno({ diagnostico }: DiagnosticoAlunoProps) {
 
   return (
     <Card>
-      <CardHeader className="pb-3">
-        <CardTitle className="text-base font-semibold flex items-center gap-2">
-          <AlertCircle className="h-4 w-4 text-primary" />
+      <CardHeader className="pb-2">
+        <CardTitle className="text-sm font-semibold flex items-center gap-1.5">
+          <AlertCircle className="h-3.5 w-3.5 text-primary" />
           Diagnóstico
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-3">
         {diagnostico.areasMelhoria.length > 0 && (
-          <div className="space-y-3">
-            <div className="flex items-center gap-2 text-sm font-medium">
-              <TrendingUp className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
+          <div className="space-y-2">
+            <div className="flex items-center gap-1.5 text-xs font-medium">
+              <TrendingUp className="h-3.5 w-3.5 text-yellow-600 dark:text-yellow-400" />
               <span>Áreas para Melhorar</span>
             </div>
-            <div className="space-y-2.5">
+            <div className="space-y-2">
               {diagnostico.areasMelhoria.map((area, index) => (
                 <div key={index} className="space-y-1.5">
                   <div className="flex items-center justify-between gap-2">
@@ -62,12 +62,12 @@ export function DiagnosticoAluno({ diagnostico }: DiagnosticoAlunoProps) {
         )}
 
         {diagnostico.pontosFortes.length > 0 && (
-          <div className="space-y-2 pt-3 border-t">
-            <div className="flex items-center gap-2 text-sm font-medium">
-              <BookOpen className="h-4 w-4 text-green-600 dark:text-green-400" />
+          <div className="space-y-2 pt-2 border-t">
+            <div className="flex items-center gap-1.5 text-xs font-medium">
+              <BookOpen className="h-3.5 w-3.5 text-green-600 dark:text-green-400" />
               <span>Pontos Fortes</span>
             </div>
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               {diagnostico.pontosFortes.map((ponto, index) => (
                 <div key={index} className="flex items-center justify-between text-xs">
                   <div className="flex items-center gap-2">

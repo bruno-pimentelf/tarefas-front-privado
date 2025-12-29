@@ -11,27 +11,27 @@ interface ProfileSelectorProps {
 
 export function ProfileSelector({ onSelectProfile }: ProfileSelectorProps) {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-6">
+    <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <div className="w-full max-w-4xl">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-semibold tracking-tight mb-2">
+        <div className="text-center mb-6">
+          <h1 className="text-2xl font-semibold tracking-tight mb-1">
             Tarefas
           </h1>
-          <p className="text-muted-foreground">
+          <p className="text-sm text-muted-foreground">
             Selecione seu perfil para acessar o sistema
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <Card className="transition-all hover:shadow-md border cursor-pointer">
-            <CardHeader className="pb-4">
-              <div className="flex items-center justify-center mb-3">
-                <div className="p-3 rounded-lg bg-primary/5">
-                  <GraduationCap className="h-8 w-8 text-primary" />
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-center mb-2">
+                <div className="p-2.5 rounded-lg bg-primary/5">
+                  <GraduationCap className="h-7 w-7 text-primary" />
                 </div>
               </div>
-              <CardTitle className="text-center text-lg">Aluno</CardTitle>
-              <CardDescription className="text-center text-sm mt-2">
+              <CardTitle className="text-center text-base">Aluno</CardTitle>
+              <CardDescription className="text-center text-xs mt-1">
                 Realize tarefas, receba feedback imediato e acompanhe seu progresso
               </CardDescription>
             </CardHeader>
@@ -47,14 +47,14 @@ export function ProfileSelector({ onSelectProfile }: ProfileSelectorProps) {
           </Card>
 
           <Card className="transition-all hover:shadow-md border cursor-pointer">
-            <CardHeader className="pb-4">
-              <div className="flex items-center justify-center mb-3">
-                <div className="p-3 rounded-lg bg-primary/5">
-                  <User className="h-8 w-8 text-primary" />
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-center mb-2">
+                <div className="p-2.5 rounded-lg bg-primary/5">
+                  <User className="h-7 w-7 text-primary" />
                 </div>
               </div>
-              <CardTitle className="text-center text-lg">Professor</CardTitle>
-              <CardDescription className="text-center text-sm mt-2">
+              <CardTitle className="text-center text-base">Professor</CardTitle>
+              <CardDescription className="text-center text-xs mt-1">
                 Crie tarefas, acompanhe desempenho e gere relatórios pedagógicos
               </CardDescription>
             </CardHeader>

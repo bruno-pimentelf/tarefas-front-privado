@@ -33,24 +33,24 @@ export function TarefaCard({
 
   return (
     <Card className={`transition-all hover:shadow-sm ${concluida ? "opacity-60" : ""}`}>
-      <CardHeader className="pb-3">
-        <div className="flex items-start justify-between gap-3">
+      <CardHeader className="pb-2">
+        <div className="flex items-start justify-between gap-2">
           <div className="flex-1 min-w-0">
-            <CardTitle className="text-base font-semibold leading-tight mb-1">
+            <CardTitle className="text-sm font-semibold leading-tight">
               {tarefa.titulo}
             </CardTitle>
             {tarefa.descricao && (
-              <CardDescription className="text-sm line-clamp-2 mt-1">
+              <CardDescription className="text-xs line-clamp-2 mt-0.5">
                 {tarefa.descricao}
               </CardDescription>
             )}
           </div>
-          <Badge className={`${getComponenteColor(tarefa.componente)} shrink-0`}>
+          <Badge className={`${getComponenteColor(tarefa.componente)} shrink-0 text-xs`}>
             {tarefa.componente}
           </Badge>
         </div>
       </CardHeader>
-      <CardContent className="space-y-2.5 pt-0">
+      <CardContent className="space-y-2 pt-0">
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
           <Calendar className="h-3.5 w-3.5 shrink-0" />
           <span className="truncate">
@@ -91,15 +91,15 @@ export function TarefaCard({
         </div>
       </CardContent>
       {role === "aluno" && isAtiva && !concluida && (
-        <CardFooter className="pt-3">
-          <Button onClick={onIniciar} className="w-full gap-2" size="default">
-            <Play className="h-4 w-4" />
+        <CardFooter className="pt-2">
+          <Button onClick={onIniciar} className="w-full gap-1.5" size="default">
+            <Play className="h-3.5 w-3.5" />
             Iniciar Tarefa
           </Button>
         </CardFooter>
       )}
       {role === "professor" && (
-        <CardFooter className="pt-3">
+        <CardFooter className="pt-2">
           <Button onClick={onVerDetalhes} variant="outline" className="w-full" size="default">
             Ver Detalhes e Relatórios
           </Button>

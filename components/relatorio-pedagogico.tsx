@@ -20,11 +20,11 @@ export function RelatorioPedagogico({ relatorio }: RelatorioPedagogicoProps) {
 
   return (
     <Card>
-      <CardHeader className="pb-4">
-        <div className="flex items-start justify-between gap-4">
+      <CardHeader className="pb-3">
+        <div className="flex items-start justify-between gap-3">
           <div className="flex-1 min-w-0">
-            <CardTitle className="text-lg font-semibold mb-1">{relatorio.tarefaTitulo}</CardTitle>
-            <CardDescription className="text-sm">
+            <CardTitle className="text-base font-semibold">{relatorio.tarefaTitulo}</CardTitle>
+            <CardDescription className="text-xs mt-0.5">
               {relatorio.componente} • {relatorio.totalAlunos} alunos
             </CardDescription>
           </div>
@@ -33,13 +33,13 @@ export function RelatorioPedagogico({ relatorio }: RelatorioPedagogicoProps) {
               relatorio.componente === "Matemática"
                 ? "bg-blue-500/10 text-blue-700 dark:text-blue-400"
                 : "bg-green-500/10 text-green-700 dark:text-green-400"
-            } shrink-0`}
+            } shrink-0 text-xs`}
           >
             {relatorio.componente}
           </Badge>
         </div>
       </CardHeader>
-      <CardContent className="space-y-6 pt-0">
+      <CardContent className="space-y-4 pt-0">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div>
             <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1.5">
@@ -81,9 +81,9 @@ export function RelatorioPedagogico({ relatorio }: RelatorioPedagogicoProps) {
           </div>
         </div>
 
-        <div className="space-y-3">
-          <h3 className="font-semibold text-sm flex items-center gap-2 mb-3">
-            <BarChart3 className="h-4 w-4" />
+        <div className="space-y-2">
+          <h3 className="font-semibold text-xs flex items-center gap-1.5 mb-2">
+            <BarChart3 className="h-3.5 w-3.5" />
             Desempenho por Habilidade
           </h3>
           <div className="space-y-3">
@@ -104,9 +104,9 @@ export function RelatorioPedagogico({ relatorio }: RelatorioPedagogicoProps) {
           </div>
         </div>
 
-        <div className="space-y-3">
-          <h3 className="font-semibold text-sm mb-3">Distribuição de Desempenho</h3>
-          <div className="grid grid-cols-4 gap-2">
+        <div className="space-y-2">
+          <h3 className="font-semibold text-xs mb-2">Distribuição de Desempenho</h3>
+          <div className="grid grid-cols-4 gap-1.5">
             <div className="text-center p-3 rounded-lg bg-green-500/10 border border-green-500/20">
               <div className="text-xl font-bold text-green-600 dark:text-green-400">
                 {relatorio.alunosPorDesempenho.excelente}

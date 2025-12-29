@@ -23,10 +23,9 @@ export function QuestaoDissertativa({
   const maxCaracteres = 1000
 
   useEffect(() => {
-    if (respostaAtual) {
-      setResposta(respostaAtual)
-    }
-  }, [respostaAtual])
+    // Resetar o estado quando a questão mudar ou quando respostaAtual mudar
+    setResposta(respostaAtual || "")
+  }, [questao.id, respostaAtual])
 
   const handleEnviar = () => {
     if (resposta.trim().length > 0 && resposta.length <= maxCaracteres) {
@@ -36,21 +35,16 @@ export function QuestaoDissertativa({
 
   return (
     <Card>
-      <CardHeader>
-        <div className="flex items-start justify-between gap-4">
-          <CardTitle className="text-lg flex-1">{questao.enunciado}</CardTitle>
-          <Badge variant="outline">Dissertativa</Badge>
+      <CardHeader className="pb-3">
+        <div className="flex items-start justify-between gap-3">
+          <CardTitle className="text-base flex-1">{questao.enunciado}</CardTitle>
+          <Badge variant="outline" className="text-xs">Dissertativa</Badge>
         </div>
-        {questao.habilidade && (
-          <div className="text-sm text-muted-foreground mt-2">
-            Habilidade: {questao.habilidade}
-          </div>
-        )}
-        <CardDescription className="mt-2">
+        <CardDescription className="mt-1.5 text-xs">
           Escreva sua resposta abaixo. A correção será feita automaticamente por IA.
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-3 pt-0">
         <div className="space-y-2">
           <Textarea
             value={resposta}

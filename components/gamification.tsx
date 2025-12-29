@@ -16,15 +16,15 @@ export function Gamification({ gamificacao }: GamificationProps) {
     : 0
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base font-semibold flex items-center gap-2">
-            <Trophy className="h-4 w-4 text-primary" />
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm font-semibold flex items-center gap-1.5">
+            <Trophy className="h-3.5 w-3.5 text-primary" />
             Nível {gamificacao.nivel}
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-3">
           <div className="space-y-2">
             <div className="flex items-center justify-between text-sm">
               <span className="text-muted-foreground">Experiência</span>
@@ -59,27 +59,27 @@ export function Gamification({ gamificacao }: GamificationProps) {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3 pt-2 border-t">
+          <div className="grid grid-cols-2 gap-2 pt-2 border-t">
             <div className="text-center">
-              <div className="text-lg font-semibold">{gamificacao.progresso.tarefasCompletas}</div>
-              <div className="text-xs text-muted-foreground mt-0.5">Tarefas</div>
+              <div className="text-base font-semibold">{gamificacao.progresso.tarefasCompletas}</div>
+              <div className="text-xs text-muted-foreground">Tarefas</div>
             </div>
             <div className="text-center">
-              <div className="text-lg font-semibold">{taxaAcerto}%</div>
-              <div className="text-xs text-muted-foreground mt-0.5">Taxa de acerto</div>
+              <div className="text-base font-semibold">{taxaAcerto}%</div>
+              <div className="text-xs text-muted-foreground">Taxa de acerto</div>
             </div>
           </div>
         </CardContent>
       </Card>
 
       <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base font-semibold flex items-center gap-2">
-            <Zap className="h-4 w-4 text-primary" />
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm font-semibold flex items-center gap-1.5">
+            <Zap className="h-3.5 w-3.5 text-primary" />
             Sistema de Pontos
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-2.5">
+        <CardContent className="space-y-2">
           <div className="flex items-center justify-between text-sm p-2 bg-muted/30 rounded">
             <span className="text-muted-foreground">Tarefa concluída</span>
             <span className="font-semibold">+{gamificacao.pontosPorTarefa} XP</span>
