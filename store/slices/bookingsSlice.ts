@@ -1,5 +1,5 @@
 import { createAsyncThunk, createSlice, PayloadAction } from "@reduxjs/toolkit"
-import { bookingsApi, Booking, BookingsResponse } from "@/lib/api/bookings"
+import { getStudentBookings, Booking, BookingsResponse } from "@/lib/api/bookings"
 import { ApiError } from "@/lib/api/client"
 
 interface BookingsState {
@@ -28,15 +28,18 @@ const initialState: BookingsState = {
 // Async thunks
 export const fetchStudentBookings = createAsyncThunk<
   BookingsResponse,
-  { page?: number; limit?: number },
+  { userId: string; page?: number; limit?: number },
   { rejectValue: ApiError }
 >(
   "bookings/fetchStudentBookings",
-  async ({ page = 1, limit = 10 }, { rejectWithValue }) => {
+  async ({ userId, page = 1, limit = 10 }, { rejectWithValue }) => {
     try {
-      const response = await bookingsApi.getStudentBookings(page, limit)
+      console.log("Buscando bookings para userId:", userId, "page:", page, "limit:", limit)
+      const response = await getStudentBookings(userId, page, limit)
+      console.log("Bookings recebidos:", response)
       return response
-    } catch (error) {
+    } catch (error: any) {
+      console.error("Erro ao buscar bookings:", error)
       return rejectWithValue(error as ApiError)
     }
   }
@@ -83,4 +86,3 @@ const bookingsSlice = createSlice({
 
 export const { setPage, setLimit, clearError, clearBookings } = bookingsSlice.actions
 export default bookingsSlice.reducer
-

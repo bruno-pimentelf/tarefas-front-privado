@@ -6,18 +6,26 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
 import { TarefaCard } from "@/components/tarefa-card"
 import { RealizarTarefa } from "@/components/realizar-tarefa"
+import { RealizarAvaliacao } from "@/components/realizar-avaliacao"
+import { BookingDetalhes } from "@/components/booking-detalhes"
 import { useAppDispatch, useAppSelector } from "@/store/hooks"
 import { fetchStudentBookings, setPage } from "@/store/slices/bookingsSlice"
 import { bookingToTarefa } from "@/lib/api/utils"
 import { Tarefa } from "@/lib/types"
+import { Booking } from "@/lib/api/bookings"
+import { Admission } from "@/lib/api/admissions"
+import { useAuth } from "@/contexts/auth-context"
 import { Loader2, AlertCircle, ChevronLeft, ChevronRight } from "lucide-react"
 
 export function AlunoDashboard() {
+  const { currentUser } = useAuth()
   const dispatch = useAppDispatch()
   const { items: bookings, meta, loading, error, currentPage, limit } = useAppSelector(
     (state) => state.bookings
   )
   const [tarefaSelecionada, setTarefaSelecionada] = useState<Tarefa | null>(null)
+  const [bookingSelecionado, setBookingSelecionado] = useState<Booking | null>(null)
+  const [admissionEmAndamento, setAdmissionEmAndamento] = useState<Admission | null>(null)
 
   // Converter bookings para tarefas
   const tarefas = bookings.map(bookingToTarefa)
@@ -25,14 +33,71 @@ export function AlunoDashboard() {
   const tarefasConcluidas = tarefas.filter((t) => t.status === "finalizada")
   const tarefasAgendadas = tarefas.filter((t) => t.status === "agendada")
 
+  // ID do aluno (mock para testes)
+  const studentId = "student-001"
+
   // Carregar bookings ao montar o componente
   useEffect(() => {
-    dispatch(fetchStudentBookings({ page: currentPage, limit }))
-  }, [dispatch, currentPage, limit])
+    if (currentUser) {
+      dispatch(fetchStudentBookings({ userId: studentId, page: currentPage, limit }))
+    }
+  }, [dispatch, currentUser, currentPage, limit])
 
   const handlePageChange = (newPage: number) => {
-    dispatch(setPage(newPage))
-    dispatch(fetchStudentBookings({ page: newPage, limit }))
+    if (currentUser) {
+      dispatch(setPage(newPage))
+      dispatch(fetchStudentBookings({ userId: studentId, page: newPage, limit }))
+    }
+  }
+
+  // Handler para abrir detalhes do booking
+  const handleAbrirBooking = (tarefaId: string) => {
+    const booking = bookings.find((b) => b.id.toString() === tarefaId)
+    if (booking) {
+      setBookingSelecionado(booking)
+    }
+  }
+
+  // Handler para iniciar avaliação
+  const handleIniciarAvaliacao = (admission: Admission) => {
+    setAdmissionEmAndamento(admission)
+    // TODO: Implementar componente de realizar avaliação
+  }
+
+  // Se estiver fazendo uma avaliação
+  if (admissionEmAndamento) {
+    return (
+      <RealizarAvaliacao
+        admission={admissionEmAndamento}
+        userId={studentId}
+        onVoltar={() => {
+          setAdmissionEmAndamento(null)
+          // Recarrega o booking para ver status atualizado
+          if (bookingSelecionado) {
+            setBookingSelecionado({ ...bookingSelecionado })
+          }
+        }}
+        onConcluir={() => {
+          setAdmissionEmAndamento(null)
+          setBookingSelecionado(null)
+          // Recarrega bookings para ver status atualizado
+          dispatch(fetchStudentBookings({ userId: studentId, page: currentPage, limit }))
+        }}
+      />
+    )
+  }
+
+  // Se estiver visualizando detalhes de um booking
+  if (bookingSelecionado) {
+    return (
+      <BookingDetalhes
+        booking={bookingSelecionado}
+        userId={studentId}
+        userRole="aluno"
+        onVoltar={() => setBookingSelecionado(null)}
+        onIniciarAvaliacao={handleIniciarAvaliacao}
+      />
+    )
   }
 
   if (tarefaSelecionada) {
@@ -73,7 +138,7 @@ export function AlunoDashboard() {
                 <p className="text-xs text-muted-foreground mt-1">{error}</p>
               </div>
               <Button
-                onClick={() => dispatch(fetchStudentBookings({ page: currentPage, limit }))}
+                onClick={() => currentUser && dispatch(fetchStudentBookings({ userId: studentId, page: currentPage, limit }))}
                 size="sm"
                 variant="outline"
               >
@@ -90,9 +155,15 @@ export function AlunoDashboard() {
     <div className="container mx-auto px-4 py-4 max-w-7xl">
       <Tabs defaultValue="ativas" className="space-y-3">
         <TabsList>
-          <TabsTrigger value="ativas">Ativas</TabsTrigger>
-          <TabsTrigger value="agendadas">Agendadas</TabsTrigger>
-          <TabsTrigger value="concluidas">Concluídas</TabsTrigger>
+          <TabsTrigger value="ativas">
+            Ativas {tarefasAtivas.length > 0 && `(${tarefasAtivas.length})`}
+          </TabsTrigger>
+          <TabsTrigger value="agendadas">
+            Agendadas {tarefasAgendadas.length > 0 && `(${tarefasAgendadas.length})`}
+          </TabsTrigger>
+          <TabsTrigger value="concluidas">
+            Concluídas {tarefasConcluidas.length > 0 && `(${tarefasConcluidas.length})`}
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="ativas" className="space-y-3 mt-3">
@@ -114,7 +185,7 @@ export function AlunoDashboard() {
                   key={tarefa.id}
                   tarefa={tarefa}
                   role="aluno"
-                  onIniciar={() => setTarefaSelecionada(tarefa)}
+                  onIniciar={() => handleAbrirBooking(tarefa.id)}
                 />
               ))}
             </div>
@@ -140,6 +211,7 @@ export function AlunoDashboard() {
                   key={tarefa.id}
                   tarefa={tarefa}
                   role="aluno"
+                  onIniciar={() => handleAbrirBooking(tarefa.id)}
                 />
               ))}
             </div>
@@ -166,6 +238,7 @@ export function AlunoDashboard() {
                   tarefa={tarefa}
                   role="aluno"
                   concluida={true}
+                  onIniciar={() => handleAbrirBooking(tarefa.id)}
                 />
               ))}
             </div>
@@ -206,4 +279,3 @@ export function AlunoDashboard() {
     </div>
   )
 }
-

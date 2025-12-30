@@ -11,17 +11,22 @@ import { LogOut, Trophy, AlertCircle, BarChart3 } from "lucide-react"
 import { GamificationDialog } from "@/components/gamification-dialog"
 import { DiagnosticoDialog } from "@/components/diagnostico-dialog"
 import { EstatisticasDialog } from "@/components/estatisticas-dialog"
-import { mockGamificacao, mockDiagnosticoAluno, mockTarefas } from "@/lib/mock-data"
+import { mockGamificacao, mockDiagnosticoAluno } from "@/lib/mock-data"
 import { useAuth } from "@/contexts/auth-context"
+import { useAppSelector } from "@/store/hooks"
+import { bookingToTarefa } from "@/lib/api/utils"
 
 export default function Home() {
   const { currentUser, logout } = useAuth()
+  const { items: bookings } = useAppSelector((state) => state.bookings)
   const [perfilSelecionado, setPerfilSelecionado] = useState<UserRole | null>(null)
   const [showGamificacao, setShowGamificacao] = useState(false)
   const [showDiagnostico, setShowDiagnostico] = useState(false)
   const [showEstatisticas, setShowEstatisticas] = useState(false)
   
-  const tarefasAtivas = mockTarefas.filter((t) => t.status === "ativa").length
+  // Calcular tarefas ativas a partir dos bookings da API
+  const tarefas = bookings.map(bookingToTarefa)
+  const tarefasAtivas = tarefas.filter((t) => t.status === "ativa").length
 
   const handleSelectProfile = (role: UserRole) => {
     setPerfilSelecionado(role)
