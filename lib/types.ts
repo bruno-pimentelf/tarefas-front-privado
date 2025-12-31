@@ -17,7 +17,7 @@ export interface Questao {
   id: string;
   enunciado: string;
   tipo: TipoQuestao;
-  componente: ComponenteCurricular;
+  componente?: ComponenteCurricular;
   alternativas?: string[];
   respostaCorreta?: string;
   modeloReferencia?: string;
@@ -29,7 +29,7 @@ export interface Tarefa {
   id: string;
   titulo: string;
   descricao?: string;
-  componente: ComponenteCurricular;
+  componente?: ComponenteCurricular;
   questoes: Questao[];
   professorId: string;
   professorNome: string;

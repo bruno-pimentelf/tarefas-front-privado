@@ -148,9 +148,11 @@ export function RealizarTarefa({ tarefa, onVoltar, onConcluir }: RealizarTarefaP
           <ArrowLeft className="h-3.5 w-3.5" />
           Voltar
         </Button>
-        <Badge className={getComponenteColor(tarefa.componente)}>
-          {tarefa.componente}
-        </Badge>
+        {tarefa.componente && (
+          <Badge className={getComponenteColor(tarefa.componente)}>
+            {tarefa.componente}
+          </Badge>
+        )}
       </div>
 
       <Card>

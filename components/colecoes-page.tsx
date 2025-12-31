@@ -23,8 +23,8 @@ import {
   deleteCollection,
   removeQuestionsFromCollection,
 } from "@/lib/api"
+import { HtmlRenderer } from "@/components/html-renderer"
 import {
-  ArrowLeft,
   FolderOpen,
   Eye,
   Trash2,
@@ -284,33 +284,6 @@ export function ColecoesPage({ onVoltar }: ColecoesPageProps) {
 
   return (
     <div className="container mx-auto px-4 py-4 max-w-7xl">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" onClick={onVoltar} size="sm" className="gap-1.5 h-8">
-            <ArrowLeft className="h-3.5 w-3.5" />
-            Voltar
-          </Button>
-          <div className="flex items-center gap-2">
-            <FolderOpen className="h-5 w-5 text-primary" />
-            <h1 className="text-lg font-semibold">Minhas Coleções</h1>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => carregarColecoes()}
-            disabled={colecoesLoading}
-            className="h-8 w-8 p-0"
-          >
-            <RefreshCw className={cn("h-4 w-4", colecoesLoading && "animate-spin")} />
-          </Button>
-          <Badge variant="outline" className="text-sm px-3 py-1">
-            {colecoesPagination.total} coleção(ões)
-          </Badge>
-        </div>
-      </div>
 
       {/* Content */}
       {colecoesLoading ? (
@@ -578,9 +551,9 @@ export function ColecoesPage({ onVoltar }: ColecoesPageProps) {
                                 )}
                               </div>
                               <p className="text-sm font-medium mb-1">{questao.name}</p>
-                              <div
+                              <HtmlRenderer
+                                html={questao.content}
                                 className="text-sm text-muted-foreground line-clamp-2"
-                                dangerouslySetInnerHTML={{ __html: questao.content }}
                               />
                             </div>
                             <div className="flex items-center gap-1 shrink-0">
@@ -697,10 +670,7 @@ export function ColecoesPage({ onVoltar }: ColecoesPageProps) {
                 <DialogTitle className="text-base mt-3">{questaoPreview.name}</DialogTitle>
               </DialogHeader>
               <div className="space-y-4 py-2">
-                <div
-                  className="prose prose-sm max-w-none"
-                  dangerouslySetInnerHTML={{ __html: questaoPreview.content }}
-                />
+                <HtmlRenderer html={questaoPreview.content} className="prose prose-sm max-w-none" />
 
                 {isObjectiveQuestion(questaoPreview) && (
                   <div className="space-y-2">
@@ -721,7 +691,7 @@ export function ColecoesPage({ onVoltar }: ColecoesPageProps) {
                             <div className="flex items-start gap-2">
                               <span className="font-medium">{String.fromCharCode(65 + index)}.</span>
                               <div className="flex-1">
-                                <span dangerouslySetInnerHTML={{ __html: alt.content }} />
+                                <HtmlRenderer html={alt.content} />
                               </div>
                               {alt.isCorrect && (
                                 <Badge className="bg-green-600 text-xs shrink-0">Correta</Badge>

@@ -23,6 +23,11 @@ export {
   getQuestionsByIds,
 } from "./questions"
 
+// Re-export Matrices API functions
+export {
+  getMatrices,
+} from "./matrices"
+
 // Re-export Bookings API functions and types
 export {
   getTeacherClasses,

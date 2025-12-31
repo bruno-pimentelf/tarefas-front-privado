@@ -28,6 +28,9 @@ export interface Booking {
   timezone?: string
   createdAt: string
   updatedAt: string
+  // Novos campos retornados pela API
+  totalQuestions?: number
+  status?: "not_started" | "in_progress" | "finished"
 }
 
 export interface BookingsResponse {

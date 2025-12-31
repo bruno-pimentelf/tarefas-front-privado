@@ -27,6 +27,7 @@ import {
   FileText,
   Save,
 } from "lucide-react"
+import { HtmlRenderer } from "@/components/html-renderer"
 import {
   Admission,
   ExamQuestion,
@@ -608,9 +609,9 @@ export function RealizarAvaliacao({
             // Questão
             <div className="space-y-4">
               {/* Enunciado */}
-              <div
+              <HtmlRenderer
+                html={questaoAtualObj.content || questaoAtualObj.name}
                 className="prose prose-sm dark:prose-invert max-w-none"
-                dangerouslySetInnerHTML={{ __html: questaoAtualObj.content || questaoAtualObj.name }}
               />
 
               {/* Alternativas ou campo dissertativo */}
@@ -627,10 +628,7 @@ export function RealizarAvaliacao({
                           : "border-border hover:border-primary/50 hover:bg-muted/50"
                       }`}
                     >
-                      <div
-                        className="text-sm"
-                        dangerouslySetInnerHTML={{ __html: alt.content }}
-                      />
+                      <HtmlRenderer html={alt.content} className="text-sm" />
                     </button>
                   ))}
                 </div>

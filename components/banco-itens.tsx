@@ -7,6 +7,13 @@ import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -19,9 +26,11 @@ import {
   QuestionsSearchFilters,
   searchQuestions,
   createCollection,
+  getMatrices,
+  MatrixItem,
 } from "@/lib/api"
+import { HtmlRenderer } from "@/components/html-renderer"
 import {
-  ArrowLeft,
   Plus,
   FolderPlus,
   Check,
@@ -33,17 +42,24 @@ import {
   ChevronLeft,
   ChevronRight,
   RefreshCw,
-  FolderOpen,
   Layers,
+  Filter,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 interface BancoItensProps {
   onVoltar: () => void
   onAbrirColecoes: () => void
+  onDataUpdate?: (data: { total: number; selected: number; loading: boolean }) => void
+  refreshTrigger?: number
 }
 
-export function BancoItens({ onVoltar, onAbrirColecoes }: BancoItensProps) {
+export function BancoItens({ 
+  onVoltar, 
+  onAbrirColecoes,
+  onDataUpdate,
+  refreshTrigger = 0,
+}: BancoItensProps) {
   // Estado das questões da API
   const [questoes, setQuestoes] = useState<Question[]>([])
   const [questoesLoading, setQuestoesLoading] = useState(true)
@@ -65,6 +81,27 @@ export function BancoItens({ onVoltar, onAbrirColecoes }: BancoItensProps) {
   const [questaoPreview, setQuestaoPreview] = useState<Question | null>(null)
   const [operacaoEmAndamento, setOperacaoEmAndamento] = useState(false)
 
+  // Estados para matrizes
+  const [matrizes, setMatrizes] = useState<MatrixItem[]>([])
+  const [matrizesLoading, setMatrizesLoading] = useState(false)
+  const [matrizesSelecionadas, setMatrizesSelecionadas] = useState<string[]>([])
+  const [showFiltroMatrizes, setShowFiltroMatrizes] = useState(false)
+  const [termoBuscaMatriz, setTermoBuscaMatriz] = useState("")
+
+  // Função para carregar matrizes
+  const carregarMatrizes = useCallback(async (term?: string) => {
+    setMatrizesLoading(true)
+    try {
+      const matrizesData = await getMatrices(term)
+      setMatrizes(matrizesData)
+    } catch (error: any) {
+      console.error("Erro ao carregar matrizes:", error)
+      setMatrizes([])
+    } finally {
+      setMatrizesLoading(false)
+    }
+  }, [])
+
   // Função para carregar questões
   const carregarQuestoes = useCallback(async () => {
     setQuestoesLoading(true)
@@ -84,6 +121,11 @@ export function BancoItens({ onVoltar, onAbrirColecoes }: BancoItensProps) {
         filters.content = filtroConteudo.trim()
       }
 
+      // Filtro por matrizes - concatena os IDs com §
+      if (matrizesSelecionadas.length > 0) {
+        filters.matrixValue = matrizesSelecionadas.join("§")
+      }
+
       const response = await searchQuestions(filters)
       setQuestoes(response.items)
       setQuestoesPagination((prev) => ({
@@ -96,12 +138,37 @@ export function BancoItens({ onVoltar, onAbrirColecoes }: BancoItensProps) {
     } finally {
       setQuestoesLoading(false)
     }
-  }, [questoesPagination.page, questoesPagination.limit, filtroStatus, filtroConteudo])
+  }, [questoesPagination.page, questoesPagination.limit, filtroStatus, filtroConteudo, matrizesSelecionadas])
+
+  // Carregar matrizes quando abrir o dialog
+  useEffect(() => {
+    if (showFiltroMatrizes && matrizes.length === 0) {
+      carregarMatrizes()
+    }
+  }, [showFiltroMatrizes, carregarMatrizes, matrizes.length])
 
   // Carregar dados iniciais
   useEffect(() => {
     carregarQuestoes()
   }, [carregarQuestoes])
+
+  // Notificar mudanças de dados
+  useEffect(() => {
+    if (onDataUpdate) {
+      onDataUpdate({
+        total: questoesPagination.total,
+        selected: questoesSelecionadas.size,
+        loading: questoesLoading,
+      })
+    }
+  }, [questoesPagination.total, questoesSelecionadas.size, questoesLoading, onDataUpdate])
+
+  // Trigger de refresh externo
+  useEffect(() => {
+    if (refreshTrigger > 0) {
+      carregarQuestoes()
+    }
+  }, [refreshTrigger, carregarQuestoes])
 
   // Handlers de paginação
   const handlePaginaQuestoes = (novaPagina: number) => {
@@ -112,6 +179,27 @@ export function BancoItens({ onVoltar, onAbrirColecoes }: BancoItensProps) {
   const handleAplicarFiltros = () => {
     setQuestoesPagination((prev) => ({ ...prev, page: 1 }))
     carregarQuestoes()
+  }
+
+  // Handler para adicionar/remover matriz
+  const handleToggleMatriz = (matrizId: string) => {
+    setMatrizesSelecionadas((prev) => {
+      if (prev.includes(matrizId)) {
+        return prev.filter((id) => id !== matrizId)
+      } else {
+        return [...prev, matrizId]
+      }
+    })
+  }
+
+  // Handler para limpar filtro de matrizes
+  const handleLimparMatrizes = () => {
+    setMatrizesSelecionadas([])
+  }
+
+  // Handler para buscar matrizes por termo
+  const handleBuscarMatrizes = () => {
+    carregarMatrizes(termoBuscaMatriz.trim() || undefined)
   }
 
   const handleToggleQuestao = (questaoId: number, e?: React.MouseEvent) => {
@@ -185,51 +273,9 @@ export function BancoItens({ onVoltar, onAbrirColecoes }: BancoItensProps) {
 
   return (
     <div className="container mx-auto px-4 py-4 max-w-7xl">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <Button variant="ghost" onClick={onVoltar} size="sm" className="gap-1.5 h-8">
-            <ArrowLeft className="h-3.5 w-3.5" />
-            Voltar
-          </Button>
-          <h1 className="text-sm font-semibold">Banco de Itens</h1>
-        </div>
-        <Button
-          variant="outline"
-          onClick={onAbrirColecoes}
-          size="default"
-          className="gap-1.5 h-8"
-        >
-          <FolderOpen className="h-3.5 w-3.5" />
-          Ver Coleções
-        </Button>
-      </div>
-
       {/* Main Content */}
       <Card>
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between gap-3">
-            <CardTitle className="text-sm font-semibold">Questões Disponíveis</CardTitle>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => carregarQuestoes()}
-                disabled={questoesLoading}
-                className="h-7 w-7 p-0"
-              >
-                <RefreshCw className={cn("h-3.5 w-3.5", questoesLoading && "animate-spin")} />
-              </Button>
-              <Badge variant="outline" className="text-xs">
-                {questoesPagination.total} questões
-              </Badge>
-              {questoesSelecionadas.size > 0 && (
-                <Badge className="text-xs">{questoesSelecionadas.size} selecionada(s)</Badge>
-              )}
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-3">
+        <CardContent className="space-y-3 pt-6">
           {/* Filtros */}
           <div className="flex items-center gap-2 flex-wrap">
             <Tabs
@@ -266,12 +312,37 @@ export function BancoItens({ onVoltar, onAbrirColecoes }: BancoItensProps) {
               <Button
                 variant="outline"
                 size="sm"
+                onClick={() => setShowFiltroMatrizes(true)}
+                className="h-8 text-xs gap-1.5"
+              >
+                <Filter className="h-3 w-3" />
+                Matrizes
+                {matrizesSelecionadas.length > 0 && (
+                  <Badge variant="secondary" className="ml-1 text-xs h-4 px-1">
+                    {matrizesSelecionadas.length}
+                  </Badge>
+                )}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={handleAplicarFiltros}
                 className="h-8 text-xs"
               >
                 Buscar
               </Button>
             </div>
+            {matrizesSelecionadas.length > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleLimparMatrizes}
+                className="h-8 text-xs gap-1.5"
+              >
+                <X className="h-3 w-3" />
+                Limpar filtro de matrizes
+              </Button>
+            )}
             {questoesSelecionadas.size > 0 && (
               <Button
                 variant="ghost"
@@ -311,13 +382,13 @@ export function BancoItens({ onVoltar, onAbrirColecoes }: BancoItensProps) {
                     <Card
                       key={questao.id}
                       className={cn(
-                        "cursor-pointer transition-all hover:shadow-md",
+                        "flex flex-col cursor-pointer transition-all hover:shadow-md",
                         isSelecionada && "border-primary bg-primary/5 ring-2 ring-primary/20"
                       )}
                       onClick={() => setQuestaoPreview(questao)}
                     >
-                      <CardContent className="p-4">
-                        <div className="space-y-3">
+                      <CardContent className="p-4 flex-1 flex flex-col">
+                        <div className="space-y-3 flex-1 flex flex-col">
                           <div className="flex items-start justify-between gap-2">
                             <div className="flex items-center gap-1.5 flex-wrap flex-1">
                               <Badge
@@ -353,16 +424,30 @@ export function BancoItens({ onVoltar, onAbrirColecoes }: BancoItensProps) {
                               )}
                             </div>
                           </div>
-                          <div className="space-y-1">
+                          <div className="space-y-1 flex-1">
                             <p className="text-xs font-medium text-muted-foreground">
                               {questao.name}
                             </p>
-                            <div
+                            <HtmlRenderer
+                              html={questao.content}
                               className="text-sm leading-relaxed line-clamp-3"
-                              dangerouslySetInnerHTML={{ __html: questao.content }}
                             />
+                            {questao.matrixPopulated && questao.matrixPopulated.length > 0 && (
+                              <div className="flex flex-wrap gap-1 pt-1">
+                                {questao.matrixPopulated.slice(0, 2).map((matrix) => (
+                                  <Badge key={matrix.id} variant="outline" className="text-xs">
+                                    {matrix.acronym}
+                                  </Badge>
+                                ))}
+                                {questao.matrixPopulated.length > 2 && (
+                                  <Badge variant="outline" className="text-xs">
+                                    +{questao.matrixPopulated.length - 2}
+                                  </Badge>
+                                )}
+                              </div>
+                            )}
                           </div>
-                          <div className="flex items-center gap-2 pt-2 border-t">
+                          <div className="flex items-center gap-2 pt-2 border-t mt-auto">
                             <Button
                               variant="ghost"
                               size="sm"
@@ -601,10 +686,7 @@ export function BancoItens({ onVoltar, onAbrirColecoes }: BancoItensProps) {
               </DialogHeader>
               <div className="space-y-4 py-2">
                 {/* Conteúdo da questão */}
-                <div
-                  className="prose prose-sm max-w-none"
-                  dangerouslySetInnerHTML={{ __html: questaoPreview.content }}
-                />
+                <HtmlRenderer html={questaoPreview.content} className="prose prose-sm max-w-none" />
 
                 {/* Textos base */}
                 {questaoPreview.baseTexts && questaoPreview.baseTexts.length > 0 && (
@@ -612,7 +694,7 @@ export function BancoItens({ onVoltar, onAbrirColecoes }: BancoItensProps) {
                     <p className="text-xs font-medium text-muted-foreground">Textos base:</p>
                     {questaoPreview.baseTexts.map((text, index) => (
                       <div key={index} className="p-3 bg-muted/30 rounded border text-sm">
-                        <div dangerouslySetInnerHTML={{ __html: text.content }} />
+                        <HtmlRenderer html={text.content} />
                         {text.image && (
                           <img
                             src={text.image}
@@ -645,7 +727,7 @@ export function BancoItens({ onVoltar, onAbrirColecoes }: BancoItensProps) {
                             <div className="flex items-start gap-2">
                               <span className="font-medium">{String.fromCharCode(65 + index)}.</span>
                               <div className="flex-1">
-                                <span dangerouslySetInnerHTML={{ __html: alt.content }} />
+                                <HtmlRenderer html={alt.content} />
                                 {alt.image && (
                                   <img
                                     src={alt.image}
@@ -734,6 +816,106 @@ export function BancoItens({ onVoltar, onAbrirColecoes }: BancoItensProps) {
               </div>
             </>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog de filtro de matrizes */}
+      <Dialog open={showFiltroMatrizes} onOpenChange={setShowFiltroMatrizes}>
+        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-base">Filtrar por Matrizes de Conhecimento</DialogTitle>
+            <DialogDescription className="text-xs">
+              Selecione as matrizes para filtrar as questões
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            {/* Campo de busca */}
+            <div className="flex items-center gap-2">
+              <Input
+                placeholder="Buscar matriz por termo..."
+                value={termoBuscaMatriz}
+                onChange={(e) => setTermoBuscaMatriz(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleBuscarMatrizes()}
+                className="h-9 text-sm flex-1"
+              />
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleBuscarMatrizes}
+                disabled={matrizesLoading}
+                className="h-9"
+              >
+                {matrizesLoading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  "Buscar"
+                )}
+              </Button>
+            </div>
+            {matrizesLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : matrizes.length === 0 ? (
+              <div className="text-center py-8">
+                <p className="text-sm text-muted-foreground">
+                  {termoBuscaMatriz 
+                    ? "Nenhuma matriz encontrada para este termo" 
+                    : "Digite um termo para buscar matrizes"}
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-2 max-h-96 overflow-y-auto">
+                {matrizes.map((matriz) => {
+                  const isSelecionada = matrizesSelecionadas.includes(matriz.id)
+                  return (
+                    <div
+                      key={matriz.id}
+                      className={cn(
+                        "flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-all hover:bg-muted/50",
+                        isSelecionada && "bg-primary/5 border-primary/20 ring-1 ring-primary/20"
+                      )}
+                      onClick={() => handleToggleMatriz(matriz.id)}
+                    >
+                      <div className="shrink-0 mt-0.5">
+                        {isSelecionada ? (
+                          <div className="h-4 w-4 rounded bg-primary flex items-center justify-center">
+                            <Check className="h-3 w-3 text-primary-foreground" />
+                          </div>
+                        ) : (
+                          <div className="h-4 w-4 rounded border-2 border-muted-foreground/30" />
+                        )}
+                      </div>
+                      <div className="flex-1 space-y-1">
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-medium">{matriz.label}</p>
+                          <Badge variant="outline" className="text-xs">
+                            {matriz.acronym}
+                          </Badge>
+                        </div>
+                        {matriz.title && (
+                          <p className="text-xs text-muted-foreground">{matriz.title}</p>
+                        )}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={handleLimparMatrizes}
+              size="sm"
+              disabled={matrizesSelecionadas.length === 0}
+            >
+              Limpar
+            </Button>
+            <Button onClick={() => setShowFiltroMatrizes(false)} size="sm">
+              Aplicar ({matrizesSelecionadas.length})
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

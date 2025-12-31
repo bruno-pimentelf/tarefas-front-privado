@@ -9,7 +9,7 @@ import { RealizarTarefa } from "@/components/realizar-tarefa"
 import { RealizarAvaliacao } from "@/components/realizar-avaliacao"
 import { BookingDetalhes } from "@/components/booking-detalhes"
 import { getStudentBookings } from "@/lib/api/bookings"
-import { bookingToTarefa, getBookingQuestionsCount, isBookingCompleted } from "@/lib/api/utils"
+import { bookingToTarefa } from "@/lib/api/utils"
 import { Tarefa } from "@/lib/types"
 import { Booking } from "@/lib/api/bookings"
 import { Admission } from "@/lib/api/admissions"
@@ -25,17 +25,13 @@ export function AlunoDashboard() {
   const [bookingSelecionado, setBookingSelecionado] = useState<Booking | null>(null)
   const [admissionEmAndamento, setAdmissionEmAndamento] = useState<Admission | null>(null)
 
-  // Estado para armazenar contagens de questões por booking
-  const [questionsCountMap, setQuestionsCountMap] = useState<Map<number, number>>(new Map())
-  // Estado para armazenar status de conclusão por booking
-  const [completedMap, setCompletedMap] = useState<Map<number, boolean>>(new Map())
-
-  // Converter bookings para tarefas usando as contagens de questões e status de conclusão
+  // Converter bookings para tarefas usando os dados que já vêm da API
   // Usando useMemo para garantir recálculo correto quando estados mudam
   const { tarefas, tarefasAtivas, tarefasConcluidas, tarefasAgendadas } = useMemo(() => {
     const allTarefas = bookings.map(booking => {
-      const questionsCount = questionsCountMap.get(booking.id) || 0
-      const isCompleted = completedMap.get(booking.id) || false
+      // Usa os dados que já vêm da API
+      const questionsCount = booking.totalQuestions || 0
+      const isCompleted = booking.status === "finished"
       return bookingToTarefa(booking, questionsCount, isCompleted, false)
     })
     
@@ -44,7 +40,7 @@ export function AlunoDashboard() {
     const agendadas = allTarefas.filter((t) => t.status === "agendada")
     
     return { tarefas: allTarefas, tarefasAtivas: ativas, tarefasConcluidas: concluidas, tarefasAgendadas: agendadas }
-  }, [bookings, questionsCountMap, completedMap])
+  }, [bookings])
 
   // ID do aluno (mock para testes)
   const studentId = "student-001"
@@ -77,33 +73,9 @@ export function AlunoDashboard() {
         })
       }
       
-      // Calcular totais de questões e status de conclusão para cada booking em paralelo ANTES de atualizar o estado
-      const bookingDataPromises = allBookings.map(async (booking) => {
-        try {
-          const [count, completed] = await Promise.all([
-            getBookingQuestionsCount(booking.id, studentId),
-            isBookingCompleted(booking.id, studentId),
-          ])
-          return { bookingId: booking.id, count, completed }
-        } catch (error) {
-          console.error(`Erro ao calcular dados para booking ${booking.id}:`, error)
-          return { bookingId: booking.id, count: 0, completed: false }
-        }
-      })
-
-      const bookingDataResults = await Promise.all(bookingDataPromises)
-      const newQuestionsCountMap = new Map<number, number>()
-      const newCompletedMap = new Map<number, boolean>()
-      
-      bookingDataResults.forEach(({ bookingId, count, completed }) => {
-        newQuestionsCountMap.set(bookingId, count)
-        newCompletedMap.set(bookingId, completed)
-      })
-
-      // Atualizar todos os estados juntos para evitar renderização intermediária
+      // A API agora já retorna totalQuestions e status em cada booking
+      // Não é mais necessário fazer requisições extras
       setBookings(allBookings)
-      setQuestionsCountMap(newQuestionsCountMap)
-      setCompletedMap(newCompletedMap)
     } catch (err: any) {
       const errorMessage = err?.data?.message || err?.message || "Erro ao carregar tarefas"
       setError(errorMessage)

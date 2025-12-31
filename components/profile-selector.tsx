@@ -38,7 +38,8 @@ export function ProfileSelector({ onSelectProfile }: ProfileSelectorProps) {
             <CardContent>
               <Button
                 onClick={() => onSelectProfile("aluno")}
-                className="w-full"
+                variant="ghost"
+                className="w-full border border-primary/15 shadow-[0_0_4px_rgba(59,130,246,0.08)] hover:shadow-[0_0_6px_rgba(59,130,246,0.12)] transition-shadow"
                 size="default"
               >
                 Entrar como Aluno
@@ -61,9 +62,9 @@ export function ProfileSelector({ onSelectProfile }: ProfileSelectorProps) {
             <CardContent>
               <Button
                 onClick={() => onSelectProfile("professor")}
-                className="w-full"
+                variant="ghost"
+                className="w-full border border-primary/15 shadow-[0_0_4px_rgba(59,130,246,0.08)] hover:shadow-[0_0_6px_rgba(59,130,246,0.12)] transition-shadow"
                 size="default"
-                variant="outline"
               >
                 Entrar como Professor
               </Button>

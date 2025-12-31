@@ -30,7 +30,7 @@ export function TarefaCard({
   }
 
   return (
-    <Card className={`transition-all hover:shadow-sm ${concluida ? "opacity-60" : ""}`}>
+    <Card className={`flex flex-col transition-all hover:shadow-sm ${concluida ? "opacity-60" : ""}`}>
       <CardHeader className="pb-2">
         <div className="flex items-start justify-between gap-2">
           <div className="flex-1 min-w-0">
@@ -44,9 +44,11 @@ export function TarefaCard({
             )}
           </div>
           <div className="flex flex-col items-end gap-1 shrink-0">
-            <Badge className={`${getComponenteColor(tarefa.componente)} text-xs`}>
-              {tarefa.componente}
-            </Badge>
+            {tarefa.componente && (
+              <Badge className={`${getComponenteColor(tarefa.componente)} text-xs`}>
+                {tarefa.componente}
+              </Badge>
+            )}
             {tarefa.atrasada && (
               <Badge variant="destructive" className="text-xs gap-1">
                 <AlertCircle className="h-3 w-3" />
@@ -56,7 +58,7 @@ export function TarefaCard({
           </div>
         </div>
       </CardHeader>
-      <CardContent className="space-y-2 pt-0">
+      <CardContent className="space-y-2 pt-0 flex-1">
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
           <Calendar className="h-3.5 w-3.5 shrink-0" />
           <span className="truncate">
@@ -68,22 +70,27 @@ export function TarefaCard({
           <BookOpen className="h-3.5 w-3.5 shrink-0" />
           <span>{tarefa.questoes.length} questões</span>
         </div>
-        {role === "professor" && (
+        {role === "professor" && tarefa.turmaNome && (
           <div className="text-xs text-muted-foreground">
             Turma: {tarefa.turmaNome}
           </div>
         )}
       </CardContent>
       {role === "aluno" && isAtiva && !concluida && (
-        <CardFooter className="pt-2">
-          <Button onClick={onIniciar} className="w-full gap-1.5" size="default">
+        <CardFooter className="pt-2 mt-auto">
+          <Button
+            onClick={onIniciar}
+            variant="ghost"
+            className="w-full gap-1.5 border border-primary/15 shadow-[0_0_4px_rgba(59,130,246,0.08)] hover:shadow-[0_0_6px_rgba(59,130,246,0.12)] transition-shadow"
+            size="default"
+          >
             <Play className="h-3.5 w-3.5" />
             Iniciar Tarefa
           </Button>
         </CardFooter>
       )}
       {role === "professor" && (
-        <CardFooter className="pt-2">
+        <CardFooter className="pt-2 mt-auto">
           <Button onClick={onVerDetalhes} variant="outline" className="w-full" size="default">
             Ver Detalhes e Relatórios
           </Button>

@@ -1,37 +1,33 @@
 "use client"
 
 import { useState, useEffect, useCallback, useMemo } from "react"
+import { useRouter } from "next/navigation"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { TarefaCard } from "@/components/tarefa-card"
 import { RelatorioPedagogico } from "@/components/relatorio-pedagogico"
 import { CriarTarefaDialog } from "@/components/criar-tarefa-dialog"
-import { BancoItens } from "@/components/banco-itens"
-import { ColecoesPage } from "@/components/colecoes-page"
 import { BookingDetalhes } from "@/components/booking-detalhes"
 import { mockRelatorios } from "@/lib/mock-data"
 import { Tarefa, RelatorioPedagogico as RelatorioType } from "@/lib/types"
 import { Plus, Database, Loader2, AlertCircle, RefreshCw } from "lucide-react"
 import { useAuth } from "@/contexts/auth-context"
 import { getStudentBookings, Booking } from "@/lib/api/bookings"
-import { bookingToTarefa, getBookingQuestionsCount } from "@/lib/api/utils"
+import { bookingToTarefa } from "@/lib/api/utils"
 
 export function ProfessorDashboard() {
   const { currentUser } = useAuth()
+  const router = useRouter()
   
   // Estado dos bookings/tarefas da API
   const [bookings, setBookings] = useState<Booking[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  // Estado para armazenar contagens de questões por booking
-  const [questionsCountMap, setQuestionsCountMap] = useState<Map<number, number>>(new Map())
   
   // Estados de UI
   const [relatorios] = useState<RelatorioType[]>(mockRelatorios)
   const [showCriarTarefa, setShowCriarTarefa] = useState(false)
-  const [showBancoItens, setShowBancoItens] = useState(false)
-  const [showColecoes, setShowColecoes] = useState(false)
   const [bookingSelecionado, setBookingSelecionado] = useState<Booking | null>(null)
 
   // ID do professor (mock para testes)
@@ -42,7 +38,8 @@ export function ProfessorDashboard() {
   // Usando useMemo para garantir recálculo correto quando estados mudam
   const { tarefas, tarefasAtivas, tarefasAgendadas, tarefasFinalizadas } = useMemo(() => {
     const allTarefas: Tarefa[] = bookings.map((booking) => {
-      const questionsCount = questionsCountMap.get(booking.id) || 0
+      // Usa os dados que já vêm da API
+      const questionsCount = booking.totalQuestions || 0
       return bookingToTarefa(booking, questionsCount, false, true)
     })
     
@@ -51,7 +48,7 @@ export function ProfessorDashboard() {
     const finalizadas = allTarefas.filter((t) => t.status === "finalizada")
     
     return { tarefas: allTarefas, tarefasAtivas: ativas, tarefasAgendadas: agendadas, tarefasFinalizadas: finalizadas }
-  }, [bookings, questionsCountMap])
+  }, [bookings])
 
   // Função para carregar bookings
   const carregarBookings = useCallback(async () => {
@@ -66,27 +63,9 @@ export function ProfessorDashboard() {
       const response = await getStudentBookings(teacherId, 1, 100)
       const allBookings = response.items || []
 
-      // Calcular totais de questões para cada booking em paralelo ANTES de atualizar o estado
-      // Para professor, não precisamos verificar conclusão (isCompleted sempre false)
-      const questionsCountPromises = allBookings.map(async (booking) => {
-        try {
-          const count = await getBookingQuestionsCount(booking.id, teacherId)
-          return { bookingId: booking.id, count }
-        } catch (error) {
-          console.error(`Erro ao calcular questões para booking ${booking.id}:`, error)
-          return { bookingId: booking.id, count: 0 }
-        }
-      })
-
-      const questionsCounts = await Promise.all(questionsCountPromises)
-      const newQuestionsCountMap = new Map<number, number>()
-      questionsCounts.forEach(({ bookingId, count }) => {
-        newQuestionsCountMap.set(bookingId, count)
-      })
-
-      // Atualizar ambos os estados juntos para evitar renderização intermediária
+      // A API agora já retorna totalQuestions em cada booking
+      // Não é mais necessário fazer requisições extras
       setBookings(allBookings)
-      setQuestionsCountMap(newQuestionsCountMap)
     } catch (err: any) {
       const errorMessage = err?.data?.message || err?.message || "Erro ao carregar tarefas"
       setError(errorMessage)
@@ -127,29 +106,6 @@ export function ProfessorDashboard() {
     )
   }
 
-  if (showBancoItens) {
-    return (
-      <BancoItens
-        onVoltar={() => setShowBancoItens(false)}
-        onAbrirColecoes={() => {
-          setShowBancoItens(false)
-          setShowColecoes(true)
-        }}
-      />
-    )
-  }
-
-  if (showColecoes) {
-    return (
-      <ColecoesPage
-        onVoltar={() => {
-          setShowColecoes(false)
-          setShowBancoItens(true)
-        }}
-      />
-    )
-  }
-
   return (
     <div className="container mx-auto px-4 py-4 max-w-7xl">
       <Tabs defaultValue="ativas" className="space-y-3">
@@ -180,7 +136,7 @@ export function ProfessorDashboard() {
               variant="outline"
               size="default"
               className="gap-1.5"
-              onClick={() => setShowBancoItens(true)}
+              onClick={() => router.push("/professor/banco-itens")}
             >
               <Database className="h-4 w-4" />
               Banco de Itens

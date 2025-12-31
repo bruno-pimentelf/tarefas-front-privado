@@ -7,6 +7,8 @@ import { getCollectionById } from "./collections"
 
 /**
  * Verifica se um booking foi concluído pelo aluno (tem record.finishedAt)
+ * @deprecated A API agora retorna o campo `status` diretamente no booking.
+ * Use `booking.status === "finished"` ao invés desta função.
  */
 export async function isBookingCompleted(
   bookingId: number,
@@ -27,6 +29,10 @@ export async function isBookingCompleted(
   }
 }
 
+/**
+ * @deprecated A API agora retorna o campo `totalQuestions` diretamente no booking.
+ * Use `booking.totalQuestions` ao invés desta função.
+ */
 export async function getBookingQuestionsCount(
   bookingId: number,
   userId: string
@@ -161,14 +167,12 @@ export function bookingToTarefa(
       id: `placeholder-${index}`,
       enunciado: "",
       tipo: "objetiva" as const,
-      componente: "Matemática" as const,
     }))
 
     return {
       id: booking.id.toString(),
       titulo: booking.title,
       descricao: booking.description,
-      componente: "Matemática", // TODO: Adicionar campo na API ou mapear de outra forma
       questoes: questoesArray,
       professorId: "", // TODO: Buscar do booking se necessário
       professorNome: "", // TODO: Buscar do booking se necessário
@@ -185,14 +189,12 @@ export function bookingToTarefa(
       id: `placeholder-${index}`,
       enunciado: "",
       tipo: "objetiva" as const,
-      componente: "Matemática" as const,
     }))
 
     return {
       id: booking.id.toString(),
       titulo: booking.title || "Tarefa sem título",
       descricao: booking.description,
-      componente: "Matemática",
       questoes: questoesArray,
       professorId: "",
       professorNome: "",
