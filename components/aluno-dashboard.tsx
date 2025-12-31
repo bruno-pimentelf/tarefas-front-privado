@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback, useMemo } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
@@ -8,47 +8,116 @@ import { TarefaCard } from "@/components/tarefa-card"
 import { RealizarTarefa } from "@/components/realizar-tarefa"
 import { RealizarAvaliacao } from "@/components/realizar-avaliacao"
 import { BookingDetalhes } from "@/components/booking-detalhes"
-import { useAppDispatch, useAppSelector } from "@/store/hooks"
-import { fetchStudentBookings, setPage } from "@/store/slices/bookingsSlice"
-import { bookingToTarefa } from "@/lib/api/utils"
+import { getStudentBookings } from "@/lib/api/bookings"
+import { bookingToTarefa, getBookingQuestionsCount, isBookingCompleted } from "@/lib/api/utils"
 import { Tarefa } from "@/lib/types"
 import { Booking } from "@/lib/api/bookings"
 import { Admission } from "@/lib/api/admissions"
 import { useAuth } from "@/contexts/auth-context"
-import { Loader2, AlertCircle, ChevronLeft, ChevronRight } from "lucide-react"
+import { Loader2, AlertCircle } from "lucide-react"
 
 export function AlunoDashboard() {
   const { currentUser } = useAuth()
-  const dispatch = useAppDispatch()
-  const { items: bookings, meta, loading, error, currentPage, limit } = useAppSelector(
-    (state) => state.bookings
-  )
+  const [bookings, setBookings] = useState<Booking[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [tarefaSelecionada, setTarefaSelecionada] = useState<Tarefa | null>(null)
   const [bookingSelecionado, setBookingSelecionado] = useState<Booking | null>(null)
   const [admissionEmAndamento, setAdmissionEmAndamento] = useState<Admission | null>(null)
 
-  // Converter bookings para tarefas
-  const tarefas = bookings.map(bookingToTarefa)
-  const tarefasAtivas = tarefas.filter((t) => t.status === "ativa")
-  const tarefasConcluidas = tarefas.filter((t) => t.status === "finalizada")
-  const tarefasAgendadas = tarefas.filter((t) => t.status === "agendada")
+  // Estado para armazenar contagens de questões por booking
+  const [questionsCountMap, setQuestionsCountMap] = useState<Map<number, number>>(new Map())
+  // Estado para armazenar status de conclusão por booking
+  const [completedMap, setCompletedMap] = useState<Map<number, boolean>>(new Map())
+
+  // Converter bookings para tarefas usando as contagens de questões e status de conclusão
+  // Usando useMemo para garantir recálculo correto quando estados mudam
+  const { tarefas, tarefasAtivas, tarefasConcluidas, tarefasAgendadas } = useMemo(() => {
+    const allTarefas = bookings.map(booking => {
+      const questionsCount = questionsCountMap.get(booking.id) || 0
+      const isCompleted = completedMap.get(booking.id) || false
+      return bookingToTarefa(booking, questionsCount, isCompleted, false)
+    })
+    
+    const ativas = allTarefas.filter((t) => t.status === "ativa")
+    const concluidas = allTarefas.filter((t) => t.status === "finalizada")
+    const agendadas = allTarefas.filter((t) => t.status === "agendada")
+    
+    return { tarefas: allTarefas, tarefasAtivas: ativas, tarefasConcluidas: concluidas, tarefasAgendadas: agendadas }
+  }, [bookings, questionsCountMap, completedMap])
 
   // ID do aluno (mock para testes)
   const studentId = "student-001"
 
+  // Função para carregar todos os bookings
+  const carregarBookings = useCallback(async () => {
+    if (!currentUser) return
+
+    setLoading(true)
+    setError(null)
+
+    try {
+      // Carregar primeira página para obter o total
+      const firstPage = await getStudentBookings(studentId, 1, 100)
+      
+      let allBookings = [...(firstPage.items || [])]
+      
+      // Se houver mais páginas, carregar todas
+      if (firstPage.meta && firstPage.meta.totalPages > 1) {
+        const promises = []
+        for (let page = 2; page <= firstPage.meta.totalPages; page++) {
+          promises.push(getStudentBookings(studentId, page, 100))
+        }
+        
+        const remainingPages = await Promise.all(promises)
+        remainingPages.forEach((response) => {
+          if (response.items) {
+            allBookings = [...allBookings, ...response.items]
+          }
+        })
+      }
+      
+      // Calcular totais de questões e status de conclusão para cada booking em paralelo ANTES de atualizar o estado
+      const bookingDataPromises = allBookings.map(async (booking) => {
+        try {
+          const [count, completed] = await Promise.all([
+            getBookingQuestionsCount(booking.id, studentId),
+            isBookingCompleted(booking.id, studentId),
+          ])
+          return { bookingId: booking.id, count, completed }
+        } catch (error) {
+          console.error(`Erro ao calcular dados para booking ${booking.id}:`, error)
+          return { bookingId: booking.id, count: 0, completed: false }
+        }
+      })
+
+      const bookingDataResults = await Promise.all(bookingDataPromises)
+      const newQuestionsCountMap = new Map<number, number>()
+      const newCompletedMap = new Map<number, boolean>()
+      
+      bookingDataResults.forEach(({ bookingId, count, completed }) => {
+        newQuestionsCountMap.set(bookingId, count)
+        newCompletedMap.set(bookingId, completed)
+      })
+
+      // Atualizar todos os estados juntos para evitar renderização intermediária
+      setBookings(allBookings)
+      setQuestionsCountMap(newQuestionsCountMap)
+      setCompletedMap(newCompletedMap)
+    } catch (err: any) {
+      const errorMessage = err?.data?.message || err?.message || "Erro ao carregar tarefas"
+      setError(errorMessage)
+    } finally {
+      setLoading(false)
+    }
+  }, [currentUser, studentId])
+
   // Carregar bookings ao montar o componente
   useEffect(() => {
     if (currentUser) {
-      dispatch(fetchStudentBookings({ userId: studentId, page: currentPage, limit }))
+      carregarBookings()
     }
-  }, [dispatch, currentUser, currentPage, limit])
-
-  const handlePageChange = (newPage: number) => {
-    if (currentUser) {
-      dispatch(setPage(newPage))
-      dispatch(fetchStudentBookings({ userId: studentId, page: newPage, limit }))
-    }
-  }
+  }, [carregarBookings, currentUser])
 
   // Handler para abrir detalhes do booking
   const handleAbrirBooking = (tarefaId: string) => {
@@ -81,7 +150,7 @@ export function AlunoDashboard() {
           setAdmissionEmAndamento(null)
           setBookingSelecionado(null)
           // Recarrega bookings para ver status atualizado
-          dispatch(fetchStudentBookings({ userId: studentId, page: currentPage, limit }))
+          carregarBookings()
         }}
       />
     )
@@ -138,7 +207,7 @@ export function AlunoDashboard() {
                 <p className="text-xs text-muted-foreground mt-1">{error}</p>
               </div>
               <Button
-                onClick={() => currentUser && dispatch(fetchStudentBookings({ userId: studentId, page: currentPage, limit }))}
+                onClick={() => currentUser && carregarBookings()}
                 size="sm"
                 variant="outline"
               >
@@ -245,37 +314,6 @@ export function AlunoDashboard() {
           )}
         </TabsContent>
       </Tabs>
-
-      {/* Paginação */}
-      {meta && meta.totalPages > 1 && (
-        <div className="flex items-center justify-between mt-4 pt-4 border-t">
-          <div className="text-xs text-muted-foreground">
-            Página {meta.page} de {meta.totalPages} • Total: {meta.total} tarefas
-          </div>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handlePageChange(currentPage - 1)}
-              disabled={currentPage === 1 || loading}
-              className="h-8"
-            >
-              <ChevronLeft className="h-3.5 w-3.5" />
-              Anterior
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handlePageChange(currentPage + 1)}
-              disabled={currentPage >= meta.totalPages || loading}
-              className="h-8"
-            >
-              Próxima
-              <ChevronRight className="h-3.5 w-3.5" />
-            </Button>
-          </div>
-        </div>
-      )}
     </div>
   )
 }

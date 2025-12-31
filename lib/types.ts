@@ -38,6 +38,7 @@ export interface Tarefa {
   dataInicio: Date;
   dataFim: Date;
   status: "agendada" | "ativa" | "finalizada";
+  atrasada?: boolean; // true se o prazo expirou mas não foi concluída pelo aluno
 }
 
 export interface Resposta {

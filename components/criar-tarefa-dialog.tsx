@@ -196,6 +196,12 @@ export function CriarTarefaDialog({ open, onOpenChange, onSuccess }: CriarTarefa
       return
     }
 
+    // Validar que pelo menos uma turma foi selecionada
+    if (turmasSelecionadas.length === 0) {
+      setSubmitError("Selecione pelo menos uma turma")
+      return
+    }
+
     setSubmitting(true)
     setSubmitError(null)
 
@@ -209,7 +215,7 @@ export function CriarTarefaDialog({ open, onOpenChange, onSuccess }: CriarTarefa
         available: true,
         startTime: inicio.toISOString(),
         endTime: fim.toISOString(),
-        classIds: [1], // Mock: classId = 1
+        classIds: turmasSelecionadas,
       }
 
       const booking = await createBooking(bookingData)
@@ -363,7 +369,7 @@ export function CriarTarefaDialog({ open, onOpenChange, onSuccess }: CriarTarefa
                 ) : turmas.length === 0 ? (
                   <div className="p-3 bg-muted/30 rounded-lg">
                     <p className="text-xs text-muted-foreground">
-                      Nenhuma turma encontrada. O sistema usará classId = 1 (mock).
+                      Nenhuma turma encontrada. Por favor, adicione turmas ao sistema antes de criar uma tarefa.
                     </p>
                   </div>
                 ) : (

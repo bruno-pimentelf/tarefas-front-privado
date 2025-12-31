@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Tarefa } from "@/lib/types"
-import { Calendar, Clock, BookOpen, Play } from "lucide-react"
+import { Calendar, BookOpen, Play, AlertCircle } from "lucide-react"
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale/pt-BR"
 
@@ -24,8 +24,6 @@ export function TarefaCard({
   concluida = false,
 }: TarefaCardProps) {
   const isAtiva = tarefa.status === "ativa"
-  const isAgendada = tarefa.status === "agendada"
-  const isFinalizada = tarefa.status === "finalizada"
 
   const getComponenteColor = (componente: string) => {
     return componente === "Matemática" ? "bg-blue-500/10 text-blue-700 dark:text-blue-400" : "bg-green-500/10 text-green-700 dark:text-green-400"
@@ -45,9 +43,17 @@ export function TarefaCard({
               </CardDescription>
             )}
           </div>
-          <Badge className={`${getComponenteColor(tarefa.componente)} shrink-0 text-xs`}>
-            {tarefa.componente}
-          </Badge>
+          <div className="flex flex-col items-end gap-1 shrink-0">
+            <Badge className={`${getComponenteColor(tarefa.componente)} text-xs`}>
+              {tarefa.componente}
+            </Badge>
+            {tarefa.atrasada && (
+              <Badge variant="destructive" className="text-xs gap-1">
+                <AlertCircle className="h-3 w-3" />
+                Atrasada
+              </Badge>
+            )}
+          </div>
         </div>
       </CardHeader>
       <CardContent className="space-y-2 pt-0">
@@ -67,28 +73,6 @@ export function TarefaCard({
             Turma: {tarefa.turmaNome}
           </div>
         )}
-        <div className="flex items-center gap-2 pt-1">
-          {isAtiva && (
-            <Badge variant="default" className="bg-green-500/10 text-green-700 dark:text-green-400 text-xs">
-              Ativa
-            </Badge>
-          )}
-          {isAgendada && (
-            <Badge variant="secondary" className="text-xs">
-              Agendada
-            </Badge>
-          )}
-          {isFinalizada && (
-            <Badge variant="outline" className="text-xs">
-              Finalizada
-            </Badge>
-          )}
-          {concluida && (
-            <Badge variant="default" className="bg-primary/10 text-primary text-xs">
-              Concluída
-            </Badge>
-          )}
-        </div>
       </CardContent>
       {role === "aluno" && isAtiva && !concluida && (
         <CardFooter className="pt-2">
@@ -108,4 +92,3 @@ export function TarefaCard({
     </Card>
   )
 }
-

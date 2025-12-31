@@ -117,7 +117,8 @@ export async function getAdmissionsByBookingAndUser(
     )
     return response || []
   } catch (error: any) {
-    if (error?.status === 404) {
+    // Retorna array vazio para erros 404 e 500 (usuário não encontrado ou erro interno)
+    if (error?.status === 404 || error?.status === 500) {
       return []
     }
     throw error

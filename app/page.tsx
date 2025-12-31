@@ -25,7 +25,7 @@ export default function Home() {
   const [showEstatisticas, setShowEstatisticas] = useState(false)
   
   // Calcular tarefas ativas a partir dos bookings da API
-  const tarefas = bookings.map(bookingToTarefa)
+  const tarefas = bookings.map((booking) => bookingToTarefa(booking, 0, false, false))
   const tarefasAtivas = tarefas.filter((t) => t.status === "ativa").length
 
   const handleSelectProfile = (role: UserRole) => {

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useMemo } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -8,13 +8,14 @@ import { TarefaCard } from "@/components/tarefa-card"
 import { RelatorioPedagogico } from "@/components/relatorio-pedagogico"
 import { CriarTarefaDialog } from "@/components/criar-tarefa-dialog"
 import { BancoItens } from "@/components/banco-itens"
+import { ColecoesPage } from "@/components/colecoes-page"
 import { BookingDetalhes } from "@/components/booking-detalhes"
 import { mockRelatorios } from "@/lib/mock-data"
 import { Tarefa, RelatorioPedagogico as RelatorioType } from "@/lib/types"
 import { Plus, Database, Loader2, AlertCircle, RefreshCw } from "lucide-react"
 import { useAuth } from "@/contexts/auth-context"
 import { getStudentBookings, Booking } from "@/lib/api/bookings"
-import { bookingToTarefa } from "@/lib/api/utils"
+import { bookingToTarefa, getBookingQuestionsCount } from "@/lib/api/utils"
 
 export function ProfessorDashboard() {
   const { currentUser } = useAuth()
@@ -23,21 +24,34 @@ export function ProfessorDashboard() {
   const [bookings, setBookings] = useState<Booking[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  // Estado para armazenar contagens de questões por booking
+  const [questionsCountMap, setQuestionsCountMap] = useState<Map<number, number>>(new Map())
   
   // Estados de UI
   const [relatorios] = useState<RelatorioType[]>(mockRelatorios)
   const [showCriarTarefa, setShowCriarTarefa] = useState(false)
   const [showBancoItens, setShowBancoItens] = useState(false)
+  const [showColecoes, setShowColecoes] = useState(false)
   const [bookingSelecionado, setBookingSelecionado] = useState<Booking | null>(null)
-
-  // Converter bookings para tarefas
-  const tarefas: Tarefa[] = bookings.map(bookingToTarefa)
-  const tarefasAtivas = tarefas.filter((t) => t.status === "ativa")
-  const tarefasAgendadas = tarefas.filter((t) => t.status === "agendada")
-  const tarefasFinalizadas = tarefas.filter((t) => t.status === "finalizada")
 
   // ID do professor (mock para testes)
   const teacherId = "teacher-001"
+
+  // Converter bookings para tarefas
+  // Para professor: verifica endTime para determinar status finalizada
+  // Usando useMemo para garantir recálculo correto quando estados mudam
+  const { tarefas, tarefasAtivas, tarefasAgendadas, tarefasFinalizadas } = useMemo(() => {
+    const allTarefas: Tarefa[] = bookings.map((booking) => {
+      const questionsCount = questionsCountMap.get(booking.id) || 0
+      return bookingToTarefa(booking, questionsCount, false, true)
+    })
+    
+    const ativas = allTarefas.filter((t) => t.status === "ativa")
+    const agendadas = allTarefas.filter((t) => t.status === "agendada")
+    const finalizadas = allTarefas.filter((t) => t.status === "finalizada")
+    
+    return { tarefas: allTarefas, tarefasAtivas: ativas, tarefasAgendadas: agendadas, tarefasFinalizadas: finalizadas }
+  }, [bookings, questionsCountMap])
 
   // Função para carregar bookings
   const carregarBookings = useCallback(async () => {
@@ -50,14 +64,36 @@ export function ProfessorDashboard() {
       // TODO: Quando houver endpoint específico para professor, usar aqui
       // Por enquanto, usando o mesmo endpoint do aluno para demonstração
       const response = await getStudentBookings(teacherId, 1, 100)
-      setBookings(response.items || [])
+      const allBookings = response.items || []
+
+      // Calcular totais de questões para cada booking em paralelo ANTES de atualizar o estado
+      // Para professor, não precisamos verificar conclusão (isCompleted sempre false)
+      const questionsCountPromises = allBookings.map(async (booking) => {
+        try {
+          const count = await getBookingQuestionsCount(booking.id, teacherId)
+          return { bookingId: booking.id, count }
+        } catch (error) {
+          console.error(`Erro ao calcular questões para booking ${booking.id}:`, error)
+          return { bookingId: booking.id, count: 0 }
+        }
+      })
+
+      const questionsCounts = await Promise.all(questionsCountPromises)
+      const newQuestionsCountMap = new Map<number, number>()
+      questionsCounts.forEach(({ bookingId, count }) => {
+        newQuestionsCountMap.set(bookingId, count)
+      })
+
+      // Atualizar ambos os estados juntos para evitar renderização intermediária
+      setBookings(allBookings)
+      setQuestionsCountMap(newQuestionsCountMap)
     } catch (err: any) {
       const errorMessage = err?.data?.message || err?.message || "Erro ao carregar tarefas"
       setError(errorMessage)
     } finally {
       setLoading(false)
     }
-  }, [currentUser])
+  }, [currentUser, teacherId])
 
   // Carregar bookings ao montar
   useEffect(() => {
@@ -92,7 +128,26 @@ export function ProfessorDashboard() {
   }
 
   if (showBancoItens) {
-    return <BancoItens onVoltar={() => setShowBancoItens(false)} />
+    return (
+      <BancoItens
+        onVoltar={() => setShowBancoItens(false)}
+        onAbrirColecoes={() => {
+          setShowBancoItens(false)
+          setShowColecoes(true)
+        }}
+      />
+    )
+  }
+
+  if (showColecoes) {
+    return (
+      <ColecoesPage
+        onVoltar={() => {
+          setShowColecoes(false)
+          setShowBancoItens(true)
+        }}
+      />
+    )
   }
 
   return (
