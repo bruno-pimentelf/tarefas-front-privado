@@ -1,13 +1,13 @@
 "use client"
 
 import { useState, useEffect, useCallback, useMemo } from "react"
+import { useRouter } from "next/navigation"
 import { Card, CardContent } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
 import { TarefaCard } from "@/components/tarefa-card"
 import { RealizarTarefa } from "@/components/realizar-tarefa"
 import { RealizarAvaliacao } from "@/components/realizar-avaliacao"
-import { BookingDetalhes } from "@/components/booking-detalhes"
 import { getStudentBookings } from "@/lib/api/bookings"
 import { bookingToTarefa } from "@/lib/api/utils"
 import { Tarefa } from "@/lib/types"
@@ -18,11 +18,11 @@ import { Loader2, AlertCircle } from "lucide-react"
 
 export function AlunoDashboard() {
   const { currentUser } = useAuth()
+  const router = useRouter()
   const [bookings, setBookings] = useState<Booking[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [tarefaSelecionada, setTarefaSelecionada] = useState<Tarefa | null>(null)
-  const [bookingSelecionado, setBookingSelecionado] = useState<Booking | null>(null)
   const [admissionEmAndamento, setAdmissionEmAndamento] = useState<Admission | null>(null)
 
   // Converter bookings para tarefas usando os dados que já vêm da API
@@ -91,12 +91,9 @@ export function AlunoDashboard() {
     }
   }, [carregarBookings, currentUser])
 
-  // Handler para abrir detalhes do booking
-  const handleAbrirBooking = (tarefaId: string) => {
-    const booking = bookings.find((b) => b.id.toString() === tarefaId)
-    if (booking) {
-      setBookingSelecionado(booking)
-    }
+  // Handler para abrir tarefa (navega para rota específica)
+  const handleAbrirTarefa = (tarefaId: string) => {
+    router.push(`/aluno/tarefa/${tarefaId}`)
   }
 
   // Handler para iniciar avaliação
@@ -113,14 +110,11 @@ export function AlunoDashboard() {
         userId={studentId}
         onVoltar={() => {
           setAdmissionEmAndamento(null)
-          // Recarrega o booking para ver status atualizado
-          if (bookingSelecionado) {
-            setBookingSelecionado({ ...bookingSelecionado })
-          }
+          // Recarrega os bookings para ver status atualizado
+          carregarBookings()
         }}
         onConcluir={() => {
           setAdmissionEmAndamento(null)
-          setBookingSelecionado(null)
           // Recarrega bookings para ver status atualizado
           carregarBookings()
         }}
@@ -128,18 +122,6 @@ export function AlunoDashboard() {
     )
   }
 
-  // Se estiver visualizando detalhes de um booking
-  if (bookingSelecionado) {
-    return (
-      <BookingDetalhes
-        booking={bookingSelecionado}
-        userId={studentId}
-        userRole="aluno"
-        onVoltar={() => setBookingSelecionado(null)}
-        onIniciarAvaliacao={handleIniciarAvaliacao}
-      />
-    )
-  }
 
   if (tarefaSelecionada) {
     return (
@@ -226,7 +208,7 @@ export function AlunoDashboard() {
                   key={tarefa.id}
                   tarefa={tarefa}
                   role="aluno"
-                  onIniciar={() => handleAbrirBooking(tarefa.id)}
+                  onIniciar={() => handleAbrirTarefa(tarefa.id)}
                 />
               ))}
             </div>
@@ -252,7 +234,7 @@ export function AlunoDashboard() {
                   key={tarefa.id}
                   tarefa={tarefa}
                   role="aluno"
-                  onIniciar={() => handleAbrirBooking(tarefa.id)}
+                  onIniciar={() => handleAbrirTarefa(tarefa.id)}
                 />
               ))}
             </div>
@@ -279,7 +261,7 @@ export function AlunoDashboard() {
                   tarefa={tarefa}
                   role="aluno"
                   concluida={true}
-                  onIniciar={() => handleAbrirBooking(tarefa.id)}
+                  onIniciar={() => handleAbrirTarefa(tarefa.id)}
                 />
               ))}
             </div>

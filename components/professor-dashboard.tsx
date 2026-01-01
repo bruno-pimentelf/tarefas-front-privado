@@ -28,7 +28,6 @@ export function ProfessorDashboard() {
   // Estados de UI
   const [relatorios] = useState<RelatorioType[]>(mockRelatorios)
   const [showCriarTarefa, setShowCriarTarefa] = useState(false)
-  const [bookingSelecionado, setBookingSelecionado] = useState<Booking | null>(null)
 
   // ID do professor (mock para testes)
   const teacherId = "teacher-001"
@@ -86,25 +85,11 @@ export function ProfessorDashboard() {
     carregarBookings()
   }
 
-  // Handler para ver detalhes do booking
+  // Handler para ver detalhes (navega para rota específica)
   const handleVerDetalhes = (tarefaId: string) => {
-    const booking = bookings.find((b) => b.id.toString() === tarefaId)
-    if (booking) {
-      setBookingSelecionado(booking)
-    }
+    router.push(`/professor/tarefa/${tarefaId}`)
   }
 
-  // Se estiver visualizando detalhes de um booking
-  if (bookingSelecionado) {
-    return (
-      <BookingDetalhes
-        booking={bookingSelecionado}
-        userId={teacherId}
-        userRole="professor"
-        onVoltar={() => setBookingSelecionado(null)}
-      />
-    )
-  }
 
   return (
     <div className="container mx-auto px-4 py-4 max-w-7xl">

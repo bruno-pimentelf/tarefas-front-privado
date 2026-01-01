@@ -748,9 +748,10 @@ export function BancoItens({
                               </div>
                             </div>
                             {alt.contentFeedback && (
-                              <p className="text-xs text-muted-foreground mt-2 pl-6">
-                                Feedback: {alt.contentFeedback}
-                              </p>
+                              <div className="text-xs text-muted-foreground mt-2 pl-6">
+                                <span className="font-medium">Feedback: </span>
+                                <HtmlRenderer html={alt.contentFeedback} />
+                              </div>
                             )}
                           </div>
                         ))}
@@ -763,7 +764,7 @@ export function BancoItens({
                   <div className="space-y-2">
                     <p className="text-xs font-medium text-muted-foreground">Feedback:</p>
                     <div className="p-3 bg-muted/30 rounded border text-sm">
-                      {questaoPreview.feedback}
+                      <HtmlRenderer html={questaoPreview.feedback} />
                     </div>
                   </div>
                 )}

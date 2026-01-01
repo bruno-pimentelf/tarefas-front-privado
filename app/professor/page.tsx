@@ -90,7 +90,7 @@ export default function ProfessorPage() {
         onOpenChange={setShowGamificacao}
         gamificacao={mockGamificacao}
       />
-      <EstatisticasDialog
+      <EstatisticasDialogx1x
         open={showEstatisticas}
         onOpenChange={setShowEstatisticas}
         tarefasAtivas={mockEstatisticas.tarefasAtivas}
