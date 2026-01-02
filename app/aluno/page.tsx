@@ -20,7 +20,7 @@ export default function AlunoPage() {
   const [showDiagnostico, setShowDiagnostico] = useState(false)
 
   // Calcular tarefas ativas a partir dos bookings da API
-  const tarefas = bookings.map((booking) => bookingToTarefa(booking, booking.totalQuestions || 0, false, false))
+  const tarefas = bookings.map((booking) => bookingToTarefa(booking, false))
   const tarefasAtivas = tarefas.filter((t) => t.status === "ativa").length
 
   useEffect(() => {

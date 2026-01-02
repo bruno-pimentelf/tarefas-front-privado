@@ -77,6 +77,7 @@ export {
   answerQuestion,
   answerEssay,
   finishRecord,
+  updateElapsedTime,
   type Record as RecordType,
   type RecordQuestion as RecordQuestionType,
   type Essay,
@@ -84,5 +85,6 @@ export {
   type AnswerQuestionInput,
   type AnswerEssayInput,
   type FinishRecordInput,
+  type UpdateElapsedTimeInput,
 } from "./records"
 

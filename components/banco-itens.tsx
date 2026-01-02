@@ -5,7 +5,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
   Select,
   SelectContent,
@@ -28,6 +27,8 @@ import {
   createCollection,
   getMatrices,
   MatrixItem,
+  ComparisonOperator,
+  SortField,
 } from "@/lib/api"
 import { HtmlRenderer } from "@/components/html-renderer"
 import {
@@ -44,6 +45,9 @@ import {
   RefreshCw,
   Layers,
   Filter,
+  ChevronDown,
+  ChevronUp,
+  ArrowLeft,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -76,8 +80,13 @@ export function BancoItens({
   const [nomeColecao, setNomeColecao] = useState("")
   const [descricaoColecao, setDescricaoColecao] = useState("")
   const [questoesSelecionadas, setQuestoesSelecionadas] = useState<Set<number>>(new Set())
-  const [filtroStatus, setFiltroStatus] = useState<"todos" | "completed" | "in_progress" | "not_started">("todos")
   const [filtroConteudo, setFiltroConteudo] = useState("")
+  const [filtroLanguage, setFiltroLanguage] = useState("")
+  const [filtroAnswersCountOperator, setFiltroAnswersCountOperator] = useState<"eq" | "ne" | "gt" | "gte" | "lt" | "lte" | "">("")
+  const [filtroAnswersCountValue, setFiltroAnswersCountValue] = useState("")
+  const [filtroSort, setFiltroSort] = useState<"id" | "name" | "language" | "created_at" | "updated_at" | "answers_count" | "">("")
+  const [filtroOrder, setFiltroOrder] = useState<"asc" | "desc">("desc")
+  const [showFiltrosAvancados, setShowFiltrosAvancados] = useState(false)
   const [questaoPreview, setQuestaoPreview] = useState<Question | null>(null)
   const [operacaoEmAndamento, setOperacaoEmAndamento] = useState(false)
 
@@ -111,19 +120,35 @@ export function BancoItens({
       const filters: QuestionsSearchFilters = {
         page: questoesPagination.page,
         limit: questoesPagination.limit,
+        // TODO: Futuramente aplicar filtro apenas para questões completas
+        // status: "completed", // Sempre filtrar apenas questões completas
       }
 
-      if (filtroStatus !== "todos") {
-        filters.status = filtroStatus
-      }
-
+      // Filtros básicos
       if (filtroConteudo.trim()) {
         filters.content = filtroConteudo.trim()
+      }
+
+      if (filtroLanguage.trim()) {
+        filters.language = filtroLanguage.trim()
       }
 
       // Filtro por matrizes - concatena os IDs com §
       if (matrizesSelecionadas.length > 0) {
         filters.matrixValue = matrizesSelecionadas.join("§")
+      }
+
+      // Filtros numéricos - answersCount
+      // Segundo a documentação: sempre enviar o par {campo}Operator e {campo}Value juntos
+      if (filtroAnswersCountOperator && filtroAnswersCountValue && filtroAnswersCountValue.trim() !== "") {
+        filters.answersCountOperator = filtroAnswersCountOperator
+        filters.answersCountValue = filtroAnswersCountValue.trim()
+      }
+
+      // Ordenação
+      if (filtroSort) {
+        filters.sort = filtroSort
+        filters.order = filtroOrder
       }
 
       const response = await searchQuestions(filters)
@@ -138,7 +163,17 @@ export function BancoItens({
     } finally {
       setQuestoesLoading(false)
     }
-  }, [questoesPagination.page, questoesPagination.limit, filtroStatus, filtroConteudo, matrizesSelecionadas])
+  }, [
+    questoesPagination.page,
+    questoesPagination.limit,
+    filtroConteudo,
+    filtroLanguage,
+    matrizesSelecionadas,
+    filtroAnswersCountOperator,
+    filtroAnswersCountValue,
+    filtroSort,
+    filtroOrder,
+  ])
 
   // Carregar matrizes quando abrir o dialog
   useEffect(() => {
@@ -238,31 +273,6 @@ export function BancoItens({
     }
   }
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "completed":
-        return "bg-green-500/10 text-green-700 dark:text-green-400"
-      case "in_progress":
-        return "bg-yellow-500/10 text-yellow-700 dark:text-yellow-400"
-      case "not_started":
-        return "bg-gray-500/10 text-gray-700 dark:text-gray-400"
-      default:
-        return "bg-blue-500/10 text-blue-700 dark:text-blue-400"
-    }
-  }
-
-  const getStatusLabel = (status: string) => {
-    switch (status) {
-      case "completed":
-        return "Completa"
-      case "in_progress":
-        return "Em progresso"
-      case "not_started":
-        return "Não iniciada"
-      default:
-        return status
-    }
-  }
 
   const isObjectiveQuestion = (question: Question) => {
     return question.alternativesRelation && question.alternativesRelation.length > 0
@@ -273,34 +283,23 @@ export function BancoItens({
 
   return (
     <div className="container mx-auto px-4 py-4 max-w-7xl">
+      {/* Botão de voltar */}
+      <div className="mb-4">
+        <Button
+          variant="outline"
+          onClick={onVoltar}
+          className="gap-2"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Voltar
+        </Button>
+      </div>
+
       {/* Main Content */}
       <Card>
         <CardContent className="space-y-3 pt-6">
           {/* Filtros */}
-          <div className="flex items-center gap-2 flex-wrap">
-            <Tabs
-              value={filtroStatus}
-              onValueChange={(v) => {
-                setFiltroStatus(v as typeof filtroStatus)
-                setQuestoesPagination((prev) => ({ ...prev, page: 1 }))
-              }}
-              className="w-auto"
-            >
-              <TabsList className="h-8">
-                <TabsTrigger value="todos" className="text-xs px-3">
-                  Todos
-                </TabsTrigger>
-                <TabsTrigger value="completed" className="text-xs px-3">
-                  Completas
-                </TabsTrigger>
-                <TabsTrigger value="in_progress" className="text-xs px-3">
-                  Em Progresso
-                </TabsTrigger>
-                <TabsTrigger value="not_started" className="text-xs px-3">
-                  Não Iniciadas
-                </TabsTrigger>
-              </TabsList>
-            </Tabs>
+          <div className="flex items-center gap-2 flex-wrap justify-between">
             <div className="flex items-center gap-2">
               <Input
                 placeholder="Buscar por conteúdo..."
@@ -309,6 +308,19 @@ export function BancoItens({
                 onKeyDown={(e) => e.key === "Enter" && handleAplicarFiltros()}
                 className="h-8 w-48 text-xs"
               />
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowFiltrosAvancados(!showFiltrosAvancados)}
+                className="h-8 text-xs gap-1.5"
+              >
+                {showFiltrosAvancados ? (
+                  <ChevronUp className="h-3 w-3" />
+                ) : (
+                  <ChevronDown className="h-3 w-3" />
+                )}
+                Filtros Avançados
+              </Button>
               <Button
                 variant="outline"
                 size="sm"
@@ -332,6 +344,15 @@ export function BancoItens({
                 Buscar
               </Button>
             </div>
+            <Button
+              variant="default"
+              size="default"
+              onClick={onAbrirColecoes}
+              className="bg-blue-600 hover:bg-blue-700 text-white font-medium gap-2 h-9 px-4"
+            >
+              <Layers className="h-4 w-4" />
+              Coleções
+            </Button>
             {matrizesSelecionadas.length > 0 && (
               <Button
                 variant="ghost"
@@ -355,6 +376,109 @@ export function BancoItens({
               </Button>
             )}
           </div>
+
+          {/* Filtros Avançados */}
+          {showFiltrosAvancados && (
+            <div className="border border-dashed rounded-lg p-4 space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {/* Idioma */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium">Idioma</label>
+                  <Input
+                    placeholder="pt-BR, en-US..."
+                    value={filtroLanguage}
+                    onChange={(e) => setFiltroLanguage(e.target.value)}
+                    className="h-8 text-xs"
+                  />
+                </div>
+
+                {/* Ordenação - Campo */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium">Ordenar por</label>
+                  <Select 
+                    value={filtroSort || undefined} 
+                    onValueChange={(v) => {
+                      if (v === "status") return // Ignorar status se ainda estiver no select
+                      setFiltroSort(v as typeof filtroSort)
+                    }}
+                  >
+                    <SelectTrigger className="h-8 text-xs">
+                      <SelectValue placeholder="Padrão" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="id">ID</SelectItem>
+                      <SelectItem value="name">Nome</SelectItem>
+                      <SelectItem value="language">Idioma</SelectItem>
+                      <SelectItem value="created_at">Data de Criação</SelectItem>
+                      <SelectItem value="updated_at">Data de Atualização</SelectItem>
+                      <SelectItem value="answers_count">Quantidade de Respostas</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Ordenação - Ordem */}
+                {filtroSort && (
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-medium">Ordem</label>
+                    <Select value={filtroOrder} onValueChange={(v) => setFiltroOrder(v as "asc" | "desc")}>
+                      <SelectTrigger className="h-8 text-xs">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="asc">Crescente</SelectItem>
+                        <SelectItem value="desc">Decrescente</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
+                {/* Filtro Answers Count */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium">Quantidade de Respostas</label>
+                  <div className="flex gap-2">
+                    <Select
+                      value={filtroAnswersCountOperator || undefined}
+                      onValueChange={(v) => setFiltroAnswersCountOperator(v as ComparisonOperator | "")}
+                    >
+                      <SelectTrigger className="h-8 text-xs w-24">
+                        <SelectValue placeholder="Op" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="eq">=</SelectItem>
+                        <SelectItem value="ne">≠</SelectItem>
+                        <SelectItem value="gt">&gt;</SelectItem>
+                        <SelectItem value="gte">≥</SelectItem>
+                        <SelectItem value="lt">&lt;</SelectItem>
+                        <SelectItem value="lte">≤</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Input
+                      type="number"
+                      placeholder="Valor"
+                      value={filtroAnswersCountValue}
+                      onChange={(e) => setFiltroAnswersCountValue(e.target.value)}
+                      className="h-8 text-xs flex-1"
+                    />
+                  </div>
+                </div>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                  onClick={() => {
+                    setFiltroLanguage("")
+                    setFiltroAnswersCountOperator("")
+                    setFiltroAnswersCountValue("")
+                    setFiltroSort("")
+                    setFiltroOrder("desc")
+                  }}
+                className="h-8 text-xs gap-1.5"
+              >
+                <X className="h-3 w-3" />
+                Limpar Filtros Avançados
+              </Button>
+            </div>
+          )}
 
           {/* Lista de questões */}
           {questoesLoading ? (
@@ -391,12 +515,6 @@ export function BancoItens({
                         <div className="space-y-3 flex-1 flex flex-col">
                           <div className="flex items-start justify-between gap-2">
                             <div className="flex items-center gap-1.5 flex-wrap flex-1">
-                              <Badge
-                                className={cn(getStatusColor(questao.status), "text-xs")}
-                                variant="outline"
-                              >
-                                {getStatusLabel(questao.status)}
-                              </Badge>
                               <Badge variant="outline" className="text-xs">
                                 {isObjective ? (
                                   <BookOpen className="h-3 w-3 mr-1" />
@@ -460,7 +578,7 @@ export function BancoItens({
                               <Eye className="h-3 w-3" />
                               Ver detalhes
                             </Button>
-                            {questao.totalAnswersCount > 0 && (
+                            {questao.totalAnswersCount != null && questao.totalAnswersCount > 0 && (
                               <Badge variant="secondary" className="text-xs ml-auto">
                                 {questao.totalAnswersCount} respostas
                               </Badge>
@@ -657,12 +775,6 @@ export function BancoItens({
             <>
               <DialogHeader>
                 <div className="flex items-center gap-2 flex-wrap">
-                  <Badge
-                    className={cn(getStatusColor(questaoPreview.status), "text-xs")}
-                    variant="outline"
-                  >
-                    {getStatusLabel(questaoPreview.status)}
-                  </Badge>
                   <Badge variant="outline" className="text-xs">
                     {isObjectiveQuestion(questaoPreview) ? (
                       <BookOpen className="h-3 w-3 mr-1" />
@@ -786,7 +898,7 @@ export function BancoItens({
                 )}
 
                 {/* Estatísticas */}
-                {questaoPreview.totalAnswersCount > 0 && (
+                {questaoPreview.totalAnswersCount && questaoPreview.totalAnswersCount > 0 && (
                   <div className="p-3 bg-muted/30 rounded border">
                     <p className="text-xs font-medium text-muted-foreground mb-1">Estatísticas:</p>
                     <p className="text-sm">Total de respostas: {questaoPreview.totalAnswersCount}</p>

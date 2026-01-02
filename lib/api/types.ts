@@ -9,6 +9,7 @@ export interface Collection {
   used: boolean
   createdAt: string
   updatedAt: string
+  questionCount?: number // Contador de questões retornado pela API
 }
 
 export interface CollectionDetail extends Collection {
@@ -74,18 +75,22 @@ export interface Question {
   content: string
   origin: string | null
   params: {
-    a?: number
-    b?: number
-    c?: number
+    a: number
+    b: number
+    c: number
   } | null
   feedback: string | null
-  baseTexts: BaseText[] | null
+  baseTexts: Array<{
+    content: string
+    order: number
+    image?: string
+  }> | null
   deleted: boolean
   createdAt: string
   updatedAt: string
   alternativesRelation: Alternative[]
   matrixPopulated: MatrixItem[]
-  totalAnswersCount: number
+  totalAnswersCount?: number
 }
 
 // Tipo simplificado para questão retornada no detalhe da collection
@@ -124,7 +129,7 @@ export interface PaginatedResponse<T> {
 // ==========================================
 
 export type ComparisonOperator = 'eq' | 'ne' | 'gt' | 'gte' | 'lt' | 'lte'
-export type SortField = 'id' | 'name' | 'language' | 'origin' | 'status' | 'created_at' | 'updated_at' | 'answers_count'
+export type SortField = 'id' | 'name' | 'language' | 'created_at' | 'updated_at' | 'answers_count'
 export type SortOrder = 'asc' | 'desc'
 
 export interface QuestionsSearchFilters {

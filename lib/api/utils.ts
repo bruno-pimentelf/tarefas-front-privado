@@ -10,6 +10,10 @@ import { getCollectionById } from "./collections"
  * @deprecated A API agora retorna o campo `status` diretamente no booking.
  * Use `booking.status === "finished"` ao invés desta função.
  */
+/**
+ * @deprecated A API agora retorna o campo `status` diretamente no booking.
+ * Use `booking.status === "finished"` ao invés desta função.
+ */
 export async function isBookingCompleted(
   bookingId: number,
   userId: string
@@ -85,15 +89,11 @@ export async function getBookingQuestionsCount(
 
 /**
  * Converte um Booking da API para o formato Tarefa usado no frontend
- * @param booking - O booking a ser convertido
- * @param questionsCount - Número opcional de questões (se não fornecido, será 0)
- * @param isCompleted - Se true, a tarefa foi concluída pelo aluno (tem record.finishedAt)
+ * @param booking - O booking a ser convertido (agora inclui totalQuestions e status)
  * @param isProfessor - Se true, usa lógica de professor (apenas endTime determina finalizada)
  */
 export function bookingToTarefa(
   booking: Booking, 
-  questionsCount: number = 0,
-  isCompleted: boolean = false,
   isProfessor: boolean = false
 ): Tarefa {
   try {
@@ -144,35 +144,67 @@ export function bookingToTarefa(
       }
       // Professor não tem conceito de "atrasada"
     } else {
-      // Para aluno:
-      // 1. Se concluiu (record.finishedAt) -> finalizada (não atrasada)
-      // 2. Se prazo expirou sem concluir -> finalizada + atrasada
-      // 3. Se ainda não começou -> agendada
-      // 4. Se está no período -> ativa
-      if (isCompleted) {
-        status = "finalizada"
-        atrasada = false
-      } else if (prazoExpirou) {
-        status = "finalizada"
-        atrasada = true // Prazo expirou sem concluir = atrasada
-      } else if (nowTime < startTimeTime) {
-        status = "agendada"
+      // Para aluno: lógica baseada no status da API e endTime
+      if (booking.status) {
+        // REGRA PRINCIPAL: Se não é "finished" E o prazo expirou = ATRASADA
+        if (booking.status !== "finished" && prazoExpirou) {
+          status = "finalizada"
+          atrasada = true
+        } else {
+          // Aplicar lógica normal para outros casos
+          switch (booking.status) {
+            case "finished":
+              status = "finalizada"
+              atrasada = false // Concluída no prazo
+              break
+            case "in_progress":
+              status = "ativa" // Ainda em progresso
+              break
+            case "not_started":
+              if (nowTime < startTimeTime) {
+                status = "agendada" // Ainda não começou
+              } else {
+                status = "ativa" // Período ativo
+              }
+              break
+            default:
+              // Para status desconhecidos, usar lógica de tempo
+              if (nowTime < startTimeTime) {
+                status = "agendada"
+              } else {
+                status = "ativa"
+              }
+          }
+        }
       } else {
-        status = "ativa"
+        // Fallback para lógica anterior se não tiver status da API
+        if (prazoExpirou) {
+          status = "finalizada"
+          atrasada = true
+        } else if (nowTime < startTimeTime) {
+          status = "agendada"
+        } else {
+          status = "ativa"
+        }
       }
     }
 
+    // Usar totalQuestions da API ou 0 como fallback
+    const questionsCount = booking.totalQuestions || 0
+    
     // Criar array de questões vazias com o tamanho correto para manter compatibilidade
     const questoesArray = new Array(questionsCount).fill(null).map((_, index) => ({
       id: `placeholder-${index}`,
       enunciado: "",
       tipo: "objetiva" as const,
+      componente: "Matemática" as const,
     }))
 
     return {
       id: booking.id.toString(),
       titulo: booking.title,
       descricao: booking.description,
+      componente: "Matemática" as const,
       questoes: questoesArray,
       professorId: "", // TODO: Buscar do booking se necessário
       professorNome: "", // TODO: Buscar do booking se necessário
@@ -185,16 +217,19 @@ export function bookingToTarefa(
     }
   } catch (error) {
     // Retorna uma tarefa básica em caso de erro
+    const questionsCount = booking.totalQuestions || 0
     const questoesArray = new Array(questionsCount).fill(null).map((_, index) => ({
       id: `placeholder-${index}`,
       enunciado: "",
       tipo: "objetiva" as const,
+      componente: "Matemática" as const,
     }))
 
     return {
       id: booking.id.toString(),
       titulo: booking.title || "Tarefa sem título",
       descricao: booking.description,
+      componente: "Matemática" as const,
       questoes: questoesArray,
       professorId: "",
       professorNome: "",

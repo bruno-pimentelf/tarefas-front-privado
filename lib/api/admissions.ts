@@ -68,6 +68,8 @@ export interface Record {
   admissionId: number
   score: number | null
   totalTime: number | null
+  elapsedTime: number | null
+  elapsedTimeInSeconds?: number | null // Campo retornado pela API /records/finish
   finishedAt: string | null
   createdAt: string
   updatedAt: string

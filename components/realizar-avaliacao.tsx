@@ -36,6 +36,8 @@ import {
   answerEssay,
   finishRecord,
   getExamWithQuestions,
+  updateElapsedTime,
+  getAdmissionsByBookingAndUser,
 } from "@/lib/api"
 import { Record } from "@/lib/api/records"
 
@@ -67,7 +69,9 @@ export function RealizarAvaliacao({
   const [questoes, setQuestoes] = useState<ExamQuestion[]>([])
   const [questaoAtual, setQuestaoAtual] = useState(0)
   const [respostas, setRespostas] = useState<Map<number, RespostaLocal>>(new Map())
-  const [tempoInicio] = useState(Date.now())
+  const [tempoInicioLocal, setTempoInicioLocal] = useState<Date | null>(null)
+  const [tempoDecorridoInicialRecord, setTempoDecorridoInicialRecord] = useState(0)
+  const [duracaoTotal, setDuracaoTotal] = useState(0) // em segundos, vem da admission
   const [salvando, setSalvando] = useState(false)
   const [finalizando, setFinalizando] = useState(false)
 
@@ -83,6 +87,10 @@ export function RealizarAvaliacao({
   // Auto-save debounce para dissertativas
   const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
+  // Referência para intervalo de atualização de tempo
+  const intervalRef = useRef<NodeJS.Timeout | null>(null)
+  const lastElapsedTimeUpdateRef = useRef(0)
+
   // Calcular progresso
   const totalQuestoes = questoes.length + (temRedacao ? 1 : 0)
   const questoesRespondidas = Array.from(respostas.values()).filter((r) => r.respondida).length + (redacaoSalva ? 1 : 0)
@@ -95,24 +103,54 @@ export function RealizarAvaliacao({
     setError(null)
 
     try {
-      // 1. Verificar se já existe um record
-      let currentRecord = admission.record as Record | null
+      // 1. SEMPRE buscar a admission atualizada diretamente do backend
+      // para garantir que temos o record com elapsedTime correto
+      const admissionsAtualizadas = await getAdmissionsByBookingAndUser(
+        admission.bookingId,
+        userId
+      )
+      
+      const admissionAtualizada = admissionsAtualizadas.find(a => a.id === admission.id)
+      
+      if (!admissionAtualizada) {
+        throw new Error('Admission não encontrada')
+      }
+
+      // 2. Verificar se já existe um record
+      // Agora que o GET admissions retorna elapsedTime, sempre usar a admission atualizada
+      let currentRecord = admissionAtualizada.record as Record | null
 
       if (!currentRecord) {
-        // 2. Criar novo record
+        // 3. Criar novo record apenas se realmente não existir
         currentRecord = await createRecord({
           userId,
-          admissionId: admission.id,
+          admissionId: admissionAtualizada.id,
         })
       }
 
       setRecord(currentRecord)
 
-      // 3. Carregar questões de todos os exams
+      // 4. Configurar duração total (vem da admission em minutos, converter para segundos)
+      const duracaoEmSegundos = admissionAtualizada.duration * 60
+      setDuracaoTotal(duracaoEmSegundos)
+
+      // 5. Configurar tempo inicial local para cálculos
+      setTempoInicioLocal(new Date())
+      
+      // 6. Usar o elapsedTime que vem do GET admissions (já atualizado pelo backend)
+      // Este valor representa o tempo total já decorrido em todas as sessões anteriores
+      const tempoJaDecorridoRecord = currentRecord.elapsedTime || 0
+      setTempoDecorridoInicialRecord(tempoJaDecorridoRecord)
+      
+      // 6.1. Inicializar a referência de última atualização com o tempo já decorrido
+      // Isso garante que os próximos updates sejam incrementais, nunca resetando o valor
+      lastElapsedTimeUpdateRef.current = tempoJaDecorridoRecord
+
+      // 7. Carregar questões de todos os exams
       const todasQuestoes: ExamQuestion[] = []
       let primeiroExamId: number | null = null
 
-      for (const exam of admission.exams) {
+      for (const exam of admissionAtualizada.exams) {
         if (!primeiroExamId) primeiroExamId = exam.id
 
         try {
@@ -131,7 +169,7 @@ export function RealizarAvaliacao({
       setQuestoes(todasQuestoes)
       setExamIdRedacao(primeiroExamId)
 
-      // 4. Extrair respostas já salvas do record existente
+      // 8. Extrair respostas já salvas do record existente
       const respostasSalvas = new Map<number, { alternativeId?: number; answer?: string }>()
       if (currentRecord && 'examRecords' in currentRecord) {
         const recordComExams = currentRecord as Record & { examRecords?: Array<{ recordQuestions?: Array<{ questionId: number; alternativeId: number | null; answer: string | null }> }> }
@@ -145,7 +183,7 @@ export function RealizarAvaliacao({
         })
       }
 
-      // 5. Inicializar respostas locais (restaurando as já salvas)
+      // 9. Inicializar respostas locais (restaurando as já salvas)
       const respostasIniciais = new Map<number, RespostaLocal>()
       todasQuestoes.forEach((q) => {
         const respostaSalva = respostasSalvas.get(q.id)
@@ -166,7 +204,7 @@ export function RealizarAvaliacao({
       })
       setRespostas(respostasIniciais)
 
-      // 6. Restaurar redação se existir
+      // 10. Restaurar redação se existir
       if (currentRecord && 'examRecords' in currentRecord) {
         const recordComExams = currentRecord as Record & { examRecords?: Array<{ essay?: { content?: string } | null }> }
         const essaySalva = recordComExams.examRecords?.find(er => er.essay?.content)?.essay
@@ -187,6 +225,68 @@ export function RealizarAvaliacao({
   useEffect(() => {
     iniciarAvaliacao()
   }, [iniciarAvaliacao])
+
+  // Atualizar tempo decorrido no backend periodicamente (a cada 10 segundos)
+  // O backend recebe tempo DECORRIDO (crescente), mas o front mostra tempo RESTANTE (regressivo)
+  useEffect(() => {
+    if (!record || estado !== "respondendo" || !tempoInicioLocal) return
+
+    const atualizarTempoDecorrido = async () => {
+      // Calcular tempo decorrido desde que o componente foi montado NESTA sessão
+      const tempoDesdeInicioLocal = Math.floor((Date.now() - tempoInicioLocal.getTime()) / 1000)
+      
+      // Somar com o elapsedTime que veio do GET admissions (tempo de todas as sessões anteriores)
+      // Isso garante que o valor seja sempre incremental, NUNCA resetando
+      const tempoDecorridoTotal = tempoDecorridoInicialRecord + tempoDesdeInicioLocal
+      
+      // Só atualiza se o tempo mudou em pelo menos 5 segundos desde a última atualização
+      // Isso evita spam de requests e garante eficiência
+      if (tempoDecorridoTotal - lastElapsedTimeUpdateRef.current >= 5) {
+        try {
+          await updateElapsedTime({
+            recordId: record.id,
+            elapsedTime: tempoDecorridoTotal,
+          })
+          
+          // Atualizar referência para próxima comparação
+          lastElapsedTimeUpdateRef.current = tempoDecorridoTotal
+        } catch (err) {
+          console.error("Erro ao atualizar tempo decorrido:", err)
+          // Não mostramos erro ao usuário para não interromper a experiência
+        }
+      }
+    }
+
+    // Atualizar a cada 10 segundos
+    intervalRef.current = setInterval(atualizarTempoDecorrido, 10000)
+
+    // Atualizar imediatamente na primeira vez
+    atualizarTempoDecorrido()
+
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current)
+      }
+    }
+  }, [record, estado, tempoInicioLocal, tempoDecorridoInicialRecord])
+
+  // Atualizar tempo ao finalizar
+  const atualizarTempoAoFinalizar = async () => {
+    if (!record || !tempoInicioLocal) return
+    
+    // Calcular tempo total decorrido: tempo inicial do record + tempo desde que montou o componente
+    const tempoDesdeInicioLocal = Math.floor((Date.now() - tempoInicioLocal.getTime()) / 1000)
+    const tempoFinal = tempoDecorridoInicialRecord + tempoDesdeInicioLocal
+    
+    try {
+      await updateElapsedTime({
+        recordId: record.id,
+        elapsedTime: tempoFinal,
+      })
+    } catch (err) {
+      console.error("Erro ao atualizar tempo final:", err)
+    }
+  }
 
   // Responder questão objetiva
   const handleResponderObjetiva = async (alternativeId: number) => {
@@ -282,6 +382,9 @@ export function RealizarAvaliacao({
     setEstado("processando")
 
     try {
+      // Atualizar tempo final antes de finalizar
+      await atualizarTempoAoFinalizar()
+      
       const recordFinalizado = await finishRecord({ recordId: record.id })
       setRecord(recordFinalizado)
       setEstado("resultados")
@@ -309,12 +412,55 @@ export function RealizarAvaliacao({
     }
   }
 
-  // Calcular tempo decorrido
-  const tempoDecorrido = Math.floor((Date.now() - tempoInicio) / 1000)
+  // Calcular tempo RESTANTE para exibição (contagem regressiva)
+  // Fórmula: duration (referência) - elapsedTime (do backend + sessão atual)
+  const calcularTempoRestante = () => {
+    if (duracaoTotal === 0) return 0
+    
+    if (!tempoInicioLocal) {
+      // Se ainda não iniciou localmente, mostrar tempo restante baseado no elapsedTime do backend
+      return Math.max(0, duracaoTotal - tempoDecorridoInicialRecord)
+    }
+    
+    // Tempo decorrido desde que o componente foi montado NESTA sessão
+    const tempoDesdeInicioLocal = Math.floor((Date.now() - tempoInicioLocal.getTime()) / 1000)
+    
+    // Tempo total decorrido = elapsedTime do backend + tempo desta sessão
+    const tempoDecorridoTotal = tempoDecorridoInicialRecord + tempoDesdeInicioLocal
+    
+    // Tempo restante = duration (referência) - tempo decorrido total
+    const tempoRestante = duracaoTotal - tempoDecorridoTotal
+    
+    // Não permitir valores negativos
+    return Math.max(0, tempoRestante)
+  }
+  
+  const tempoRestante = calcularTempoRestante()
+  
   const formatarTempo = (segundos: number) => {
-    const min = Math.floor(segundos / 60)
+    const horas = Math.floor(segundos / 3600)
+    const min = Math.floor((segundos % 3600) / 60)
     const seg = segundos % 60
+    
+    if (horas > 0) {
+      return `${horas}:${min.toString().padStart(2, "0")}:${seg.toString().padStart(2, "0")}`
+    }
     return `${min}:${seg.toString().padStart(2, "0")}`
+  }
+
+  const formatarTempoEmMinutos = (segundos: number | null) => {
+    if (segundos === null || segundos === undefined) return "0 min"
+    
+    const minutos = Math.floor(segundos / 60)
+    const segs = segundos % 60
+    
+    if (minutos === 0) {
+      return `${segs}s`
+    } else if (segs === 0) {
+      return `${minutos} min`
+    } else {
+      return `${minutos} min ${segs}s`
+    }
   }
 
   // Handler para sair com confirmação
@@ -338,14 +484,36 @@ export function RealizarAvaliacao({
     onVoltar()
   }
 
-  // Cleanup do auto-save timeout
+  // Cleanup do auto-save timeout e intervalo de tempo
   useEffect(() => {
     return () => {
       if (autoSaveTimeoutRef.current) {
         clearTimeout(autoSaveTimeoutRef.current)
       }
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current)
+      }
     }
   }, [])
+
+  // Atualizar a exibição do tempo a cada segundo
+  const [, forceUpdate] = useState({})
+  useEffect(() => {
+    if (estado !== "respondendo") return
+    
+    const timer = setInterval(() => {
+      forceUpdate({}) // Força re-render para atualizar o tempo exibido
+      
+      // Verificar se o tempo acabou
+      const tempoRestanteAtual = calcularTempoRestante()
+      if (tempoRestanteAtual <= 0 && record) {
+        // Tempo esgotado - finalizar automaticamente
+        handleFinalizar()
+      }
+    }, 1000)
+
+    return () => clearInterval(timer)
+  }, [estado, record])
 
   // Estado de carregamento
   if (estado === "carregando") {
@@ -424,13 +592,18 @@ export function RealizarAvaliacao({
               <div className="p-4 bg-muted/30 rounded-lg text-center">
                 <p className="text-xs text-muted-foreground">Pontuação</p>
                 <p className="text-2xl font-bold text-primary">
-                  {record.score !== null ? `${record.score.toFixed(1)}%` : "Processando..."}
+                  {record.score !== null ? `${(record.score * 100).toFixed(0)}%` : "Processando..."}
                 </p>
               </div>
               <div className="p-4 bg-muted/30 rounded-lg text-center">
-                <p className="text-xs text-muted-foreground">Tempo Total</p>
+                <p className="text-xs text-muted-foreground">Tempo Utilizado</p>
                 <p className="text-2xl font-bold">
-                  {record.totalTime ? formatarTempo(record.totalTime) : formatarTempo(tempoDecorrido)}
+                  {(() => {
+                    const tempo = record.elapsedTimeInSeconds ?? record.elapsedTime
+                    return tempo !== null && tempo !== undefined 
+                      ? formatarTempoEmMinutos(tempo) 
+                      : "Processando..."
+                  })()}
                 </p>
               </div>
             </div>
@@ -506,9 +679,18 @@ export function RealizarAvaliacao({
               Progresso salvo
             </Badge>
           )}
-          <Badge variant="outline" className="gap-1">
+          <Badge 
+            variant="outline" 
+            className={`gap-1 ${
+              tempoRestante <= 300 && tempoRestante > 60 
+                ? "border-orange-500 text-orange-600 dark:text-orange-400" 
+                : tempoRestante <= 60 
+                ? "border-red-500 text-red-600 dark:text-red-400 animate-pulse" 
+                : ""
+            }`}
+          >
             <Clock className="h-3 w-3" />
-            {formatarTempo(tempoDecorrido)}
+            {formatarTempo(tempoRestante)}
           </Badge>
           <Badge variant="secondary">
             {questoesRespondidas}/{totalQuestoes} respondidas

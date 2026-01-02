@@ -10,6 +10,8 @@ export interface Record {
   admissionId: number
   score: number | null
   totalTime: number | null
+  elapsedTime: number | null
+  elapsedTimeInSeconds?: number | null // Campo retornado pela API /records/finish
   finishedAt: string | null
   createdAt: string
   updatedAt: string
@@ -58,6 +60,11 @@ export interface FinishRecordInput {
   recordId: number
 }
 
+export interface UpdateElapsedTimeInput {
+  recordId: number
+  elapsedTime: number
+}
+
 // ==========================================
 // API Functions - Records
 // ==========================================
@@ -98,3 +105,11 @@ export async function finishRecord(data: FinishRecordInput): Promise<Record> {
   return response
 }
 
+/**
+ * Atualiza o tempo decorrido do record
+ * PATCH /records/elapsed-time
+ */
+export async function updateElapsedTime(data: UpdateElapsedTimeInput): Promise<Record> {
+  const response = await assessmentsApi.patch<Record>("/records/elapsed-time", data)
+  return response
+}

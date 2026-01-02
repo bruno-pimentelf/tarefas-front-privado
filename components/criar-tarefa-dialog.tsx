@@ -51,7 +51,9 @@ export function CriarTarefaDialog({ open, onOpenChange, onSuccess }: CriarTarefa
   const [turmasSelecionadas, setTurmasSelecionadas] = useState<number[]>([])
 
   // Form state - Admission
+  const [admissionTitle, setAdmissionTitle] = useState("")
   const [admissionDuration, setAdmissionDuration] = useState("60")
+  const [admissionInstructions, setAdmissionInstructions] = useState("")
 
   // Form state - Collection/Exam
   const [selectedCollectionId, setSelectedCollectionId] = useState<number | null>(null)
@@ -87,6 +89,12 @@ export function CriarTarefaDialog({ open, onOpenChange, onSuccess }: CriarTarefa
     }
   }, [open])
 
+  // Sincroniza título da admission com título do booking
+  useEffect(() => {
+    if (!admissionTitle && titulo) {
+      setAdmissionTitle(titulo)
+    }
+  }, [titulo])
 
   // ID do professor (mock para testes)
   const teacherId = "teacher-001"
@@ -128,7 +136,9 @@ export function CriarTarefaDialog({ open, onOpenChange, onSuccess }: CriarTarefa
     setDataInicio("")
     setDataFim("")
     setTurmasSelecionadas([])
+    setAdmissionTitle("")
     setAdmissionDuration("60")
+    setAdmissionInstructions("")
     setSelectedCollectionId(null)
     setSubmitError(null)
     setSubmitSuccess(false)
@@ -214,9 +224,9 @@ export function CriarTarefaDialog({ open, onOpenChange, onSuccess }: CriarTarefa
       setCurrentStep("Criando avaliação...")
       const admission = await createAdmission({
         bookingId: booking.id,
-        title: titulo.trim(),
+        title: admissionTitle.trim() || titulo.trim(),
         description: descricao.trim() || undefined,
-        instructions: undefined,
+        instructions: admissionInstructions.trim() || undefined,
         bannerImage: bannerImage.trim() || undefined,
         available: true,
         duration: duration,
@@ -423,8 +433,26 @@ export function CriarTarefaDialog({ open, onOpenChange, onSuccess }: CriarTarefa
               </div>
             </div>
 
-              {/* Duração */}
+            {/* Separador */}
+            <div className="border-t pt-6">
+              <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-4">
+                Configuração da Avaliação
+              </h4>
+
+              {/* Título da Admission (opcional, herda do booking) */}
               <div className="space-y-2">
+                <Label htmlFor="admissionTitle">Título da Avaliação (opcional)</Label>
+                <Input
+                  id="admissionTitle"
+                  value={admissionTitle}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setAdmissionTitle(e.target.value)}
+                  placeholder={titulo || "Usa o título da tarefa se vazio"}
+                  disabled={submitting}
+                />
+              </div>
+
+              {/* Duração */}
+              <div className="space-y-2 mt-4">
                 <Label htmlFor="admissionDuration">Duração (minutos) *</Label>
                 <Input
                   id="admissionDuration"
@@ -437,8 +465,28 @@ export function CriarTarefaDialog({ open, onOpenChange, onSuccess }: CriarTarefa
                 />
               </div>
 
-              {/* Coleção de Questões */}
+              {/* Instruções */}
               <div className="space-y-2 mt-4">
+                <Label htmlFor="admissionInstructions">Instruções para o aluno (opcional)</Label>
+                <Textarea
+                  id="admissionInstructions"
+                  value={admissionInstructions}
+                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setAdmissionInstructions(e.target.value)}
+                  placeholder="Ex: Leia atentamente cada questão antes de responder..."
+                  rows={2}
+                  disabled={submitting}
+                />
+              </div>
+            </div>
+
+            {/* Separador */}
+            <div className="border-t pt-6">
+              <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-4">
+                Seleção de Questões
+              </h4>
+
+              {/* Collection */}
+              <div className="space-y-2">
                 <Label>Coleção de Questões *</Label>
                 
                 {collectionsLoading ? (
@@ -504,7 +552,9 @@ export function CriarTarefaDialog({ open, onOpenChange, onSuccess }: CriarTarefa
                   </>
                 )}
               </div>
+            </div>
 
+            {/* Mensagem de erro */}
             {submitError && (
               <div className="flex items-center gap-2 p-3 bg-destructive/10 rounded-lg text-destructive">
                 <AlertCircle className="h-4 w-4 shrink-0" />

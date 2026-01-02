@@ -14,6 +14,17 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogMedia,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import {
   Question,
   Collection,
   CollectionDetail,
@@ -39,6 +50,7 @@ import {
   Check,
   Calendar,
   Hash,
+  ArrowLeft,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -69,6 +81,8 @@ export function ColecoesPage({ onVoltar }: ColecoesPageProps) {
   const [editandoColecao, setEditandoColecao] = useState<CollectionDetail | null>(null)
   const [novoTitulo, setNovoTitulo] = useState("")
   const [novaDescricao, setNovaDescricao] = useState("")
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [colecaoParaDeletar, setColecaoParaDeletar] = useState<{ id: number; title: string | null } | null>(null)
 
   // Função para carregar collections
   const carregarColecoes = useCallback(async () => {
@@ -223,10 +237,17 @@ export function ColecoesPage({ onVoltar }: ColecoesPageProps) {
     }
   }
 
-  const handleDeletarColecao = async (colecaoId: number) => {
-    if (!confirm("Tem certeza que deseja excluir esta coleção? Esta ação não pode ser desfeita.")) return
+  const handleAbrirDialogDeletar = (colecao: Collection) => {
+    setColecaoParaDeletar({ id: colecao.id, title: colecao.title })
+    setShowDeleteDialog(true)
+  }
 
+  const handleConfirmarDeletar = async () => {
+    if (!colecaoParaDeletar) return
+
+    const colecaoId = colecaoParaDeletar.id
     setOperacaoEmAndamento(true)
+    setShowDeleteDialog(false)
 
     try {
       await deleteCollection(colecaoId)
@@ -245,6 +266,8 @@ export function ColecoesPage({ onVoltar }: ColecoesPageProps) {
       if (colecaoSelecionada?.id === colecaoId) {
         setColecaoSelecionada(null)
       }
+
+      setColecaoParaDeletar(null)
     } catch (error: any) {
       alert(error.message || "Erro ao excluir coleção")
     } finally {
@@ -284,6 +307,17 @@ export function ColecoesPage({ onVoltar }: ColecoesPageProps) {
 
   return (
     <div className="container mx-auto px-4 py-4 max-w-7xl">
+      {/* Botão de voltar */}
+      <div className="mb-4">
+        <Button
+          variant="outline"
+          onClick={onVoltar}
+          className="gap-2"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Voltar
+        </Button>
+      </div>
 
       {/* Content */}
       {colecoesLoading ? (
@@ -334,14 +368,6 @@ export function ColecoesPage({ onVoltar }: ColecoesPageProps) {
           {/* Grid de coleções */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {colecoes.map((colecao) => {
-              const details = collectionDetails[colecao.id]
-              const isLoadingDetails = loadingCollectionDetails.has(colecao.id)
-
-              // Carrega detalhes automaticamente
-              if (!details && !isLoadingDetails) {
-                carregarDetalhesColecao(colecao.id)
-              }
-
               return (
                 <Card
                   key={colecao.id}
@@ -365,7 +391,7 @@ export function ColecoesPage({ onVoltar }: ColecoesPageProps) {
                         size="sm"
                         onClick={(e) => {
                           e.stopPropagation()
-                          handleDeletarColecao(colecao.id)
+                          handleAbrirDialogDeletar(colecao)
                         }}
                         disabled={operacaoEmAndamento}
                         className="h-8 w-8 p-0 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:text-destructive hover:bg-destructive/10"
@@ -379,7 +405,7 @@ export function ColecoesPage({ onVoltar }: ColecoesPageProps) {
                       <div className="flex items-center gap-2">
                         <Badge variant="outline" className="text-xs gap-1">
                           <Hash className="h-3 w-3" />
-                          {isLoadingDetails ? "..." : details ? details.questionIds.length : "0"} questões
+                          {colecao.questionCount ?? 0} questões
                         </Badge>
                         {colecao.used && (
                           <Badge variant="secondary" className="text-xs">
@@ -392,28 +418,6 @@ export function ColecoesPage({ onVoltar }: ColecoesPageProps) {
                         {new Date(colecao.createdAt).toLocaleDateString("pt-BR")}
                       </div>
                     </div>
-
-                    {/* Preview das questões */}
-                    {details && details.questions.length > 0 && (
-                      <div className="mt-3 pt-3 border-t">
-                        <div className="flex flex-wrap gap-1">
-                          {details.questions.slice(0, 3).map((q) => (
-                            <Badge
-                              key={q.id}
-                              variant="outline"
-                              className="text-xs bg-muted/30"
-                            >
-                              {isObjectiveQuestion(q) ? "Obj" : "Dis"}
-                            </Badge>
-                          ))}
-                          {details.questions.length > 3 && (
-                            <Badge variant="outline" className="text-xs bg-muted/30">
-                              +{details.questions.length - 3}
-                            </Badge>
-                          )}
-                        </div>
-                      </div>
-                    )}
                   </CardContent>
                 </Card>
               )
@@ -482,7 +486,7 @@ export function ColecoesPage({ onVoltar }: ColecoesPageProps) {
                     <Button
                       variant="destructive"
                       size="sm"
-                      onClick={() => handleDeletarColecao(colecaoSelecionada.id)}
+                      onClick={() => handleAbrirDialogDeletar(colecaoSelecionada)}
                       disabled={operacaoEmAndamento}
                       className="gap-1.5"
                     >
@@ -707,6 +711,49 @@ export function ColecoesPage({ onVoltar }: ColecoesPageProps) {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Dialog de confirmação para deletar coleção */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent size="default">
+          <AlertDialogHeader>
+            <AlertDialogMedia>
+              <div className="rounded-full bg-destructive/10 p-3">
+                <Trash2 className="h-6 w-6 text-destructive" />
+              </div>
+            </AlertDialogMedia>
+            <AlertDialogTitle>Excluir coleção?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir a coleção{" "}
+              <span className="font-semibold text-foreground">
+                "{colecaoParaDeletar?.title || "Sem título"}"
+              </span>
+              ? Esta ação não pode ser desfeita e todas as questões associadas serão removidas da coleção.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={operacaoEmAndamento}>
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmarDeletar}
+              disabled={operacaoEmAndamento}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {operacaoEmAndamento ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Excluindo...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Excluir
+                </>
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
