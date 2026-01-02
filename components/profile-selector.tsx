@@ -3,13 +3,18 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { UserRole } from "@/lib/types"
-import { GraduationCap, User, BookOpen } from "lucide-react"
+import { GraduationCap, User } from "lucide-react"
 
 interface ProfileSelectorProps {
   onSelectProfile: (role: UserRole) => void
 }
 
 export function ProfileSelector({ onSelectProfile }: ProfileSelectorProps) {
+  const { currentUser, userRole, fetchUserRole } = useAuth()
+  const [roles, setRoles] = useState<Role[]>([])
+  const [loading, setLoading] = useState(true)
+  const [settingRole, setSettingRole] = useState<number | null>(null)
+  const [error, setError] = useState<string | null>(null)
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <div className="w-full max-w-4xl">

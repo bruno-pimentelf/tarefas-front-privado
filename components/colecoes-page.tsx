@@ -275,31 +275,6 @@ export function ColecoesPage({ onVoltar }: ColecoesPageProps) {
     }
   }
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "completed":
-        return "bg-green-500/10 text-green-700 dark:text-green-400"
-      case "in_progress":
-        return "bg-yellow-500/10 text-yellow-700 dark:text-yellow-400"
-      case "not_started":
-        return "bg-gray-500/10 text-gray-700 dark:text-gray-400"
-      default:
-        return "bg-blue-500/10 text-blue-700 dark:text-blue-400"
-    }
-  }
-
-  const getStatusLabel = (status: string) => {
-    switch (status) {
-      case "completed":
-        return "Completa"
-      case "in_progress":
-        return "Em progresso"
-      case "not_started":
-        return "Não iniciada"
-      default:
-        return status
-    }
-  }
 
   const isObjectiveQuestion = (question: Question) => {
     return question.alternativesRelation && question.alternativesRelation.length > 0
@@ -529,12 +504,6 @@ export function ColecoesPage({ onVoltar }: ColecoesPageProps) {
                             </div>
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2 mb-2">
-                                <Badge
-                                  className={cn(getStatusColor(questao.status), "text-xs")}
-                                  variant="outline"
-                                >
-                                  {getStatusLabel(questao.status)}
-                                </Badge>
                                 <Badge variant="outline" className="text-xs gap-1">
                                   {isObjectiveQuestion(questao) ? (
                                     <>
@@ -651,12 +620,6 @@ export function ColecoesPage({ onVoltar }: ColecoesPageProps) {
             <>
               <DialogHeader>
                 <div className="flex items-center gap-2 flex-wrap">
-                  <Badge
-                    className={cn(getStatusColor(questaoPreview.status), "text-xs")}
-                    variant="outline"
-                  >
-                    {getStatusLabel(questaoPreview.status)}
-                  </Badge>
                   <Badge variant="outline" className="text-xs">
                     {isObjectiveQuestion(questaoPreview) ? (
                       <BookOpen className="h-3 w-3 mr-1" />

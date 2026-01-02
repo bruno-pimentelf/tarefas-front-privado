@@ -92,13 +92,12 @@ export function TarefaCard({
       {role === "aluno" && isAtiva && !concluida && (
         <CardFooter className="pt-2 mt-auto">
           <Button
-            onClick={onIniciar}
-            variant="ghost"
-            className="w-full gap-1.5 border border-primary/15 shadow-[0_0_4px_rgba(59,130,246,0.08)] hover:shadow-[0_0_6px_rgba(59,130,246,0.12)] transition-shadow"
+            onClick={onVerDetalhes}
+            variant="outline"
+            className="w-full gap-1.5"
             size="default"
           >
-            <Play className="h-3.5 w-3.5" />
-            Iniciar Tarefa
+            Ver Detalhes
           </Button>
         </CardFooter>
       )}
@@ -118,7 +117,7 @@ export function TarefaCard({
       {role === "professor" && (
         <CardFooter className="pt-2 mt-auto">
           <Button onClick={onVerDetalhes} variant="outline" className="w-full" size="default">
-            Ver Detalhes e Relatórios
+            {tarefa.status === "finalizada" ? "Ver Detalhes e Relatório" : "Ver Detalhes"}
           </Button>
         </CardFooter>
       )}

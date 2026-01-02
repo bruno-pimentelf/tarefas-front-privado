@@ -34,6 +34,7 @@ export function ProfessorDashboard() {
   const [showBancoItens, setShowBancoItens] = useState(false)
   const [showColecoes, setShowColecoes] = useState(false)
   const [bookingSelecionado, setBookingSelecionado] = useState<Booking | null>(null)
+  const [tabAtiva, setTabAtiva] = useState<string>("ativas")
 
   // ID do professor (mock para testes)
   const teacherId = "teacher-001"
@@ -80,17 +81,16 @@ export function ProfessorDashboard() {
       
       const allBookings = bookingsResponse.items || []
 
-      // Buscar turmas de cada booking (sem mais contagem de questões)
-      // Nota: A API não retorna classIds diretamente no Booking, então usamos todas as turmas do professor
-      // como fallback. Em uma implementação futura, pode ser necessário buscar as turmas específicas via endpoint.
+      // Buscar turmas de cada booking
+      // MOCK: Por enquanto, associa todas as turmas do professor a todos os bookings
+      // TODO: Implementar busca de turmas específicas do booking quando a API suportar
       const bookingDataPromises = allBookings.map(async (booking) => {
         try {
-          // Por enquanto, não temos como buscar as turmas específicas de um booking via API
-          // Então usamos um array vazio. Isso pode ser melhorado quando a API fornecer essa informação.
-          let turmasDoBooking: TeacherClass[] = []
+          // MOCK: Usa todas as turmas do professor para cada booking
+          // Em produção, isso deveria vir da API com as turmas específicas de cada booking
+          let turmasDoBooking: TeacherClass[] = todasTurmas
           
-          // TODO: Implementar busca de turmas específicas do booking quando a API suportar
-          // Por enquanto, deixamos vazio ou podemos usar todas as turmas do professor como fallback
+          console.log(`Associando turmas ao booking ${booking.id}:`, turmasDoBooking.map(t => t.name))
           
           return { 
             bookingId: booking.id, 
@@ -128,7 +128,7 @@ export function ProfessorDashboard() {
     if (currentUser) {
       carregarBookings()
     }
-  }, [carregarBookings, currentUser])
+  }, [carregarBookings, currentUser, teacherId])
 
   // Callback quando uma tarefa é criada com sucesso
   const handleTarefaCriada = () => {
@@ -136,9 +136,13 @@ export function ProfessorDashboard() {
   }
 
   // Handler para ver detalhes do booking
-  const handleVerDetalhes = (tarefaId: string) => {
+  const handleVerDetalhes = (tarefaId: string, tabAtual?: string) => {
     const booking = bookings.find((b) => b.id.toString() === tarefaId)
     if (booking) {
+      // Armazenar a tab atual antes de abrir os detalhes
+      if (tabAtual) {
+        setTabAtiva(tabAtual)
+      }
       setBookingSelecionado(booking)
     }
   }
@@ -150,7 +154,37 @@ export function ProfessorDashboard() {
         booking={bookingSelecionado}
         userId={teacherId}
         userRole="professor"
-        onVoltar={() => setBookingSelecionado(null)}
+        onVoltar={() => {
+          setBookingSelecionado(null)
+          // Não precisa restaurar a tab aqui, pois o Tabs já mantém o estado
+        }}
+        onBookingUpdated={(updatedBooking, turmasIds) => {
+          // Atualizar o booking na lista
+          setBookings((prev) =>
+            prev.map((b) => (b.id === updatedBooking.id ? updatedBooking : b))
+          )
+          setBookingSelecionado(updatedBooking)
+          
+          // Atualizar turmas do booking se fornecidas
+          if (turmasIds && turmasIds.length > 0) {
+            // Buscar as turmas completas pelos IDs
+            getTeacherClasses(teacherId)
+              .then((todasTurmas) => {
+                const turmasDoBooking = todasTurmas.filter((t) => turmasIds.includes(t.id))
+                setBookingTurmasMap((prev) => {
+                  const newMap = new Map(prev)
+                  newMap.set(updatedBooking.id, turmasDoBooking)
+                  return newMap
+                })
+              })
+              .catch((error) => {
+                console.error("Erro ao atualizar turmas do booking:", error)
+              })
+          }
+        }}
+        turmasAssociadas={
+          bookingTurmasMap.get(bookingSelecionado.id)?.map((t) => t.id) || []
+        }
       />
     )
   }
@@ -180,7 +214,7 @@ export function ProfessorDashboard() {
 
   return (
     <div className="container mx-auto px-4 py-4 max-w-7xl">
-      <Tabs defaultValue="ativas" className="space-y-3">
+      <Tabs value={tabAtiva} onValueChange={setTabAtiva} className="space-y-3">
         <div className="flex items-center justify-between">
           <TabsList>
             <TabsTrigger value="ativas">
@@ -265,7 +299,7 @@ export function ProfessorDashboard() {
                       key={tarefa.id}
                       tarefa={tarefa}
                       role="professor"
-                      onVerDetalhes={() => handleVerDetalhes(tarefa.id)}
+                      onVerDetalhes={() => handleVerDetalhes(tarefa.id, "ativas")}
                     />
                   ))}
                 </div>
@@ -286,7 +320,7 @@ export function ProfessorDashboard() {
                       key={tarefa.id}
                       tarefa={tarefa}
                       role="professor"
-                      onVerDetalhes={() => handleVerDetalhes(tarefa.id)}
+                      onVerDetalhes={() => handleVerDetalhes(tarefa.id, "agendadas")}
                     />
                   ))}
                 </div>
@@ -307,7 +341,7 @@ export function ProfessorDashboard() {
                       key={tarefa.id}
                       tarefa={tarefa}
                       role="professor"
-                      onVerDetalhes={() => handleVerDetalhes(tarefa.id)}
+                      onVerDetalhes={() => handleVerDetalhes(tarefa.id, "finalizadas")}
                     />
                   ))}
                 </div>

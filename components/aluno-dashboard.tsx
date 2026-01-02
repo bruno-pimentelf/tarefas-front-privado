@@ -331,7 +331,7 @@ export function AlunoDashboard() {
                   key={tarefa.id}
                   tarefa={tarefa}
                   role="aluno"
-                  onIniciar={() => handleAbrirBooking(tarefa.id)}
+                  onVerDetalhes={() => handleAbrirBooking(tarefa.id)}
                 />
               ))}
             </div>

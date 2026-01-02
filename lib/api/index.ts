@@ -32,6 +32,7 @@ export {
 export {
   getTeacherClasses,
   createBooking,
+  updateBooking,
   getStudentBookings,
   bookingsApi,
   type TeacherClass,
@@ -39,6 +40,7 @@ export {
   type Booking,
   type BookingsResponse,
   type CreateBookingInput,
+  type UpdateBookingInput,
 } from "./bookings"
 
 // Re-export Admissions API functions and types
@@ -88,3 +90,6 @@ export {
   type UpdateElapsedTimeInput,
 } from "./records"
 
+// Analytics integrations removed
+
+// Users and Roles integrations removed - using mocks instead

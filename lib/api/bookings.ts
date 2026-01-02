@@ -53,6 +53,16 @@ export interface CreateBookingInput {
   classIds: number[]
 }
 
+export interface UpdateBookingInput {
+  title?: string
+  description?: string
+  bannerImage?: string
+  available?: boolean
+  startTime?: string // ISO 8601
+  endTime?: string // ISO 8601
+  classIds?: number[]
+}
+
 // ==========================================
 // API Functions
 // ==========================================
@@ -60,9 +70,20 @@ export interface CreateBookingInput {
 /**
  * Lista as classes (turmas) do professor
  * GET /bookings/teacher-classes/:userId
+ * MOCK: Retorna turmas mockadas por enquanto
  */
 export async function getTeacherClasses(userId: string): Promise<TeacherClass[]> {
-  return assessmentsApi.get<TeacherClass[]>(`/bookings/teacher-classes/${userId}`)
+  // Importa os dados mockados
+  const { mockTeacherClasses } = await import("../mock-data")
+  
+  // Simula delay da API
+  await new Promise(resolve => setTimeout(resolve, 500))
+  
+  console.log("Retornando turmas mockadas:", mockTeacherClasses)
+  return mockTeacherClasses
+  
+  // Código original comentado para quando a API estiver funcionando:
+  // return assessmentsApi.get<TeacherClass[]>(`/bookings/teacher-classes/${userId}`)
 }
 
 /**
@@ -71,6 +92,14 @@ export async function getTeacherClasses(userId: string): Promise<TeacherClass[]>
  */
 export async function createBooking(data: CreateBookingInput): Promise<Booking> {
   return assessmentsApi.post<Booking>("/bookings", data)
+}
+
+/**
+ * Atualiza um booking existente
+ * PUT /bookings/:id
+ */
+export async function updateBooking(id: number, data: UpdateBookingInput): Promise<Booking> {
+  return assessmentsApi.put<Booking>(`/bookings/${id}`, data)
 }
 
 /**
@@ -150,6 +179,10 @@ export const bookingsApi = {
 
   createBooking: async (data: CreateBookingInput): Promise<Booking> => {
     return createBooking(data)
+  },
+
+  updateBooking: async (id: number, data: UpdateBookingInput): Promise<Booking> => {
+    return updateBooking(id, data)
   },
 }
 

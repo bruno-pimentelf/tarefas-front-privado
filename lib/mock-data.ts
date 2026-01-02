@@ -4,6 +4,7 @@ import {
   Gamificacao,
   DiagnosticoAluno,
 } from "./types";
+import { TeacherClass, School } from "./api/bookings";
 
 // Usuários mockados
 export const mockUsers: User[] = [
@@ -90,6 +91,29 @@ export const mockDiagnosticoAluno: DiagnosticoAluno = {
     },
   ],
 };
+
+// Turmas mockadas
+export const mockSchool: School = {
+  id: 1,
+  name: "Escola Estadual João da Silva"
+};
+
+export const mockTeacherClasses: TeacherClass[] = [
+  {
+    id: 1,
+    schoolId: 1,
+    name: "9° Ano A",
+    grade: "9° Ano",
+    school: mockSchool
+  },
+  {
+    id: 2,
+    schoolId: 1,
+    name: "9° Ano B", 
+    grade: "9° Ano",
+    school: mockSchool
+  }
+];
 
 // Relatórios mockados
 // TODO: Integrar com API quando disponível

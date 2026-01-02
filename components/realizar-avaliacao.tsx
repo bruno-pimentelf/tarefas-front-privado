@@ -83,6 +83,9 @@ export function RealizarAvaliacao({
 
   // Confirmação de saída
   const [showConfirmSair, setShowConfirmSair] = useState(false)
+  
+  // Confirmação de finalização
+  const [showConfirmFinalizar, setShowConfirmFinalizar] = useState(false)
 
   // Auto-save debounce para dissertativas
   const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null)
@@ -733,7 +736,7 @@ export function RealizarAvaliacao({
                 {naRedacao ? "Redação" : "Questão"}
               </div>
               <div className="text-lg font-semibold">
-                {naRedacao ? "Final" : `${questaoAtual + 1} / ${questoes.length}`}
+                {naRedacao ? "Final" : `Questão ${questaoAtual + 1}`}
               </div>
             </div>
           </div>
@@ -883,30 +886,57 @@ export function RealizarAvaliacao({
                 <Button onClick={handleProximaQuestao} size="sm">
                   Próxima
                 </Button>
-              ) : (
-                <Button
-                  onClick={handleFinalizar}
-                  disabled={!todasRespondidas || finalizando}
-                  className="bg-green-600 hover:bg-green-700 gap-1.5"
-                  size="sm"
-                >
-                  {finalizando ? (
-                    <>
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                      Finalizando...
-                    </>
-                  ) : (
-                    <>
-                      <CheckCircle2 className="h-3.5 w-3.5" />
-                      Finalizar Avaliação
-                    </>
-                  )}
-                </Button>
-              )}
+              ) : null}
             </div>
           </div>
         </CardContent>
       </Card>
+
+      {/* Botão de Finalizar - Fora do escopo de navegação */}
+      <div className="mt-4 flex justify-end">
+        <Button
+          onClick={() => setShowConfirmFinalizar(true)}
+          disabled={finalizando}
+          className="bg-green-600 hover:bg-green-700 gap-1.5"
+          size="default"
+        >
+          {finalizando ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Finalizando...
+            </>
+          ) : (
+            <>
+              <CheckCircle2 className="h-4 w-4" />
+              Finalizar Avaliação
+            </>
+          )}
+        </Button>
+      </div>
+
+      {/* Diálogo de confirmação de finalização */}
+      <AlertDialog open={showConfirmFinalizar} onOpenChange={setShowConfirmFinalizar}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Finalizar avaliação?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja finalizar a avaliação? Após finalizar, você não poderá mais alterar suas respostas.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                setShowConfirmFinalizar(false)
+                handleFinalizar()
+              }}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              Finalizar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

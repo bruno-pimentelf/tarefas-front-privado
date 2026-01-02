@@ -35,6 +35,7 @@ export default function ProfessorPage() {
   }
 
   const handleVoltar = () => {
+    // Volta para seleção de perfil, permitindo trocar de role se necessário
     router.push("/perfil")
   }
 

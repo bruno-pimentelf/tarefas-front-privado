@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useMemo } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -14,6 +14,7 @@ import {
   BookOpen,
   CheckCircle2,
   Play,
+  Edit,
 } from "lucide-react"
 import { Booking } from "@/lib/api/bookings"
 import {
@@ -21,6 +22,7 @@ import {
   getAdmissionsByBookingAndUser,
 } from "@/lib/api/admissions"
 import { CriarAdmissionDialog } from "./criar-admission-dialog"
+import { EditarBookingDialog } from "./editar-booking-dialog"
 import { formatBookingDate } from "@/lib/api/utils"
 
 interface BookingDetalhesProps {
@@ -29,6 +31,9 @@ interface BookingDetalhesProps {
   userRole: "professor" | "aluno"
   onVoltar: () => void
   onIniciarAvaliacao?: (admission: Admission) => void
+  turmaNome?: string // Nome da turma (opcional)
+  onBookingUpdated?: (updatedBooking: Booking, turmasIds?: number[]) => void // Callback quando booking é atualizado
+  turmasAssociadas?: number[] // IDs das turmas já associadas ao booking
 }
 
 export function BookingDetalhes({
@@ -37,39 +42,66 @@ export function BookingDetalhes({
   userRole,
   onVoltar,
   onIniciarAvaliacao,
+  turmaNome,
+  onBookingUpdated,
+  turmasAssociadas = [],
 }: BookingDetalhesProps) {
   const [admissions, setAdmissions] = useState<Admission[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [showCriarAdmission, setShowCriarAdmission] = useState(false)
+  const [showEditarBooking, setShowEditarBooking] = useState(false)
+  const [currentBooking, setCurrentBooking] = useState<Booking>(booking)
 
   const carregarAdmissions = useCallback(async () => {
     setLoading(true)
     setError(null)
 
     try {
-      const response = await getAdmissionsByBookingAndUser(booking.id, userId)
+      const response = await getAdmissionsByBookingAndUser(currentBooking.id, userId)
       setAdmissions(response || [])
     } catch (err: any) {
       setError(err?.message || "Erro ao carregar avaliações")
     } finally {
       setLoading(false)
     }
-  }, [booking.id, userId])
+  }, [currentBooking.id, userId])
 
   useEffect(() => {
     carregarAdmissions()
   }, [carregarAdmissions])
 
-  const getAdmissionStatus = (admission: Admission) => {
-    if (admission.record?.finishedAt) {
-      return { label: "Concluída", variant: "default" as const, color: "bg-green-500" }
+  // Atualizar currentBooking quando booking prop mudar
+  useEffect(() => {
+    setCurrentBooking(booking)
+  }, [booking])
+
+  // Verificar se pode criar avaliação: não pode se booking está finalizado
+  const podeCriarAvaliacao = useMemo(() => {
+    // Não permite criar avaliações em bookings finalizados
+    // Verifica pelo status da API
+    if (currentBooking.status === "finished") {
+      return false
     }
-    if (admission.record) {
-      return { label: "Em andamento", variant: "secondary" as const, color: "bg-yellow-500" }
+
+    // Verificação adicional: se o endTime já passou, também considera finalizado
+    // Para professor, um booking está finalizado quando o prazo expirou
+    if (currentBooking.endTime) {
+      try {
+        const endTime = new Date(currentBooking.endTime)
+        const now = new Date()
+        // Se o endTime já passou, considera finalizado
+        if (endTime.getTime() <= now.getTime()) {
+          return false
+        }
+      } catch (e) {
+        // Se houver erro ao parsear a data, permite criar (fallback)
+        console.error("Erro ao verificar endTime:", e)
+      }
     }
-    return { label: "Não iniciada", variant: "outline" as const, color: "bg-gray-500" }
-  }
+
+    return true
+  }, [currentBooking.status, currentBooking.endTime])
 
   return (
     <div className="container mx-auto px-4 py-4 max-w-7xl">
@@ -81,9 +113,9 @@ export function BookingDetalhes({
             Voltar
           </Button>
           <div>
-            <h1 className="text-sm font-semibold">{booking.title}</h1>
-            {booking.description && (
-              <p className="text-xs text-muted-foreground">{booking.description}</p>
+            <h1 className="text-sm font-semibold">{currentBooking.title}</h1>
+            {currentBooking.description && (
+              <p className="text-xs text-muted-foreground">{currentBooking.description}</p>
             )}
           </div>
         </div>
@@ -97,8 +129,20 @@ export function BookingDetalhes({
           >
             <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
           </Button>
-          {/* Botão só aparece se for professor E não existir nenhuma admission */}
-          {userRole === "professor" && admissions.length === 0 && !loading && (
+          {/* Botão de editar - apenas para professores */}
+          {userRole === "professor" && (
+            <Button
+              onClick={() => setShowEditarBooking(true)}
+              size="sm"
+              variant="outline"
+              className="gap-1.5 h-8"
+            >
+              <Edit className="h-3.5 w-3.5" />
+              Editar
+            </Button>
+          )}
+          {/* Botão só aparece se for professor E não existir nenhuma admission E pode criar avaliação */}
+          {userRole === "professor" && admissions.length === 0 && !loading && podeCriarAvaliacao && (
             <Button
               onClick={() => setShowCriarAdmission(true)}
               size="sm"
@@ -111,27 +155,81 @@ export function BookingDetalhes({
         </div>
       </div>
 
-      {/* Info do Booking */}
+      {/* Detalhes do Booking */}
       <Card className="mb-4">
-        <CardContent className="p-4">
-          <div className="flex items-center gap-4 text-xs text-muted-foreground">
-            <div className="flex items-center gap-1.5">
-              <Clock className="h-3.5 w-3.5" />
-              <span>Início: {formatBookingDate(booking.startTime, booking.timezone)}</span>
+        <CardHeader>
+          <CardTitle className="text-base">Detalhes da Tarefa</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Turma */}
+          {turmaNome && (
+            <div>
+              <p className="text-xs font-medium text-muted-foreground mb-1">Turma</p>
+              <p className="text-sm font-semibold">{turmaNome}</p>
             </div>
-            <div className="flex items-center gap-1.5">
-              <Clock className="h-3.5 w-3.5" />
-              <span>Término: {formatBookingDate(booking.endTime, booking.timezone)}</span>
-            </div>
-            <Badge variant={booking.available ? "default" : "secondary"}>
-              {booking.available ? "Disponível" : "Indisponível"}
-            </Badge>
+          )}
+
+          {/* Título */}
+          <div>
+            <p className="text-xs font-medium text-muted-foreground mb-1">Título</p>
+            <p className="text-sm font-semibold">{currentBooking.title}</p>
           </div>
+
+          {/* Descrição */}
+          {currentBooking.description && (
+            <div>
+              <p className="text-xs font-medium text-muted-foreground mb-1">Descrição</p>
+              <p className="text-sm">{currentBooking.description}</p>
+            </div>
+          )}
+
+          {/* Data e Horário */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <p className="text-xs font-medium text-muted-foreground mb-1">Data e Horário de Início</p>
+              <div className="flex items-center gap-1.5 text-sm">
+                <Clock className="h-3.5 w-3.5" />
+                <span>{formatBookingDate(currentBooking.startTime, currentBooking.timezone)}</span>
+              </div>
+            </div>
+            <div>
+              <p className="text-xs font-medium text-muted-foreground mb-1">Data e Horário de Término</p>
+              <div className="flex items-center gap-1.5 text-sm">
+                <Clock className="h-3.5 w-3.5" />
+                <span>{formatBookingDate(currentBooking.endTime, currentBooking.timezone)}</span>
+              </div>
+            </div>
+          </div>
+
         </CardContent>
       </Card>
 
-      {/* Lista de Admissions */}
-      {loading ? (
+      {/* Botão de Iniciar Avaliação - Apenas para alunos */}
+      {userRole === "aluno" && admissions.length > 0 && !loading && (
+        <div className="mb-4">
+          {admissions.map((admission) => {
+            // Se já finalizou, não mostra botão
+            if (admission.record?.finishedAt) return null
+            
+            return (
+              <Button
+                key={admission.id}
+                onClick={() => onIniciarAvaliacao?.(admission)}
+                className="w-full gap-1.5"
+                size="default"
+              >
+                <Play className="h-4 w-4" />
+                {admission.record ? "Continuar Avaliação" : "Iniciar Avaliação"}
+              </Button>
+            )
+          })}
+        </div>
+      )}
+
+      {/* Lista de Admissions - Apenas para professores */}
+      {userRole === "professor" && (
+        <>
+          {loading ? (
         <div className="flex items-center justify-center py-12">
           <div className="flex flex-col items-center gap-3">
             <Loader2 className="h-6 w-6 animate-spin text-primary" />
@@ -163,7 +261,7 @@ export function BookingDetalhes({
                 ? "Crie a avaliação para este booking."
                 : "Ainda não há avaliações disponíveis para este booking."}
             </p>
-            {userRole === "professor" && (
+            {userRole === "professor" && podeCriarAvaliacao && (
               <Button
                 onClick={() => setShowCriarAdmission(true)}
                 size="sm"
@@ -178,125 +276,111 @@ export function BookingDetalhes({
       ) : (
         <div className="space-y-4">
           {admissions.map((admission) => {
-            const status = getAdmissionStatus(admission)
             return (
               <Card key={admission.id} className="overflow-hidden">
                 <CardHeader className="pb-3">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <CardTitle className="text-base">{admission.title}</CardTitle>
-                      {admission.description && (
-                        <p className="text-xs text-muted-foreground mt-1">
-                          {admission.description}
-                        </p>
-                      )}
-                    </div>
-                    <Badge variant={status.variant}>{status.label}</Badge>
+                  <div>
+                    <CardTitle className="text-base">{admission.title}</CardTitle>
+                    {admission.description && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {admission.description}
+                      </p>
+                    )}
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {/* Info da Admission */}
-                  <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                    <div className="flex items-center gap-1.5">
+                  {/* Duração */}
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground mb-1">Duração</p>
+                    <div className="flex items-center gap-1.5 text-sm">
                       <Clock className="h-3.5 w-3.5" />
-                      <span>Duração: {admission.duration} min</span>
+                      <span>{admission.duration} minutos</span>
                     </div>
-                    {admission.exams.length > 0 && (
-                      <div className="flex items-center gap-1.5">
-                        <BookOpen className="h-3.5 w-3.5" />
-                        <span>{admission.exams.length} prova(s)</span>
-                      </div>
-                    )}
-                    {admission.record?.score != null && typeof admission.record.score === 'number' && (
-                      <div className="flex items-center gap-1.5">
-                        <CheckCircle2 className="h-3.5 w-3.5 text-green-500" />
-                        <span>Nota: {admission.record.score.toFixed(1)}</span>
-                      </div>
-                    )}
                   </div>
 
                   {/* Instruções */}
                   {admission.instructions && (
-                    <div className="p-3 bg-muted/30 rounded-lg">
-                      <p className="text-xs font-medium mb-1">Instruções:</p>
-                      <p className="text-xs text-muted-foreground">{admission.instructions}</p>
+                    <div>
+                      <p className="text-xs font-medium text-muted-foreground mb-1">Instruções</p>
+                      <div className="p-3 bg-muted/30 rounded-lg">
+                        <p className="text-sm">{admission.instructions}</p>
+                      </div>
                     </div>
                   )}
 
                   {/* Exams */}
                   {admission.exams.length > 0 && (
-                    <div className="space-y-2">
-                      <p className="text-xs font-medium">Provas:</p>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    <div>
+                      <p className="text-xs font-medium text-muted-foreground mb-2">Prova</p>
+                      <div className="space-y-2">
                         {admission.exams.map((exam) => (
-                          <div
-                            key={exam.id}
-                            className="flex items-center gap-2 p-2 bg-muted/20 rounded border"
-                          >
-                            <BookOpen className="h-3.5 w-3.5 text-muted-foreground" />
-                            <span className="text-xs">{exam.title}</span>
-                            {exam.theme && (
-                              <Badge variant="outline" className="text-xs">
-                                {exam.theme.name}
-                              </Badge>
-                            )}
-                          </div>
+                          <Card key={exam.id} className="border">
+                            <CardContent className="p-3">
+                              <div className="flex items-start gap-2">
+                                <BookOpen className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+                                <div className="flex-1">
+                                  <p className="text-sm font-medium">{exam.title}</p>
+                                  {exam.theme && (
+                                    <Badge variant="outline" className="text-xs mt-1">
+                                      {exam.theme.name}
+                                    </Badge>
+                                  )}
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
                         ))}
                       </div>
                     </div>
                   )}
 
-                  {/* Ação do aluno */}
-                  {userRole === "aluno" && !admission.record?.finishedAt && (
-                    <Button
-                      onClick={() => onIniciarAvaliacao?.(admission)}
-                      className="w-full gap-1.5"
-                      size="sm"
-                    >
-                      <Play className="h-3.5 w-3.5" />
-                      {admission.record ? "Continuar Avaliação" : "Iniciar Avaliação"}
-                    </Button>
-                  )}
-
-                  {/* Resultado do aluno */}
-                  {userRole === "aluno" && admission.record?.finishedAt && (
-                    <div className="p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <CheckCircle2 className="h-4 w-4 text-green-600" />
-                          <span className="text-sm font-medium text-green-800 dark:text-green-200">
-                            Avaliação concluída
-                          </span>
-                        </div>
-                        {admission.record.score != null && typeof admission.record.score === 'number' && (
-                          <span className="text-sm font-bold text-green-800 dark:text-green-200">
-                            Nota: {admission.record.score.toFixed(1)}
-                          </span>
-                        )}
-                      </div>
-                      {admission.record.totalTime && (
-                        <p className="text-xs text-green-700 dark:text-green-300 mt-1">
-                          Tempo total: {Math.floor(admission.record.totalTime / 60)} min{" "}
-                          {admission.record.totalTime % 60} seg
-                        </p>
-                      )}
+                  {/* Info adicional da Admission (se houver record) */}
+                  {admission.record?.score != null && typeof admission.record.score === 'number' && (
+                    <div className="flex items-center gap-1.5 text-sm">
+                      <CheckCircle2 className="h-3.5 w-3.5 text-green-500" />
+                      <span className="text-muted-foreground">Nota: </span>
+                      <span className="font-semibold">{admission.record.score.toFixed(1)}</span>
                     </div>
                   )}
+
                 </CardContent>
               </Card>
             )
           })}
         </div>
       )}
+        </>
+      )}
 
-      {/* Dialog de criar admission */}
-      <CriarAdmissionDialog
-        open={showCriarAdmission}
-        onOpenChange={setShowCriarAdmission}
-        bookingId={booking.id}
-        bookingTitle={booking.title}
-        onSuccess={carregarAdmissions}
+
+      {/* Dialog de editar booking */}
+      <EditarBookingDialog
+        open={showEditarBooking}
+        onOpenChange={setShowEditarBooking}
+        booking={currentBooking}
+        turmasAssociadas={turmasAssociadas}
+        onSuccess={(updatedBooking, turmasIds) => {
+          setCurrentBooking(updatedBooking)
+          onBookingUpdated?.(updatedBooking, turmasIds)
+        }}
       />
+
+      {/* Dialog de criar admission - só abre se pode criar avaliação */}
+      {podeCriarAvaliacao && (
+        <CriarAdmissionDialog
+          open={showCriarAdmission}
+          onOpenChange={(open) => {
+            // Só permite abrir se pode criar avaliação
+            if (open && !podeCriarAvaliacao) {
+              return
+            }
+            setShowCriarAdmission(open)
+          }}
+          bookingId={currentBooking.id}
+          bookingTitle={currentBooking.title}
+          onSuccess={carregarAdmissions}
+        />
+      )}
     </div>
   )
 }
