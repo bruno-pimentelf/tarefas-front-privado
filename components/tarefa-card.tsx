@@ -112,7 +112,7 @@ export function TarefaCard({
             className="w-full gap-1.5 hover:bg-accent/5 transition-all h-8"
             size="sm"
           >
-            Ver Detalhes
+            Iniciar atividade
           </Button>
         </CardFooter>
       )}

@@ -17,9 +17,6 @@ export default function TarefaProfessorPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  // ID do professor (mock para testes)
-  const teacherId = "teacher-001"
-
   useEffect(() => {
     if (!currentUser) {
       router.push("/auth")
@@ -30,7 +27,7 @@ export default function TarefaProfessorPage() {
       try {
         setLoading(true)
         // TODO: Quando houver endpoint específico para professor, usar aqui
-        const response = await getStudentBookings(teacherId, 1, 100)
+        const response = await getStudentBookings(currentUser.uid, 1, 100)
         const foundBooking = response.items?.find((b) => b.id.toString() === tarefaId)
         
         if (foundBooking) {
@@ -46,7 +43,7 @@ export default function TarefaProfessorPage() {
     }
 
     carregarBooking()
-  }, [currentUser, router, tarefaId, teacherId])
+  }, [currentUser, router, tarefaId])
 
   const handleVoltar = () => {
     router.push("/professor")
@@ -82,7 +79,7 @@ export default function TarefaProfessorPage() {
     <div className="min-h-screen bg-background">
       <BookingDetalhes
         booking={booking}
-        userId={teacherId}
+        userId={currentUser.uid}
         userRole="professor"
         onVoltar={handleVoltar}
       />

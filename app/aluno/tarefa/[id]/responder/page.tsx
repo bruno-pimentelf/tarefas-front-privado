@@ -20,9 +20,6 @@ export default function ResponderTarefaPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  // ID do aluno (mock para testes)
-  const studentId = "student-001"
-
   useEffect(() => {
     if (!currentUser) {
       router.push("/auth")
@@ -33,7 +30,7 @@ export default function ResponderTarefaPage() {
       try {
         setLoading(true)
         // Buscar booking
-        const bookingsResponse = await getStudentBookings(studentId, 1, 100)
+        const bookingsResponse = await getStudentBookings(currentUser.uid, 1, 100)
         const foundBooking = bookingsResponse.items?.find((b) => b.id.toString() === tarefaId)
         
         if (!foundBooking) {
@@ -44,7 +41,7 @@ export default function ResponderTarefaPage() {
         setBooking(foundBooking)
 
         // Buscar admissions
-        const admissionsResponse = await getAdmissionsByBookingAndUser(foundBooking.id, studentId)
+        const admissionsResponse = await getAdmissionsByBookingAndUser(foundBooking.id, currentUser.uid)
         
         if (admissionsResponse.length === 0) {
           setError("Nenhuma avaliação encontrada para esta tarefa")
@@ -68,7 +65,7 @@ export default function ResponderTarefaPage() {
     }
 
     carregarDados()
-  }, [currentUser, router, tarefaId, studentId])
+  }, [currentUser, router, tarefaId])
 
   const handleVoltar = () => {
     router.push(`/aluno/tarefa/${tarefaId}`)
@@ -109,7 +106,7 @@ export default function ResponderTarefaPage() {
     <div className="h-[calc(100vh-3.5rem)]">
       <RealizarAvaliacao
         admission={admission}
-        userId={studentId}
+        userId={currentUser.uid}
         onVoltar={handleVoltar}
         onConcluir={handleConcluir}
         onFinalizar={handleFinalizar}

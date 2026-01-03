@@ -20,9 +20,6 @@ export default function ProcessandoTarefaPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  // ID do aluno (mock para testes)
-  const studentId = "student-001"
-
   useEffect(() => {
     if (!currentUser) {
       router.push("/auth")
@@ -33,7 +30,7 @@ export default function ProcessandoTarefaPage() {
       try {
         setLoading(true)
         // Buscar booking
-        const bookingsResponse = await getStudentBookings(studentId, 1, 100)
+        const bookingsResponse = await getStudentBookings(currentUser.uid, 1, 100)
         const foundBooking = bookingsResponse.items?.find((b) => b.id.toString() === tarefaId)
         
         if (!foundBooking) {
@@ -42,7 +39,7 @@ export default function ProcessandoTarefaPage() {
         }
 
         // Buscar admissions
-        const admissionsResponse = await getAdmissionsByBookingAndUser(foundBooking.id, studentId)
+        const admissionsResponse = await getAdmissionsByBookingAndUser(foundBooking.id, currentUser.uid)
         const admissionAtiva = admissionsResponse.find(a => !a.record?.finishedAt) || admissionsResponse[0]
         
         if (!admissionAtiva || !admissionAtiva.record) {
@@ -69,7 +66,7 @@ export default function ProcessandoTarefaPage() {
     }
 
     processarAvaliacao()
-  }, [currentUser, router, tarefaId, studentId])
+  }, [currentUser, router, tarefaId])
 
   if (!currentUser) {
     return null

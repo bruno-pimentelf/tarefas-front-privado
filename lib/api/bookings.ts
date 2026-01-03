@@ -69,21 +69,40 @@ export interface UpdateBookingInput {
 
 /**
  * Lista as classes (turmas) do professor
- * GET /bookings/teacher-classes/:userId
- * MOCK: Retorna turmas mockadas por enquanto
+ * GET /assessments/class/by-teacher/:userId
+ * Migrated from /classes/by-teacher/:userId
+ * 
+ * This function is kept for backward compatibility.
+ * The actual implementation is now in classes.ts
  */
 export async function getTeacherClasses(userId: string): Promise<TeacherClass[]> {
-  // Importa os dados mockados
-  const { mockTeacherClasses } = await import("../mock-data")
-  
-  // Simula delay da API
-  await new Promise(resolve => setTimeout(resolve, 500))
-  
-  console.log("Retornando turmas mockadas:", mockTeacherClasses)
-  return mockTeacherClasses
-  
-  // Código original comentado para quando a API estiver funcionando:
-  // return assessmentsApi.get<TeacherClass[]>(`/bookings/teacher-classes/${userId}`)
+  try {
+    // Use the new route directly
+    const classes = await assessmentsApi.get<Array<{
+      id: number
+      name: string
+      grade: string
+      schoolYear: string
+      schoolId: number
+      schoolName?: string
+      school?: { id: number; name: string }
+    }>>(`/assessments/class/by-teacher/${userId}`)
+    
+    // Convert to TeacherClass[] format for backward compatibility
+    return (classes || []).map((cls) => ({
+      id: cls.id,
+      schoolId: cls.schoolId,
+      name: cls.name,
+      grade: cls.grade,
+      school: cls.school || { id: cls.schoolId, name: cls.schoolName || "" },
+    }))
+  } catch (error: any) {
+    // Se for erro 404 ou similar, retorna array vazio
+    if (error?.status === 404 || error?.status === 403) {
+      return []
+    }
+    throw error
+  }
 }
 
 /**

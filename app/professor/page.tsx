@@ -5,19 +5,13 @@ import { useRouter } from "next/navigation"
 import { ProfessorDashboard } from "@/components/professor-dashboard"
 import { useAuth } from "@/contexts/auth-context"
 import { Button } from "@/components/ui/button"
-import { LogOut, Trophy, BarChart3, User } from "lucide-react"
+import { LogOut, Trophy, BarChart3, User, TestTube } from "lucide-react"
+import Link from "next/link"
 import { GamificationDialog } from "@/components/gamification-dialog"
 import { EstatisticasDialog } from "@/components/estatisticas-dialog"
 import { mockGamificacao } from "@/lib/mock-data"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { Sidebar } from "@/components/sidebar"
-
-// Mock de estatísticas - TODO: Buscar da API
-const mockEstatisticas = {
-  tarefasAtivas: 0,
-  totalAlunos: 0,
-  taxaConclusao: 0,
-}
 
 export default function ProfessorPage() {
   const { currentUser, logout } = useAuth()
@@ -57,6 +51,11 @@ export default function ProfessorPage() {
       onClick: () => setShowGamificacao(true),
     },
     {
+      icon: <TestTube className="h-5 w-5" />,
+      label: "Teste Analytics",
+      onClick: () => router.push("/teste-analytics"),
+    },
+    {
       icon: <User className="h-5 w-5" />,
       label: "Trocar Perfil",
       onClick: handleVoltar,
@@ -94,9 +93,9 @@ export default function ProfessorPage() {
       <EstatisticasDialog
         open={showEstatisticas}
         onOpenChange={setShowEstatisticas}
-        tarefasAtivas={mockEstatisticas.tarefasAtivas}
-        totalAlunos={mockEstatisticas.totalAlunos}
-        taxaConclusao={mockEstatisticas.taxaConclusao}
+        tarefasAtivas={0}
+        totalAlunos={0}
+        taxaConclusao={0}
       />
     </div>
   )

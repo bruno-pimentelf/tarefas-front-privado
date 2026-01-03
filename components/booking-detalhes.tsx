@@ -24,8 +24,10 @@ import {
 } from "@/lib/api/admissions"
 import { CriarAdmissionDialog } from "./criar-admission-dialog"
 import { EditarBookingDialog } from "./editar-booking-dialog"
+import { BookingEstatisticas } from "./booking-estatisticas"
 import { formatBookingDate } from "@/lib/api/utils"
 import { ThemeToggle } from "./theme-toggle"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 interface BookingDetalhesProps {
   booking: Booking
@@ -286,80 +288,101 @@ export function BookingDetalhes({
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-4">
-          {admissions.map((admission) => {
-            return (
-              <Card key={admission.id} className="overflow-hidden">
-                <CardHeader className="pb-3">
-                  <div>
-                    <CardTitle className="text-base">{admission.title}</CardTitle>
-                    {admission.description && (
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {admission.description}
-                      </p>
+        <Tabs defaultValue="avaliacoes" className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="avaliacoes">Avaliações</TabsTrigger>
+            <TabsTrigger value="estatisticas" disabled={!admissions.some(a => a.record?.finishedAt)}>
+              Estatísticas
+            </TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="avaliacoes" className="space-y-4 mt-4">
+            {admissions.map((admission) => {
+              return (
+                <Card key={admission.id} className="overflow-hidden">
+                  <CardHeader className="pb-3">
+                    <div>
+                      <CardTitle className="text-base">{admission.title}</CardTitle>
+                      {admission.description && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {admission.description}
+                        </p>
+                      )}
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {/* Duração */}
+                    <div>
+                      <p className="text-xs font-medium text-muted-foreground mb-1">Duração</p>
+                      <div className="flex items-center gap-1.5 text-sm">
+                        <Clock className="h-3.5 w-3.5" />
+                        <span>{admission.duration} minutos</span>
+                      </div>
+                    </div>
+
+                    {/* Instruções */}
+                    {admission.instructions && (
+                      <div>
+                        <p className="text-xs font-medium text-muted-foreground mb-1">Instruções</p>
+                        <div className="p-3 bg-muted/30 rounded-md">
+                          <p className="text-sm">{admission.instructions}</p>
+                        </div>
+                      </div>
                     )}
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {/* Duração */}
-                  <div>
-                    <p className="text-xs font-medium text-muted-foreground mb-1">Duração</p>
-                    <div className="flex items-center gap-1.5 text-sm">
-                      <Clock className="h-3.5 w-3.5" />
-                      <span>{admission.duration} minutos</span>
-                    </div>
-                  </div>
 
-                  {/* Instruções */}
-                  {admission.instructions && (
-                    <div>
-                      <p className="text-xs font-medium text-muted-foreground mb-1">Instruções</p>
-                      <div className="p-3 bg-muted/30 rounded-md">
-                        <p className="text-sm">{admission.instructions}</p>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Exams */}
-                  {admission.exams.length > 0 && (
-                    <div>
-                      <p className="text-xs font-medium text-muted-foreground mb-2">Prova</p>
-                      <div className="space-y-2">
-                        {admission.exams.map((exam) => (
-                          <Card key={exam.id} className="border">
-                            <CardContent className="p-3">
-                              <div className="flex items-start gap-2">
-                                <BookOpen className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
-                                <div className="flex-1">
-                                  <p className="text-sm font-medium">{exam.title}</p>
-                                  {exam.theme && (
-                                    <Badge variant="outline" className="text-xs mt-1">
-                                      {exam.theme.name}
-                                    </Badge>
-                                  )}
+                    {/* Exams */}
+                    {admission.exams.length > 0 && (
+                      <div>
+                        <p className="text-xs font-medium text-muted-foreground mb-2">Prova</p>
+                        <div className="space-y-2">
+                          {admission.exams.map((exam) => (
+                            <Card key={exam.id} className="border">
+                              <CardContent className="p-3">
+                                <div className="flex items-start gap-2">
+                                  <BookOpen className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+                                  <div className="flex-1">
+                                    <p className="text-sm font-medium">{exam.title}</p>
+                                    {exam.theme && (
+                                      <Badge variant="outline" className="text-xs mt-1">
+                                        {exam.theme.name}
+                                      </Badge>
+                                    )}
+                                  </div>
                                 </div>
-                              </div>
-                            </CardContent>
-                          </Card>
-                        ))}
+                              </CardContent>
+                            </Card>
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    )}
 
-                  {/* Info adicional da Admission (se houver record) */}
-                  {admission.record?.score != null && typeof admission.record.score === 'number' && (
-                    <div className="flex items-center gap-1.5 text-sm">
-                      <CheckCircle2 className="h-3.5 w-3.5 text-green-500" />
-                      <span className="text-muted-foreground">Nota: </span>
-                      <span className="font-semibold">{admission.record.score.toFixed(1)}</span>
-                    </div>
-                  )}
+                    {/* Info adicional da Admission (se houver record) */}
+                    {admission.record?.score != null && typeof admission.record.score === 'number' && (
+                      <div className="flex items-center gap-1.5 text-sm">
+                        <CheckCircle2 className="h-3.5 w-3.5 text-green-500" />
+                        <span className="text-muted-foreground">Nota: </span>
+                        <span className="font-semibold">{admission.record.score.toFixed(1)}</span>
+                      </div>
+                    )}
 
-                </CardContent>
-              </Card>
-            )
-          })}
-        </div>
+                  </CardContent>
+                </Card>
+              )
+            })}
+          </TabsContent>
+
+          <TabsContent value="estatisticas" className="mt-4">
+            {admissions
+              .filter(a => a.record?.finishedAt)
+              .map((admission) => (
+                <BookingEstatisticas
+                  key={admission.id}
+                  admissionId={admission.id}
+                  classIds={turmasAssociadas}
+                />
+              ))}
+          </TabsContent>
+        </Tabs>
       )}
         </>
       )}

@@ -22,9 +22,6 @@ export default function ResultadosTarefaPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  // ID do aluno (mock para testes)
-  const studentId = "student-001"
-
   useEffect(() => {
     if (!currentUser) {
       router.push("/auth")
@@ -35,7 +32,7 @@ export default function ResultadosTarefaPage() {
       try {
         setLoading(true)
         // Buscar booking
-        const bookingsResponse = await getStudentBookings(studentId, 1, 100)
+        const bookingsResponse = await getStudentBookings(currentUser.uid, 1, 100)
         const foundBooking = bookingsResponse.items?.find((b) => b.id.toString() === tarefaId)
         
         if (!foundBooking) {
@@ -44,7 +41,7 @@ export default function ResultadosTarefaPage() {
         }
 
         // Buscar admissions
-        const admissionsResponse = await getAdmissionsByBookingAndUser(foundBooking.id, studentId)
+        const admissionsResponse = await getAdmissionsByBookingAndUser(foundBooking.id, currentUser.uid)
         const admissionFinalizada = admissionsResponse.find(a => a.record?.finishedAt) || admissionsResponse[0]
         
         if (!admissionFinalizada || !admissionFinalizada.record) {
@@ -62,7 +59,7 @@ export default function ResultadosTarefaPage() {
     }
 
     carregarResultados()
-  }, [currentUser, router, tarefaId, studentId])
+  }, [currentUser, router, tarefaId])
 
   const handleVoltar = () => {
     router.push(`/aluno/tarefa/${tarefaId}`)

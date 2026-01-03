@@ -2,6 +2,7 @@ import axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from "ax
 import { auth } from "@/lib/firebase"
 
 const ASSESSMENTS_API_URL = "https://api.trieduconline.com.br/assessments"
+const USERS_API_URL = "https://api.trieduconline.com.br/users"
 
 export interface ApiError {
   message: string
@@ -103,3 +104,5 @@ export class ApiClient {
 // Instância do cliente para Assessments API
 export const assessmentsApi = new ApiClient(ASSESSMENTS_API_URL)
 
+// Instância do cliente para Users API
+export const usersApi = new ApiClient(USERS_API_URL)

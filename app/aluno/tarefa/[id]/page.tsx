@@ -17,9 +17,6 @@ export default function TarefaAlunoPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  // ID do aluno (mock para testes)
-  const studentId = "student-001"
-
   useEffect(() => {
     if (!currentUser) {
       router.push("/auth")
@@ -30,7 +27,7 @@ export default function TarefaAlunoPage() {
       try {
         setLoading(true)
         // Buscar todos os bookings e encontrar o específico
-        const response = await getStudentBookings(studentId, 1, 100)
+        const response = await getStudentBookings(currentUser.uid, 1, 100)
         const foundBooking = response.items?.find((b) => b.id.toString() === tarefaId)
         
         if (foundBooking) {
@@ -46,7 +43,7 @@ export default function TarefaAlunoPage() {
     }
 
     carregarBooking()
-  }, [currentUser, router, tarefaId, studentId])
+  }, [currentUser, router, tarefaId])
 
   const handleVoltar = () => {
     router.push("/aluno")
@@ -91,7 +88,7 @@ export default function TarefaAlunoPage() {
     <div className="container mx-auto px-4 py-4 max-w-7xl">
       <BookingDetalhes
         booking={booking}
-        userId={studentId}
+        userId={currentUser.uid}
         userRole="aluno"
         onVoltar={handleVoltar}
         onIniciarAvaliacao={handleIniciarAvaliacao}

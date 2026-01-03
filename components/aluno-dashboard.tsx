@@ -60,8 +60,6 @@ export function AlunoDashboard() {
     }
   }, [bookings])
 
-  // ID do aluno (mock para testes)
-  const studentId = "student-001"
 
   // Função para carregar todos os bookings
   const carregarBookings = useCallback(async () => {
@@ -71,8 +69,16 @@ export function AlunoDashboard() {
     setError(null)
 
     try {
+      console.log("Carregando bookings para aluno:", currentUser.uid, currentUser.email)
+      
       // Carregar primeira página para obter o total
-      const firstPage = await getStudentBookings(studentId, 1, 100)
+      const firstPage = await getStudentBookings(currentUser.uid, 1, 100)
+      
+      console.log("Primeira página de bookings recebida:", {
+        total: firstPage.items?.length || 0,
+        totalPages: firstPage.meta?.totalPages || 0,
+        items: firstPage.items,
+      })
       
       let allBookings = [...(firstPage.items || [])]
       
@@ -80,7 +86,7 @@ export function AlunoDashboard() {
       if (firstPage.meta && firstPage.meta.totalPages > 1) {
         const promises = []
         for (let page = 2; page <= firstPage.meta.totalPages; page++) {
-          promises.push(getStudentBookings(studentId, page, 100))
+          promises.push(getStudentBookings(currentUser.uid, page, 100))
         }
         
         const remainingPages = await Promise.all(promises)
@@ -100,7 +106,7 @@ export function AlunoDashboard() {
     } finally {
       setLoading(false)
     }
-  }, [currentUser, studentId])
+  }, [currentUser])
 
   // Carregar bookings ao montar o componente
   useEffect(() => {
@@ -127,7 +133,8 @@ export function AlunoDashboard() {
       }
 
       // Buscar admissions do booking
-      const admissions = await getAdmissionsByBookingAndUser(booking.id, studentId)
+      if (!currentUser) return
+      const admissions = await getAdmissionsByBookingAndUser(booking.id, currentUser.uid)
       
       // Encontrar a admission com record finalizado
       const admissionComRecord = admissions.find(a => a.record?.finishedAt != null)

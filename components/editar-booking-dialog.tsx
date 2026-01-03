@@ -67,9 +67,6 @@ export function EditarBookingDialog({
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [submitSuccess, setSubmitSuccess] = useState(false)
 
-  // ID do professor (mock para testes)
-  const teacherId = "teacher-001"
-
   // Inicializar formulário com dados do booking
   useEffect(() => {
     if (open && booking) {
@@ -118,7 +115,7 @@ export function EditarBookingDialog({
     setTurmasError(null)
 
     try {
-      const classes = await getTeacherClasses(teacherId)
+      const classes = await getTeacherClasses(currentUser.uid)
       setTurmas(classes)
       // TODO: Carregar turmas já associadas ao booking quando a API suportar
       // Por enquanto, deixamos vazio

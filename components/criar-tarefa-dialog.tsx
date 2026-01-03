@@ -96,8 +96,6 @@ export function CriarTarefaDialog({ open, onOpenChange, onSuccess }: CriarTarefa
     }
   }, [titulo])
 
-  // ID do professor (mock para testes)
-  const teacherId = "teacher-001"
 
   const carregarTurmas = async () => {
     if (!currentUser) return
@@ -106,7 +104,8 @@ export function CriarTarefaDialog({ open, onOpenChange, onSuccess }: CriarTarefa
     setTurmasError(null)
 
     try {
-      const classes = await getTeacherClasses(teacherId)
+      if (!currentUser) return
+      const classes = await getTeacherClasses(currentUser.uid)
       setTurmas(classes)
     } catch (error: any) {
       setTurmasError(error?.data?.message || error?.message || "Erro ao carregar turmas")
