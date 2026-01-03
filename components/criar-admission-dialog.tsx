@@ -188,7 +188,7 @@ export function CriarAdmissionDialog({
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Informações da Admission */}
-            <div className="space-y-4 p-4 border rounded-lg">
+            <div className="space-y-4 p-4 border rounded-md">
               <h3 className="text-sm font-semibold">Informações da Avaliação</h3>
 
               <div className="grid grid-cols-2 gap-4">
@@ -257,7 +257,7 @@ export function CriarAdmissionDialog({
             </div>
 
             {/* Collection de Questões */}
-            <div className="space-y-4 p-4 border rounded-lg">
+            <div className="space-y-4 p-4 border rounded-md">
               <h3 className="text-sm font-semibold">Collection de Questões</h3>
 
               {collectionsLoading ? (
@@ -266,7 +266,7 @@ export function CriarAdmissionDialog({
                   <span className="text-sm text-muted-foreground">Carregando collections...</span>
                 </div>
               ) : collections.length === 0 ? (
-                <div className="text-center py-6 border-2 border-dashed rounded-lg">
+                <div className="text-center py-6 border-2 border-dashed rounded-md">
                   <BookOpen className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
                   <p className="text-sm text-muted-foreground mb-2">
                     Nenhuma collection disponível
@@ -306,7 +306,7 @@ export function CriarAdmissionDialog({
 
             {/* Mensagem de erro */}
             {submitError && (
-              <div className="flex items-center gap-2 p-3 bg-destructive/10 rounded-lg text-destructive">
+              <div className="flex items-center gap-2 p-3 bg-destructive/10 rounded-md text-destructive">
                 <AlertCircle className="h-4 w-4 shrink-0" />
                 <span className="text-sm">{submitError}</span>
               </div>

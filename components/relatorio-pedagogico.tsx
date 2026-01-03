@@ -107,25 +107,25 @@ export function RelatorioPedagogico({ relatorio }: RelatorioPedagogicoProps) {
         <div className="space-y-2">
           <h3 className="font-semibold text-xs mb-2">Distribuição de Desempenho</h3>
           <div className="grid grid-cols-4 gap-1.5">
-            <div className="text-center p-3 rounded-lg bg-green-500/10 border border-green-500/20">
+            <div className="text-center p-3 rounded-md bg-green-500/10 border border-green-500/20">
               <div className="text-xl font-bold text-green-600 dark:text-green-400">
                 {relatorio.alunosPorDesempenho.excelente}
               </div>
               <div className="text-xs text-muted-foreground mt-1">Excelente</div>
             </div>
-            <div className="text-center p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
+            <div className="text-center p-3 rounded-md bg-blue-500/10 border border-blue-500/20">
               <div className="text-xl font-bold text-blue-600 dark:text-blue-400">
                 {relatorio.alunosPorDesempenho.bom}
               </div>
               <div className="text-xs text-muted-foreground mt-1">Bom</div>
             </div>
-            <div className="text-center p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/20">
+            <div className="text-center p-3 rounded-md bg-yellow-500/10 border border-yellow-500/20">
               <div className="text-xl font-bold text-yellow-600 dark:text-yellow-400">
                 {relatorio.alunosPorDesempenho.regular}
               </div>
               <div className="text-xs text-muted-foreground mt-1">Regular</div>
             </div>
-            <div className="text-center p-3 rounded-lg bg-red-500/10 border border-red-500/20">
+            <div className="text-center p-3 rounded-md bg-red-500/10 border border-red-500/20">
               <div className="text-xl font-bold text-red-600 dark:text-red-400">
                 {relatorio.alunosPorDesempenho.precisaMelhorar}
               </div>

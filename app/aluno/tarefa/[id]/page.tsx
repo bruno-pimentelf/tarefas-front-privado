@@ -63,28 +63,32 @@ export default function TarefaAlunoPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      <div className="container mx-auto px-4 py-4 max-w-7xl">
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
       </div>
     )
   }
 
   if (error || !booking) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen gap-4">
-        <p className="text-muted-foreground">{error || "Tarefa não encontrada"}</p>
-        <button
-          onClick={handleVoltar}
-          className="text-primary hover:underline"
-        >
-          Voltar para tarefas
-        </button>
+      <div className="container mx-auto px-4 py-4 max-w-7xl">
+        <div className="flex flex-col items-center justify-center py-12 gap-4">
+          <p className="text-muted-foreground">{error || "Tarefa não encontrada"}</p>
+          <button
+            onClick={handleVoltar}
+            className="text-primary hover:underline"
+          >
+            Voltar para tarefas
+          </button>
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="container mx-auto px-4 py-4 max-w-7xl">
       <BookingDetalhes
         booking={booking}
         userId={studentId}

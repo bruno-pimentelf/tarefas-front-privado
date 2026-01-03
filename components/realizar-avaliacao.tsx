@@ -55,6 +55,7 @@ interface RealizarAvaliacaoProps {
   userId: string
   onVoltar: () => void
   onConcluir: () => void
+  onFinalizar?: () => void // Opcional: se fornecido, será chamado em vez de mudar estado interno
 }
 
 export function RealizarAvaliacao({
@@ -62,6 +63,7 @@ export function RealizarAvaliacao({
   userId,
   onVoltar,
   onConcluir,
+  onFinalizar,
 }: RealizarAvaliacaoProps) {
   const [estado, setEstado] = useState<EstadoAvaliacao>("carregando")
   const [error, setError] = useState<string | null>(null)
@@ -381,6 +383,19 @@ export function RealizarAvaliacao({
   const handleFinalizar = async () => {
     if (!record) return
 
+    // Se onFinalizar foi fornecido, usar navegação externa
+    if (onFinalizar) {
+      try {
+        await atualizarTempoAoFinalizar()
+        onFinalizar()
+      } catch (err: any) {
+        console.error("Erro ao atualizar tempo:", err)
+        setError(err?.message || "Erro ao finalizar avaliação")
+      }
+      return
+    }
+
+    // Comportamento original: gerenciar estados internamente
     setFinalizando(true)
     setEstado("processando")
 
@@ -413,6 +428,11 @@ export function RealizarAvaliacao({
     if (questaoAtual > 0) {
       setQuestaoAtual(questaoAtual - 1)
     }
+  }
+
+  // Navegar para questão específica
+  const handleIrParaQuestao = (index: number) => {
+    setQuestaoAtual(index)
   }
 
   // Calcular tempo RESTANTE para exibição (contagem regressiva)
@@ -521,9 +541,9 @@ export function RealizarAvaliacao({
   // Estado de carregamento
   if (estado === "carregando") {
     return (
-      <div className="container mx-auto px-4 py-4 max-w-4xl">
-        <div className="flex flex-col items-center justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
+      <div className="flex items-center justify-center h-full">
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
           <p className="text-sm text-muted-foreground">Carregando avaliação...</p>
         </div>
       </div>
@@ -533,9 +553,9 @@ export function RealizarAvaliacao({
   // Estado de erro
   if (estado === "erro") {
     return (
-      <div className="container mx-auto px-4 py-4 max-w-4xl">
-        <Card>
-          <CardContent className="py-8">
+      <div className="flex items-center justify-center h-full px-2">
+        <Card className="max-w-md">
+          <CardContent className="py-6 px-3">
             <div className="flex flex-col items-center gap-3 text-center">
               <AlertCircle className="h-8 w-8 text-destructive" />
               <div>
@@ -543,10 +563,10 @@ export function RealizarAvaliacao({
                 <p className="text-xs text-muted-foreground mt-1">{error}</p>
               </div>
               <div className="flex gap-2">
-                <Button onClick={onVoltar} variant="outline" size="sm">
+                <Button onClick={onVoltar} variant="outline" size="sm" className="h-8">
                   Voltar
                 </Button>
-                <Button onClick={iniciarAvaliacao} size="sm">
+                <Button onClick={iniciarAvaliacao} size="sm" className="h-8">
                   Tentar novamente
                 </Button>
               </div>
@@ -560,14 +580,14 @@ export function RealizarAvaliacao({
   // Estado de processamento
   if (estado === "processando") {
     return (
-      <div className="container mx-auto px-4 py-4 max-w-4xl">
-        <Card>
-          <CardContent className="py-12">
+      <div className="flex items-center justify-center h-full px-2">
+        <Card className="max-w-md">
+          <CardContent className="py-6 px-3">
             <div className="flex flex-col items-center gap-4 text-center">
               <Loader2 className="h-12 w-12 animate-spin text-primary" />
               <div>
-                <h3 className="text-lg font-semibold">Finalizando avaliação...</h3>
-                <p className="text-sm text-muted-foreground mt-1">
+                <h3 className="text-base font-semibold">Finalizando avaliação...</h3>
+                <p className="text-xs text-muted-foreground mt-1">
                   Aguarde enquanto processamos suas respostas
                 </p>
               </div>
@@ -581,26 +601,26 @@ export function RealizarAvaliacao({
   // Estado de resultados
   if (estado === "resultados" && record) {
     return (
-      <div className="container mx-auto px-4 py-4 max-w-4xl">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+      <div className="flex items-center justify-center h-full px-2">
+        <Card className="max-w-md">
+          <CardHeader className="px-3 pt-3 pb-2">
+            <CardTitle className="flex items-center gap-2 text-base">
               <CheckCircle2 className="h-5 w-5 text-green-500" />
               Avaliação Concluída!
             </CardTitle>
-            <CardDescription>{admission.title}</CardDescription>
+            <CardDescription className="text-xs">{admission.title}</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="p-4 bg-muted/30 rounded-lg text-center">
+          <CardContent className="space-y-3 px-3 pb-3">
+            <div className="grid grid-cols-2 gap-2">
+              <div className="p-3 bg-muted/30 rounded-md text-center">
                 <p className="text-xs text-muted-foreground">Pontuação</p>
-                <p className="text-2xl font-bold text-primary">
+                <p className="text-xl font-bold text-primary">
                   {record.score !== null ? `${(record.score * 100).toFixed(0)}%` : "Processando..."}
                 </p>
               </div>
-              <div className="p-4 bg-muted/30 rounded-lg text-center">
+              <div className="p-3 bg-muted/30 rounded-md text-center">
                 <p className="text-xs text-muted-foreground">Tempo Utilizado</p>
-                <p className="text-2xl font-bold">
+                <p className="text-xl font-bold">
                   {(() => {
                     const tempo = record.elapsedTimeInSeconds ?? record.elapsedTime
                     return tempo !== null && tempo !== undefined 
@@ -611,14 +631,14 @@ export function RealizarAvaliacao({
               </div>
             </div>
 
-            <div className="p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
-              <p className="text-sm text-green-800 dark:text-green-200">
+            <div className="p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-md">
+              <p className="text-xs text-green-800 dark:text-green-200">
                 Suas respostas foram registradas com sucesso. O professor poderá visualizar
                 seu desempenho no relatório da turma.
               </p>
             </div>
 
-            <Button onClick={onConcluir} className="w-full">
+            <Button onClick={onConcluir} className="w-full h-8">
               Voltar ao Dashboard
             </Button>
           </CardContent>
@@ -630,9 +650,9 @@ export function RealizarAvaliacao({
   // Se não há questões
   if (questoes.length === 0 && !temRedacao) {
     return (
-      <div className="container mx-auto px-4 py-4 max-w-4xl">
-        <Card>
-          <CardContent className="py-8">
+      <div className="flex items-center justify-center h-full px-2">
+        <Card className="max-w-md">
+          <CardContent className="py-6 px-3">
             <div className="flex flex-col items-center gap-3 text-center">
               <BookOpen className="h-8 w-8 text-muted-foreground" />
               <div>
@@ -641,7 +661,7 @@ export function RealizarAvaliacao({
                   Esta avaliação não possui questões cadastradas.
                 </p>
               </div>
-              <Button onClick={onVoltar} variant="outline" size="sm">
+              <Button onClick={onVoltar} variant="outline" size="sm" className="h-8">
                 Voltar
               </Button>
             </div>
@@ -668,36 +688,48 @@ export function RealizarAvaliacao({
   const isObjetiva = alternativasQuestaoAtual.length > 0
 
   return (
-    <div className="container mx-auto px-4 py-4 max-w-4xl">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-4">
-        <Button variant="ghost" onClick={handleSair} size="sm" className="gap-1.5">
-          <ArrowLeft className="h-3.5 w-3.5" />
-          Sair
-        </Button>
-        <div className="flex items-center gap-2">
-          {questoesRespondidas > 0 && (
-            <Badge variant="outline" className="gap-1 text-green-600 border-green-300">
-              <Save className="h-3 w-3" />
-              Progresso salvo
+    <div className="w-full h-full flex flex-col">
+      {/* Header fixo no topo */}
+      <div className="sticky top-0 z-10 bg-background border-b px-4 py-3">
+        <div className="flex items-center justify-between gap-4">
+          <Button variant="ghost" onClick={handleSair} size="sm" className="gap-1.5 h-8">
+            <ArrowLeft className="h-3.5 w-3.5" />
+            Sair
+          </Button>
+          
+          {/* Barra de progresso */}
+          <div className="flex-1 max-w-md space-y-1">
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-muted-foreground">Progresso</span>
+              <span className="text-muted-foreground font-medium">{Math.round(progresso)}%</span>
+            </div>
+            <Progress value={progresso} className="h-1.5" />
+          </div>
+
+          <div className="flex items-center gap-2">
+            {questoesRespondidas > 0 && (
+              <Badge variant="outline" className="gap-1 text-green-600 border-green-300 text-xs h-6">
+                <Save className="h-3 w-3" />
+                Salvo
+              </Badge>
+            )}
+            <Badge 
+              variant="outline" 
+              className={`gap-1 text-xs h-6 ${
+                tempoRestante <= 300 && tempoRestante > 60 
+                  ? "border-orange-500 text-orange-600 dark:text-orange-400" 
+                  : tempoRestante <= 60 
+                  ? "border-red-500 text-red-600 dark:text-red-400 animate-pulse" 
+                  : ""
+              }`}
+            >
+              <Clock className="h-3 w-3" />
+              {formatarTempo(tempoRestante)}
             </Badge>
-          )}
-          <Badge 
-            variant="outline" 
-            className={`gap-1 ${
-              tempoRestante <= 300 && tempoRestante > 60 
-                ? "border-orange-500 text-orange-600 dark:text-orange-400" 
-                : tempoRestante <= 60 
-                ? "border-red-500 text-red-600 dark:text-red-400 animate-pulse" 
-                : ""
-            }`}
-          >
-            <Clock className="h-3 w-3" />
-            {formatarTempo(tempoRestante)}
-          </Badge>
-          <Badge variant="secondary">
-            {questoesRespondidas}/{totalQuestoes} respondidas
-          </Badge>
+            <Badge variant="secondary" className="text-xs h-6">
+              {questoesRespondidas}/{totalQuestoes}
+            </Badge>
+          </div>
         </div>
       </div>
 
@@ -720,42 +752,37 @@ export function RealizarAvaliacao({
         </AlertDialogContent>
       </AlertDialog>
 
-      <Card>
-        <CardHeader className="pb-3">
-          <div className="flex items-start justify-between gap-3">
-            <div className="flex-1 min-w-0">
-              <CardTitle className="text-base font-semibold">{admission.title}</CardTitle>
-              {admission.description && (
-                <CardDescription className="text-xs mt-0.5">
-                  {admission.description}
-                </CardDescription>
-              )}
-            </div>
-            <div className="text-right shrink-0">
-              <div className="text-xs text-muted-foreground">
-                {naRedacao ? "Redação" : "Questão"}
+      {/* Layout principal: Questão atual + Grid de questões */}
+      <div className="flex-1 flex gap-4 overflow-hidden px-4 py-3">
+        {/* Questão atual - Área principal */}
+        <div className="flex-1 overflow-y-auto">
+          <Card className="h-full">
+            <CardHeader className="pb-3 px-4 pt-4">
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex-1 min-w-0">
+                  <CardTitle className="text-base font-semibold">{admission.title}</CardTitle>
+                  {admission.description && (
+                    <CardDescription className="text-sm mt-1">
+                      {admission.description}
+                    </CardDescription>
+                  )}
+                </div>
+                <div className="text-right shrink-0">
+                  <div className="text-xs text-muted-foreground">
+                    {naRedacao ? "Redação" : "Questão"}
+                  </div>
+                  <div className="text-lg font-semibold">
+                    {naRedacao ? "Final" : `${questaoAtual + 1}/${questoes.length}`}
+                  </div>
+                </div>
               </div>
-              <div className="text-lg font-semibold">
-                {naRedacao ? "Final" : `Questão ${questaoAtual + 1}`}
-              </div>
-            </div>
-          </div>
-        </CardHeader>
+            </CardHeader>
 
-        <CardContent className="space-y-4">
-          {/* Progresso */}
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between text-xs">
-              <span className="text-muted-foreground">Progresso</span>
-              <span className="text-muted-foreground">{Math.round(progresso)}%</span>
-            </div>
-            <Progress value={progresso} className="h-1.5" />
-          </div>
-
-          {/* Conteúdo da questão ou redação */}
-          {naRedacao ? (
+            <CardContent className="space-y-4 px-4 pb-4">
+              {/* Conteúdo da questão ou redação */}
+              {naRedacao ? (
             // Redação
-            <div className="space-y-4">
+            <div className="space-y-3">
               <div className="flex items-center gap-2">
                 <FileText className="h-4 w-4 text-muted-foreground" />
                 <Label className="text-sm font-medium">Redação</Label>
@@ -766,11 +793,11 @@ export function RealizarAvaliacao({
                 placeholder="Escreva sua redação aqui..."
                 rows={12}
                 disabled={salvando || redacaoSalva}
-                className="resize-none"
+                className="resize-none text-sm"
               />
               {redacaoSalva ? (
-                <Badge variant="default" className="gap-1">
-                  <CheckCircle2 className="h-3 w-3" />
+                <Badge variant="default" className="gap-1 text-sm h-7">
+                  <CheckCircle2 className="h-3.5 w-3.5" />
                   Redação salva
                 </Badge>
               ) : (
@@ -778,10 +805,11 @@ export function RealizarAvaliacao({
                   onClick={handleSalvarRedacao}
                   disabled={salvando || !redacaoConteudo.trim()}
                   size="sm"
+                  className="h-9"
                 >
                   {salvando ? (
                     <>
-                      <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                      <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
                       Salvando...
                     </>
                   ) : (
@@ -790,128 +818,180 @@ export function RealizarAvaliacao({
                 </Button>
               )}
             </div>
-          ) : questaoAtualObj ? (
-            // Questão
-            <div className="space-y-4">
-              {/* Enunciado */}
-              <HtmlRenderer
-                html={questaoAtualObj.content || questaoAtualObj.name}
-                className="prose prose-sm dark:prose-invert max-w-none"
-              />
-
-              {/* Alternativas ou campo dissertativo */}
-              {isObjetiva ? (
-                <div className="space-y-2">
-                  {alternativasQuestaoAtual.map((alt) => (
-                    <button
-                      key={alt.id}
-                      onClick={() => handleResponderObjetiva(alt.id)}
-                      disabled={salvando}
-                      className={`w-full p-3 text-left rounded-lg border transition-colors ${
-                        respostaAtual?.alternativeId === alt.id
-                          ? "border-primary bg-primary/10"
-                          : "border-border hover:border-primary/50 hover:bg-muted/50"
-                      }`}
-                    >
-                      <HtmlRenderer html={alt.content} className="text-sm" />
-                    </button>
-                  ))}
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  <Label className="text-xs">Sua resposta:</Label>
-                  <Textarea
-                    value={respostaAtual?.answer || ""}
-                    onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => {
-                      const value = e.target.value
-                      setRespostas((prev) => {
-                        const novas = new Map(prev)
-                        novas.set(questaoAtualObj.id, {
-                          questionId: questaoAtualObj.id,
-                          answer: value,
-                          respondida: false,
-                        })
-                        return novas
-                      })
-                    }}
-                    placeholder="Digite sua resposta..."
-                    rows={6}
-                    disabled={salvando}
+              ) : questaoAtualObj ? (
+                // Questão
+                <div className="space-y-4">
+                  {/* Enunciado */}
+                  <HtmlRenderer
+                    html={questaoAtualObj.content || questaoAtualObj.name}
+                    className="prose prose-sm dark:prose-invert max-w-none"
                   />
-                  <Button
-                    onClick={() => handleResponderDissertativa(respostaAtual?.answer || "")}
-                    disabled={salvando || !respostaAtual?.answer?.trim()}
-                    size="sm"
-                  >
-                    {salvando ? (
-                      <>
-                        <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
-                        Salvando...
-                      </>
-                    ) : respostaAtual?.respondida ? (
-                      <>
-                        <CheckCircle2 className="h-3.5 w-3.5 mr-1.5" />
-                        Salvo
-                      </>
-                    ) : (
-                      "Salvar Resposta"
-                    )}
-                  </Button>
+
+                  {/* Alternativas ou campo dissertativo */}
+                  {isObjetiva ? (
+                    <div className="space-y-2.5">
+                      {alternativasQuestaoAtual.map((alt) => (
+                        <button
+                          key={alt.id}
+                          onClick={() => handleResponderObjetiva(alt.id)}
+                          disabled={salvando}
+                          className={`w-full p-3 text-left rounded-md border transition-colors text-sm ${
+                            respostaAtual?.alternativeId === alt.id
+                              ? "border-primary bg-primary/10"
+                              : "border-border hover:border-primary/50 hover:bg-muted/50"
+                          }`}
+                        >
+                          <HtmlRenderer html={alt.content} className="text-sm" />
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      <Label className="text-sm">Sua resposta:</Label>
+                      <Textarea
+                        value={respostaAtual?.answer || ""}
+                        onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => {
+                          const value = e.target.value
+                          setRespostas((prev) => {
+                            const novas = new Map(prev)
+                            novas.set(questaoAtualObj.id, {
+                              questionId: questaoAtualObj.id,
+                              answer: value,
+                              respondida: false,
+                            })
+                            return novas
+                          })
+                        }}
+                        placeholder="Digite sua resposta..."
+                        rows={6}
+                        disabled={salvando}
+                        className="text-sm"
+                      />
+                      <Button
+                        onClick={() => handleResponderDissertativa(respostaAtual?.answer || "")}
+                        disabled={salvando || !respostaAtual?.answer?.trim()}
+                        size="sm"
+                        className="h-9"
+                      >
+                        {salvando ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
+                            Salvando...
+                          </>
+                        ) : respostaAtual?.respondida ? (
+                          <>
+                            <CheckCircle2 className="h-4 w-4 mr-1.5" />
+                            Salvo
+                          </>
+                        ) : (
+                          "Salvar Resposta"
+                        )}
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              ) : null}
+
+              {/* Mensagem de erro */}
+              {error && (
+                <div className="flex items-center gap-2 p-3 bg-destructive/10 rounded-md text-destructive text-sm">
+                  <AlertCircle className="h-4 w-4 shrink-0" />
+                  <span>{error}</span>
                 </div>
               )}
-            </div>
-          ) : null}
 
-          {/* Mensagem de erro */}
-          {error && (
-            <div className="flex items-center gap-2 p-3 bg-destructive/10 rounded-lg text-destructive">
-              <AlertCircle className="h-4 w-4 shrink-0" />
-              <span className="text-sm">{error}</span>
-            </div>
-          )}
-
-          {/* Navegação */}
-          <div className="flex items-center justify-between pt-3 border-t">
-            <Button
-              variant="outline"
-              onClick={handleQuestaoAnterior}
-              disabled={questaoAtual === 0}
-              size="sm"
-            >
-              Anterior
-            </Button>
-
-            <div className="flex gap-2">
-              {questaoAtual < questoes.length - 1 || (temRedacao && !naRedacao) ? (
-                <Button onClick={handleProximaQuestao} size="sm">
-                  Próxima
+              {/* Navegação */}
+              <div className="flex items-center justify-between pt-4 border-t">
+                <Button
+                  variant="outline"
+                  onClick={handleQuestaoAnterior}
+                  disabled={questaoAtual === 0}
+                  size="sm"
+                  className="h-9"
+                >
+                  Anterior
                 </Button>
-              ) : null}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
 
-      {/* Botão de Finalizar - Fora do escopo de navegação */}
-      <div className="mt-4 flex justify-end">
-        <Button
-          onClick={() => setShowConfirmFinalizar(true)}
-          disabled={finalizando}
-          className="bg-green-600 hover:bg-green-700 gap-1.5"
-          size="default"
-        >
-          {finalizando ? (
-            <>
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Finalizando...
-            </>
-          ) : (
-            <>
-              <CheckCircle2 className="h-4 w-4" />
-              Finalizar Avaliação
-            </>
-          )}
-        </Button>
+                <div className="flex gap-2">
+                  {questaoAtual < questoes.length - 1 || (temRedacao && !naRedacao) ? (
+                    <Button onClick={handleProximaQuestao} size="sm" className="h-9">
+                      Próxima
+                    </Button>
+                  ) : (
+                    <Button
+                      onClick={() => setShowConfirmFinalizar(true)}
+                      disabled={finalizando}
+                      className="bg-green-600 hover:bg-green-700 gap-1.5 h-9"
+                      size="sm"
+                    >
+                      {finalizando ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Finalizando...
+                        </>
+                      ) : (
+                        <>
+                          <CheckCircle2 className="h-4 w-4" />
+                          Finalizar
+                        </>
+                      )}
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Grid de questões - Coluna direita */}
+        <div className="w-52 shrink-0 border-l pl-4 overflow-y-auto">
+          <div className="sticky top-0 bg-background pb-3 mb-3 border-b">
+            <h3 className="text-sm font-semibold text-muted-foreground">Questões</h3>
+          </div>
+          <div className="grid grid-cols-5 gap-2">
+            {questoes.map((questao, index) => {
+              const resposta = respostas.get(questao.id)
+              const respondida = resposta?.respondida || false
+              const isAtual = index === questaoAtual
+              
+              return (
+                <button
+                  key={questao.id}
+                  onClick={() => handleIrParaQuestao(index)}
+                  className={`
+                    aspect-square rounded-md text-xs font-medium transition-all
+                    ${isAtual 
+                      ? "bg-primary text-primary-foreground ring-2 ring-primary ring-offset-1" 
+                      : respondida
+                      ? "bg-green-500/20 text-green-700 dark:text-green-400 border border-green-500/30"
+                      : "bg-muted hover:bg-muted/80 border border-border"
+                    }
+                  `}
+                  title={`Questão ${index + 1}${respondida ? " - Respondida" : ""}`}
+                >
+                  {index + 1}
+                </button>
+              )
+            })}
+            {temRedacao && (
+              <button
+                onClick={() => handleIrParaQuestao(questoes.length)}
+                className={`
+                  aspect-square rounded-md text-xs font-medium transition-all
+                  ${naRedacao 
+                    ? "bg-primary text-primary-foreground ring-2 ring-primary ring-offset-1" 
+                    : redacaoSalva
+                    ? "bg-green-500/20 text-green-700 dark:text-green-400 border border-green-500/30"
+                    : "bg-muted hover:bg-muted/80 border border-border"
+                  }
+                `}
+                title="Redação"
+              >
+                R
+              </button>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Diálogo de confirmação de finalização */}

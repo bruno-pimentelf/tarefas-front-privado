@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { LogOut, ArrowLeft, FolderOpen, RefreshCw } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { ThemeToggle } from "@/components/theme-toggle"
+import { Sidebar } from "@/components/sidebar"
 
 export default function BancoItensPage() {
   const { currentUser, logout } = useAuth()
@@ -54,9 +56,25 @@ export default function BancoItensPage() {
     return null
   }
 
+  const sidebarItems = [
+    {
+      icon: <RefreshCw className={cn("h-5 w-5", isLoading && "animate-spin")} />,
+      label: "Atualizar",
+      onClick: handleRefresh,
+      badge: isLoading ? undefined : totalQuestoes > 0 ? totalQuestoes : undefined,
+    },
+    {
+      icon: <FolderOpen className="h-5 w-5" />,
+      label: "Ver Coleções",
+      onClick: handleAbrirColecoes,
+      badge: questoesSelecionadasCount > 0 ? questoesSelecionadasCount : undefined,
+    },
+  ]
+
   return (
     <div className="min-h-screen bg-background">
-      <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <Sidebar items={sidebarItems} />
+      <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 ml-16">
         <div className="container mx-auto px-4 max-w-7xl">
           <div className="flex h-14 items-center justify-between">
             <div className="flex items-center gap-3">
@@ -70,32 +88,15 @@ export default function BancoItensPage() {
                 <span className="text-xs">Voltar</span>
               </Button>
               <h2 className="text-base font-semibold">Banco de Itens</h2>
-            </div>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleRefresh}
-                disabled={isLoading}
-                className="h-8 w-8 p-0"
-              >
-                <RefreshCw className={cn("h-3.5 w-3.5", isLoading && "animate-spin")} />
-              </Button>
               <Badge variant="outline" className="text-xs">
                 {totalQuestoes} questões
               </Badge>
               {questoesSelecionadasCount > 0 && (
                 <Badge className="text-xs">{questoesSelecionadasCount} selecionada(s)</Badge>
               )}
-              <Button
-                variant="outline"
-                onClick={handleAbrirColecoes}
-                size="sm"
-                className="gap-1.5 h-8"
-              >
-                <FolderOpen className="h-3.5 w-3.5" />
-                <span className="text-xs">Ver Coleções</span>
-              </Button>
+            </div>
+            <div className="flex items-center gap-2">
+              <ThemeToggle />
               <Button variant="ghost" onClick={handleLogout} size="sm" className="gap-1.5 h-8">
                 <LogOut className="h-3.5 w-3.5" />
                 <span className="hidden sm:inline text-xs">Sair</span>
@@ -105,7 +106,7 @@ export default function BancoItensPage() {
         </div>
       </header>
 
-      <main>
+      <main className="ml-16">
         <BancoItens 
           onVoltar={handleVoltar} 
           onAbrirColecoes={handleAbrirColecoes}

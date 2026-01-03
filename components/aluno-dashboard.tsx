@@ -1,13 +1,11 @@
 "use client"
 
 import { useState, useEffect, useCallback, useMemo } from "react"
+import { useRouter } from "next/navigation"
 import { Card, CardContent } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
 import { TarefaCard } from "@/components/tarefa-card"
-import { RealizarTarefa } from "@/components/realizar-tarefa"
-import { RealizarAvaliacao } from "@/components/realizar-avaliacao"
-import { BookingDetalhes } from "@/components/booking-detalhes"
 import {
   Dialog,
   DialogContent,
@@ -19,18 +17,16 @@ import { getStudentBookings } from "@/lib/api/bookings"
 import { bookingToTarefa } from "@/lib/api/utils"
 import { Tarefa } from "@/lib/types"
 import { Booking } from "@/lib/api/bookings"
-import { Admission, getAdmissionsByBookingAndUser, Record } from "@/lib/api/admissions"
+import { getAdmissionsByBookingAndUser, Record } from "@/lib/api/admissions"
 import { useAuth } from "@/contexts/auth-context"
 import { Loader2, AlertCircle, Trophy, Clock, CheckCircle2 } from "lucide-react"
 
 export function AlunoDashboard() {
   const { currentUser } = useAuth()
+  const router = useRouter()
   const [bookings, setBookings] = useState<Booking[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [tarefaSelecionada, setTarefaSelecionada] = useState<Tarefa | null>(null)
-  const [bookingSelecionado, setBookingSelecionado] = useState<Booking | null>(null)
-  const [admissionEmAndamento, setAdmissionEmAndamento] = useState<Admission | null>(null)
   const [showEstatisticas, setShowEstatisticas] = useState(false)
   const [estatisticas, setEstatisticas] = useState<{
     tarefa: Tarefa
@@ -113,12 +109,9 @@ export function AlunoDashboard() {
     }
   }, [carregarBookings, currentUser])
 
-  // Handler para abrir detalhes do booking
+  // Handler para abrir detalhes do booking - redireciona para rota
   const handleAbrirBooking = (tarefaId: string) => {
-    const booking = bookings.find((b) => b.id.toString() === tarefaId)
-    if (booking) {
-      setBookingSelecionado(booking)
-    }
+    router.push(`/aluno/tarefa/${tarefaId}`)
   }
 
   // Handler para ver estatísticas de tarefa concluída
@@ -183,78 +176,6 @@ export function AlunoDashboard() {
     }
   }
 
-  // Handler para iniciar avaliação
-  const handleIniciarAvaliacao = async (admission: Admission) => {
-    try {
-      // Recarregar a admission antes de abrir para garantir dados atualizados
-      const admissionsAtualizadas = await getAdmissionsByBookingAndUser(
-        bookingSelecionado!.id,
-        studentId
-      )
-      
-      const admissionAtualizada = admissionsAtualizadas.find(a => a.id === admission.id)
-      
-      if (admissionAtualizada) {
-        setAdmissionEmAndamento(admissionAtualizada)
-      } else {
-        // Fallback: usar a admission original se não encontrar
-        setAdmissionEmAndamento(admission)
-      }
-    } catch (error) {
-      console.error('Erro ao recarregar admission:', error)
-      // Em caso de erro, usa a admission original
-      setAdmissionEmAndamento(admission)
-    }
-  }
-
-  // Se estiver fazendo uma avaliação
-  if (admissionEmAndamento) {
-    return (
-      <RealizarAvaliacao
-        admission={admissionEmAndamento}
-        userId={studentId}
-        onVoltar={() => {
-          setAdmissionEmAndamento(null)
-          // Recarrega o booking para ver status atualizado
-          if (bookingSelecionado) {
-            setBookingSelecionado({ ...bookingSelecionado })
-          }
-        }}
-        onConcluir={() => {
-          setAdmissionEmAndamento(null)
-          setBookingSelecionado(null)
-          // Recarrega bookings para ver status atualizado
-          carregarBookings()
-        }}
-      />
-    )
-  }
-
-  // Se estiver visualizando detalhes de um booking
-  if (bookingSelecionado) {
-    return (
-      <BookingDetalhes
-        booking={bookingSelecionado}
-        userId={studentId}
-        userRole="aluno"
-        onVoltar={() => setBookingSelecionado(null)}
-        onIniciarAvaliacao={handleIniciarAvaliacao}
-      />
-    )
-  }
-
-  if (tarefaSelecionada) {
-    return (
-      <RealizarTarefa
-        tarefa={tarefaSelecionada}
-        onVoltar={() => setTarefaSelecionada(null)}
-        onConcluir={() => {
-          setTarefaSelecionada(null)
-          // Atualizar lista de tarefas concluídas
-        }}
-      />
-    )
-  }
 
   if (loading && tarefas.length === 0) {
     return (
@@ -440,7 +361,7 @@ export function AlunoDashboard() {
           ) : estatisticas?.record ? (
             <div className="space-y-4 py-4">
               {/* Percentual de Acerto */}
-              <div className="flex items-center justify-between p-4 bg-muted/30 rounded-lg border">
+              <div className="flex items-center justify-between p-4 bg-muted/30 rounded-md border">
                 <div className="flex items-center gap-3">
                   <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
                     <CheckCircle2 className="h-6 w-6 text-primary" />
@@ -459,7 +380,7 @@ export function AlunoDashboard() {
               </div>
 
               {/* Tempo de Resolução */}
-              <div className="flex items-center justify-between p-4 bg-muted/30 rounded-lg border">
+              <div className="flex items-center justify-between p-4 bg-muted/30 rounded-md border">
                 <div className="flex items-center gap-3">
                   <div className="h-12 w-12 rounded-full bg-blue-500/10 flex items-center justify-center">
                     <Clock className="h-6 w-6 text-blue-600 dark:text-blue-400" />

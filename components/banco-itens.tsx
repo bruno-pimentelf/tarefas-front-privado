@@ -379,7 +379,7 @@ export function BancoItens({
 
           {/* Filtros Avançados */}
           {showFiltrosAvancados && (
-            <div className="border border-dashed rounded-lg p-4 space-y-4">
+            <div className="border border-dashed rounded-md p-4 space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {/* Idioma */}
                 <div className="space-y-1.5">
@@ -985,7 +985,7 @@ export function BancoItens({
                     <div
                       key={matriz.id}
                       className={cn(
-                        "flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-all hover:bg-muted/50",
+                        "flex items-start gap-3 p-3 rounded-md border cursor-pointer transition-all hover:bg-muted/50",
                         isSelecionada && "bg-primary/5 border-primary/20 ring-1 ring-primary/20"
                       )}
                       onClick={() => handleToggleMatriz(matriz.id)}

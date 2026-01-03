@@ -54,7 +54,7 @@ export function FeedbackDialog({
         <div className="space-y-4">
           <div
             className={cn(
-              "p-4 rounded-lg border-2",
+              "p-4 rounded-md border-2",
               isCorreta
                 ? "bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800"
                 : "bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800"
@@ -83,7 +83,7 @@ export function FeedbackDialog({
           </div>
 
           {questao.competencia && (
-            <div className="p-3 bg-muted rounded-lg">
+            <div className="p-3 bg-muted rounded-md">
               <div className="flex items-start gap-2">
                 <Lightbulb className="h-4 w-4 text-yellow-600 dark:text-yellow-400 mt-0.5 shrink-0" />
                 <div className="flex-1">

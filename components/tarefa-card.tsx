@@ -51,11 +51,17 @@ export function TarefaCard({
   }
 
   return (
-    <Card className={`flex flex-col transition-all ${concluida ? "hover:shadow-md hover:border-primary/30 cursor-pointer" : "hover:shadow-sm"}`}>
-      <CardHeader className="pb-2">
+    <Card size="sm" className={`group flex flex-col transition-all duration-300 border-l-[3px] ${
+      concluida 
+        ? "border-l-primary hover:shadow-lg hover:shadow-primary/5 hover:-translate-y-0.5 cursor-pointer" 
+        : atrasada
+        ? "border-l-destructive/60 hover:shadow-md hover:shadow-destructive/5 hover:-translate-y-0.5"
+        : "border-l-accent hover:shadow-md hover:shadow-accent/5 hover:-translate-y-0.5"
+    }`}>
+      <CardHeader className="pb-1.5 px-3 space-y-0.5">
         <div className="flex items-start justify-between gap-2">
           <div className="flex-1 min-w-0">
-            <CardTitle className="text-sm font-semibold leading-tight">
+            <CardTitle className="text-sm font-semibold leading-tight group-hover:text-accent-foreground transition-colors">
               {tarefa.titulo}
             </CardTitle>
             {tarefa.descricao && (
@@ -66,48 +72,57 @@ export function TarefaCard({
           </div>
         </div>
       </CardHeader>
-      <CardContent className="space-y-2 pt-0 flex-1">
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <Calendar className="h-3.5 w-3.5 shrink-0" />
-          <span>
+      <CardContent className="space-y-1.5 pt-0 px-3 flex-1">
+        <div className="flex items-center gap-2 text-xs text-muted-foreground group-hover:text-foreground/80 transition-colors">
+          <div className="flex items-center justify-center h-6 w-6 rounded-md bg-muted/50 group-hover:bg-accent/10 transition-colors">
+            <Calendar className="h-3 w-3" />
+          </div>
+          <span className="flex-1">
             {formatarDataComHorario(new Date(tarefa.dataInicio), "Início")}
           </span>
         </div>
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <Calendar className="h-3.5 w-3.5 shrink-0" />
-          <span>
+        <div className="flex items-center gap-2 text-xs text-muted-foreground group-hover:text-foreground/80 transition-colors">
+          <div className="flex items-center justify-center h-6 w-6 rounded-md bg-muted/50 group-hover:bg-accent/10 transition-colors">
+            <Calendar className="h-3 w-3" />
+          </div>
+          <span className="flex-1">
             {formatarDataComHorario(new Date(tarefa.dataFim), "Término")}
           </span>
         </div>
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <BookOpen className="h-3.5 w-3.5 shrink-0" />
-          <span>{tarefa.questoes.length} questões</span>
+        <div className="flex items-center gap-2 text-xs text-muted-foreground group-hover:text-foreground/80 transition-colors">
+          <div className="flex items-center justify-center h-6 w-6 rounded-md bg-muted/50 group-hover:bg-accent/10 transition-colors">
+            <BookOpen className="h-3 w-3" />
+          </div>
+          <span className="flex-1">{tarefa.questoes.length} questões</span>
         </div>
         {role === "professor" && tarefa.turmaNome && (
-          <div className="text-xs text-muted-foreground">
-            Turma: {tarefa.turmaNome}
+          <div className="flex items-center gap-2 text-xs text-muted-foreground group-hover:text-foreground/80 transition-colors">
+            <div className="flex items-center justify-center h-6 w-6 rounded-md bg-muted/50 group-hover:bg-accent/10 transition-colors">
+              <Clock className="h-3 w-3" />
+            </div>
+            <span className="flex-1">Turma: {tarefa.turmaNome}</span>
           </div>
         )}
       </CardContent>
       {role === "aluno" && isAtiva && !concluida && (
-        <CardFooter className="pt-2 mt-auto">
+        <CardFooter className="pt-1.5 px-3 mt-auto border-t">
           <Button
             onClick={onVerDetalhes}
             variant="outline"
-            className="w-full gap-1.5"
-            size="default"
+            className="w-full gap-1.5 hover:bg-accent/5 transition-all h-8"
+            size="sm"
           >
             Ver Detalhes
           </Button>
         </CardFooter>
       )}
       {role === "aluno" && concluida && (
-        <CardFooter className="pt-2 mt-auto">
+        <CardFooter className="pt-1.5 px-3 mt-auto border-t border-primary/10">
           <Button
             onClick={onIniciar}
             variant="outline"
-            className="w-full gap-1.5 border-primary/20 hover:border-primary/40 hover:bg-primary/5"
-            size="default"
+            className="w-full gap-1.5 border-primary/30 text-primary hover:bg-primary/5 hover:border-primary/50 transition-all h-8"
+            size="sm"
           >
             <BarChart3 className="h-3.5 w-3.5" />
             Ver Estatísticas
@@ -115,8 +130,13 @@ export function TarefaCard({
         </CardFooter>
       )}
       {role === "professor" && (
-        <CardFooter className="pt-2 mt-auto">
-          <Button onClick={onVerDetalhes} variant="outline" className="w-full" size="default">
+        <CardFooter className="pt-1.5 px-3 mt-auto border-t">
+          <Button 
+            onClick={onVerDetalhes} 
+            variant="outline" 
+            className="w-full hover:bg-accent/5 transition-all h-8" 
+            size="sm"
+          >
             {tarefa.status === "finalizada" ? "Ver Detalhes e Relatório" : "Ver Detalhes"}
           </Button>
         </CardFooter>

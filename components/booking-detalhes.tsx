@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback, useMemo } from "react"
+import { useRouter } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -24,6 +25,7 @@ import {
 import { CriarAdmissionDialog } from "./criar-admission-dialog"
 import { EditarBookingDialog } from "./editar-booking-dialog"
 import { formatBookingDate } from "@/lib/api/utils"
+import { ThemeToggle } from "./theme-toggle"
 
 interface BookingDetalhesProps {
   booking: Booking
@@ -46,6 +48,7 @@ export function BookingDetalhes({
   onBookingUpdated,
   turmasAssociadas = [],
 }: BookingDetalhesProps) {
+  const router = useRouter()
   const [admissions, setAdmissions] = useState<Admission[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -120,6 +123,7 @@ export function BookingDetalhes({
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <ThemeToggle />
           <Button
             variant="ghost"
             size="sm"
@@ -214,7 +218,15 @@ export function BookingDetalhes({
             return (
               <Button
                 key={admission.id}
-                onClick={() => onIniciarAvaliacao?.(admission)}
+                onClick={() => {
+                  if (userRole === "aluno") {
+                    // Redirecionar para rota de responder
+                    router.push(`/aluno/tarefa/${booking.id}/responder`)
+                  } else {
+                    // Manter comportamento original para professor
+                    onIniciarAvaliacao?.(admission)
+                  }
+                }}
                 className="w-full gap-1.5"
                 size="default"
               >
@@ -302,7 +314,7 @@ export function BookingDetalhes({
                   {admission.instructions && (
                     <div>
                       <p className="text-xs font-medium text-muted-foreground mb-1">Instruções</p>
-                      <div className="p-3 bg-muted/30 rounded-lg">
+                      <div className="p-3 bg-muted/30 rounded-md">
                         <p className="text-sm">{admission.instructions}</p>
                       </div>
                     </div>

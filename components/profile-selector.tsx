@@ -28,7 +28,7 @@ export function ProfileSelector({ onSelectProfile }: ProfileSelectorProps) {
           <Card className="transition-all hover:shadow-md border cursor-pointer">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-center mb-2">
-                <div className="p-2.5 rounded-lg bg-primary/5">
+                <div className="p-2.5 rounded-md bg-primary/5">
                   <GraduationCap className="h-7 w-7 text-primary" />
                 </div>
               </div>
@@ -52,7 +52,7 @@ export function ProfileSelector({ onSelectProfile }: ProfileSelectorProps) {
           <Card className="transition-all hover:shadow-md border cursor-pointer">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-center mb-2">
-                <div className="p-2.5 rounded-lg bg-primary/5">
+                <div className="p-2.5 rounded-md bg-primary/5">
                   <User className="h-7 w-7 text-primary" />
                 </div>
               </div>

@@ -465,7 +465,7 @@ export function EditarBookingDialog({
 
             {/* Erro */}
             {submitError && (
-              <div className="flex items-center gap-2 p-3 bg-destructive/10 rounded-lg text-destructive text-sm">
+              <div className="flex items-center gap-2 p-3 bg-destructive/10 rounded-md text-destructive text-sm">
                 <AlertCircle className="h-4 w-4 shrink-0" />
                 <span>{submitError}</span>
               </div>

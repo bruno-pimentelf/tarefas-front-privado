@@ -348,12 +348,12 @@ export function CriarTarefaDialog({ open, onOpenChange, onSuccess }: CriarTarefa
                 <Label>Turmas</Label>
                 
                 {turmasLoading ? (
-                  <div className="flex items-center gap-2 p-3 bg-muted/30 rounded-lg">
+                  <div className="flex items-center gap-2 p-3 bg-muted/30 rounded-md">
                     <Loader2 className="h-4 w-4 animate-spin" />
                     <span className="text-sm text-muted-foreground">Carregando turmas...</span>
                   </div>
                 ) : turmasError ? (
-                  <div className="flex items-center gap-2 p-3 bg-destructive/10 rounded-lg text-destructive">
+                  <div className="flex items-center gap-2 p-3 bg-destructive/10 rounded-md text-destructive">
                     <AlertCircle className="h-4 w-4" />
                     <span className="text-sm">{turmasError}</span>
                     <Button
@@ -367,7 +367,7 @@ export function CriarTarefaDialog({ open, onOpenChange, onSuccess }: CriarTarefa
                     </Button>
                   </div>
                 ) : turmas.length === 0 ? (
-                  <div className="p-3 bg-muted/30 rounded-lg">
+                  <div className="p-3 bg-muted/30 rounded-md">
                     <p className="text-xs text-muted-foreground">
                       Nenhuma turma encontrada. Por favor, adicione turmas ao sistema antes de criar uma tarefa.
                     </p>
@@ -490,12 +490,12 @@ export function CriarTarefaDialog({ open, onOpenChange, onSuccess }: CriarTarefa
                 <Label>Coleção de Questões *</Label>
                 
                 {collectionsLoading ? (
-                  <div className="flex items-center gap-2 p-3 bg-muted/30 rounded-lg">
+                  <div className="flex items-center gap-2 p-3 bg-muted/30 rounded-md">
                     <Loader2 className="h-4 w-4 animate-spin" />
                     <span className="text-sm text-muted-foreground">Carregando coleções...</span>
                   </div>
                 ) : collectionsError ? (
-                  <div className="flex items-center gap-2 p-3 bg-destructive/10 rounded-lg text-destructive">
+                  <div className="flex items-center gap-2 p-3 bg-destructive/10 rounded-md text-destructive">
                     <AlertCircle className="h-4 w-4" />
                     <span className="text-sm">{collectionsError}</span>
                     <Button
@@ -509,7 +509,7 @@ export function CriarTarefaDialog({ open, onOpenChange, onSuccess }: CriarTarefa
                     </Button>
                   </div>
                 ) : collections.length === 0 ? (
-                  <div className="p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+                  <div className="p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-md">
                     <p className="text-sm text-yellow-800 dark:text-yellow-200">
                       Nenhuma coleção encontrada. Crie uma coleção no Banco de Itens primeiro.
                     </p>
@@ -537,7 +537,7 @@ export function CriarTarefaDialog({ open, onOpenChange, onSuccess }: CriarTarefa
                     </Select>
 
                     {selectedCollectionId && (
-                      <div className="mt-2 p-3 bg-primary/5 border border-primary/20 rounded-lg">
+                      <div className="mt-2 p-3 bg-primary/5 border border-primary/20 rounded-md">
                         <div className="flex items-center gap-2">
                           <BookOpen className="h-4 w-4 text-primary" />
                           <span className="text-sm font-medium">
@@ -556,7 +556,7 @@ export function CriarTarefaDialog({ open, onOpenChange, onSuccess }: CriarTarefa
 
             {/* Mensagem de erro */}
             {submitError && (
-              <div className="flex items-center gap-2 p-3 bg-destructive/10 rounded-lg text-destructive">
+              <div className="flex items-center gap-2 p-3 bg-destructive/10 rounded-md text-destructive">
                 <AlertCircle className="h-4 w-4 shrink-0" />
                 <span className="text-sm">{submitError}</span>
               </div>
@@ -564,7 +564,7 @@ export function CriarTarefaDialog({ open, onOpenChange, onSuccess }: CriarTarefa
 
             {/* Progresso de criação */}
             {submitting && currentStep && (
-              <div className="flex items-center gap-2 p-3 bg-primary/10 rounded-lg">
+              <div className="flex items-center gap-2 p-3 bg-primary/10 rounded-md">
                 <Loader2 className="h-4 w-4 animate-spin text-primary" />
                 <span className="text-sm text-primary">{currentStep}</span>
               </div>

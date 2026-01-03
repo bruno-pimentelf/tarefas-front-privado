@@ -77,7 +77,7 @@ export function QuestaoDissertativa({
         </Button>
 
         {respostaAtual && (
-          <div className="p-3 bg-muted rounded-lg">
+          <div className="p-3 bg-muted rounded-md">
             <div className="text-sm font-medium mb-1">Sua resposta:</div>
             <div className="text-sm text-muted-foreground">{respostaAtual}</div>
           </div>

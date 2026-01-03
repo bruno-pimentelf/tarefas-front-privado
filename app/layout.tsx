@@ -3,6 +3,7 @@ import { Geist, Geist_Mono, Nunito_Sans } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/contexts/auth-context";
 import { ReduxProvider } from "@/store/provider";
+import { ThemeProvider } from "@/components/theme-provider";
 
 const nunitoSans = Nunito_Sans({variable:'--font-sans'});
 
@@ -27,15 +28,22 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="pt-BR" className={nunitoSans.variable}>
+    <html lang="pt-BR" className={nunitoSans.variable} suppressHydrationWarning>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <ReduxProvider>
-          <AuthProvider>
-            {children}
-          </AuthProvider>
-        </ReduxProvider>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <ReduxProvider>
+            <AuthProvider>
+              {children}
+            </AuthProvider>
+          </ReduxProvider>
+        </ThemeProvider>
       </body>
     </html>
   );
