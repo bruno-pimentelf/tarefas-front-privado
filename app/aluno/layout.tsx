@@ -4,12 +4,13 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/contexts/auth-context"
 import { Sidebar } from "@/components/sidebar"
-import { ThemeToggle } from "@/components/theme-toggle"
-import { Button } from "@/components/ui/button"
-import { LogOut, AlertCircle, Trophy, User } from "lucide-react"
+import { AlertCircle, Trophy, User } from "lucide-react"
 import { GamificationDialog } from "@/components/gamification-dialog"
 import { DiagnosticoDialog } from "@/components/diagnostico-dialog"
+import { PerfilDialog } from "@/components/perfil-dialog"
 import { mockGamificacao, mockDiagnosticoAluno } from "@/lib/mock-data"
+import { getUserRoleName, canAccessRoute, DEFAULT_SCHOOL_ID } from "@/lib/utils/role-redirect"
+import { FaSpinner } from "react-icons/fa"
 
 export default function AlunoLayout({
   children,
@@ -20,20 +21,39 @@ export default function AlunoLayout({
   const router = useRouter()
   const [showGamificacao, setShowGamificacao] = useState(false)
   const [showDiagnostico, setShowDiagnostico] = useState(false)
+  const [showPerfil, setShowPerfil] = useState(false)
+  const [checkingRole, setCheckingRole] = useState(true)
 
   useEffect(() => {
     if (!currentUser) {
       router.push("/auth")
+      return
     }
+
+    // Verificar se o usuário tem permissão para acessar /aluno
+    const checkRole = async () => {
+      try {
+        const roleName = await getUserRoleName(currentUser.uid, DEFAULT_SCHOOL_ID)
+        
+        if (!roleName || !canAccessRoute(roleName, "/aluno")) {
+          // Se não tem role ou não tem permissão, redireciona para /perfil
+          router.push("/perfil")
+          return
+        }
+      } catch (error) {
+        // Em caso de erro, redireciona para /perfil
+        router.push("/perfil")
+      } finally {
+        setCheckingRole(false)
+      }
+    }
+
+    checkRole()
   }, [currentUser, router])
 
   const handleLogout = async () => {
     await logout()
     router.push("/auth")
-  }
-
-  const handleVoltar = () => {
-    router.push("/perfil")
   }
 
   const sidebarItems = [
@@ -49,32 +69,25 @@ export default function AlunoLayout({
     },
     {
       icon: <User className="h-5 w-5" />,
-      label: "Trocar Perfil",
-      onClick: handleVoltar,
+      label: "Meu Perfil",
+      onClick: () => setShowPerfil(true),
     },
   ]
 
-  if (!currentUser) {
-    return null
+  if (!currentUser || checkingRole) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-3">
+          <FaSpinner className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-sm text-muted-foreground">Verificando permissões...</p>
+        </div>
+      </div>
+    )
   }
 
   return (
     <div className="min-h-screen bg-background">
       <Sidebar items={sidebarItems} />
-      <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 ml-16">
-        <div className="container mx-auto px-4 max-w-7xl">
-          <div className="flex h-14 items-center justify-between">
-            <div className="flex items-center gap-3"></div>
-            <div className="flex items-center gap-1">
-              <ThemeToggle />
-              <Button variant="ghost" onClick={handleLogout} size="sm" className="gap-1.5 h-8">
-                <LogOut className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline text-xs">Sair</span>
-              </Button>
-            </div>
-          </div>
-        </div>
-      </header>
       <main className="ml-16">
         {children}
       </main>
@@ -87,6 +100,10 @@ export default function AlunoLayout({
         open={showDiagnostico}
         onOpenChange={setShowDiagnostico}
         diagnostico={mockDiagnosticoAluno}
+      />
+      <PerfilDialog
+        open={showPerfil}
+        onOpenChange={setShowPerfil}
       />
     </div>
   )

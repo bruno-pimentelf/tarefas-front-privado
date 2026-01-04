@@ -99,14 +99,12 @@ export {
 
 // Re-export Roles API functions and types
 export {
-  listRoles,
+  getRoles,
   getUserRole,
-  setAssessmentsRole,
+  setUserRole,
   type Role,
-  type UserRole as AssessmentUserRole,
-  type School as RoleSchool,
-  type SetAssessmentsRoleInput,
-  type SetAssessmentsRoleResponse,
+  type UserSchool,
+  type SetRoleRequest,
 } from "./roles"
 
 // Re-export Analytics API functions and types

@@ -22,7 +22,7 @@ export function Sidebar({ items, className }: SidebarProps) {
         "fixed left-0 top-0 h-full z-40",
         "group",
         "transition-all duration-300 ease-in-out",
-        "w-16 hover:w-64 hover:z-[60]",
+        "w-16 hover:w-56 hover:z-[60]",
         "bg-background",
         "border-r border-border",
         "shadow-lg",

@@ -58,7 +58,13 @@ export class ApiClient {
         } else if (error.response?.status === 403) {
           apiError.message = "Sem permissão para acessar este recurso."
         } else if (error.response?.status === 404) {
-          apiError.message = "Recurso não encontrado."
+          // Verificar se é o erro específico de exam não encontrado
+          const errorData = error.response?.data as any
+          if (errorData?.message && errorData.message.includes("Nenhum exam foi encontrado")) {
+            apiError.message = "Nenhuma prova foi associada a esta avaliação."
+          } else {
+            apiError.message = errorData?.message || "Recurso não encontrado."
+          }
         }
 
         return Promise.reject(apiError)

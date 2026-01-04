@@ -7,11 +7,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Loader2, AlertCircle, ArrowLeft } from "lucide-react"
+import { ThemeToggle } from "@/components/theme-toggle"
+import { Sidebar } from "@/components/sidebar"
+import { FaSpinner, FaExclamationCircle, FaArrowLeft, FaSignOutAlt, FaChartBar, FaTrophy, FaUser, FaFlask } from "react-icons/fa"
 import { getItemAnalysis, type ItemAnalysisResponse } from "@/lib/api/analytics"
 import { ItemAnalysisTable } from "@/components/analytics/item-analysis-table"
 import { getStudentBookings, getTeacherClasses, type Booking, type TeacherClass } from "@/lib/api/bookings"
 import { getAdmissionsByBookingAndUser, type Admission } from "@/lib/api/admissions"
+import { PerfilDialog } from "@/components/perfil-dialog"
 import {
   Select,
   SelectContent,
@@ -22,7 +25,14 @@ import {
 
 export default function ItemAnalysisPage() {
   const router = useRouter()
-  const { currentUser } = useAuth()
+  const { currentUser, logout } = useAuth()
+  const [showPerfil, setShowPerfil] = useState(false)
+
+  const handleLogout = async () => {
+    await logout()
+    router.push("/auth")
+  }
+
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [itemAnalysis, setItemAnalysis] = useState<ItemAnalysisResponse | null>(null)
@@ -116,20 +126,78 @@ export default function ItemAnalysisPage() {
     return null
   }
 
+  const sidebarItems = [
+    {
+      icon: <FaChartBar className="h-5 w-5" />,
+      label: "Estatísticas",
+      onClick: () => {},
+    },
+    {
+      icon: <FaTrophy className="h-5 w-5" />,
+      label: "Níveis",
+      onClick: () => {},
+    },
+    {
+      icon: <FaFlask className="h-5 w-5" />,
+      label: "Teste Analytics",
+      onClick: () => router.push("/professor/analytics"),
+    },
+    {
+      icon: <FaUser className="h-5 w-5" />,
+      label: "Meu Perfil",
+      onClick: () => setShowPerfil(true),
+    },
+  ]
+
   return (
-    <div className="container mx-auto px-4 py-8 max-w-7xl">
-      <div className="mb-6">
-        <div className="flex items-center gap-4 mb-4">
-          <Button variant="ghost" size="sm" onClick={() => router.back()} className="gap-1.5">
-            <ArrowLeft className="h-4 w-4" />
-            Voltar
-          </Button>
-        </div>
-        <h1 className="text-2xl font-bold mb-2">Análise de Itens</h1>
-        <p className="text-sm text-muted-foreground">
-          Análise detalhada de itens (questões) por estudante, mostrando taxa de acerto por questão
-        </p>
+    <div className="min-h-screen bg-background relative overflow-hidden">
+      {/* Animated background pattern */}
+      <div className="absolute inset-0 opacity-[0.015] dark:opacity-[0.03] pointer-events-none">
+        <div className="absolute inset-0" style={{
+          backgroundImage: `radial-gradient(circle at 2px 2px, currentColor 1px, transparent 0)`,
+          backgroundSize: '50px 50px'
+        }} />
       </div>
+      
+      {/* Gradient orbs */}
+      <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-primary/3 rounded-full blur-3xl animate-pulse" />
+      <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-accent/3 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1.5s' }} />
+      
+      <Sidebar items={sidebarItems} />
+      
+      <header className="fixed top-0 z-50 left-16 right-0 border-b bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="container mx-auto px-4 max-w-7xl">
+          <div className="flex h-14 items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => router.back()} 
+                className="gap-1.5 h-8 hover:bg-accent/10 transition-all duration-200"
+              >
+                <FaArrowLeft className="h-3.5 w-3.5" />
+                Voltar
+              </Button>
+              <h1 className="text-base font-semibold">Análise de Itens</h1>
+            </div>
+            <div className="flex items-center gap-1">
+              <ThemeToggle />
+              <Button variant="ghost" onClick={handleLogout} size="sm" className="gap-1.5 h-8 hover:bg-accent/10 transition-all duration-200">
+                <FaSignOutAlt className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline text-xs">Sair</span>
+              </Button>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <main className="ml-16 relative pt-14">
+        <div className="container mx-auto px-4 py-4 max-w-7xl">
+          <div className="mb-6">
+            <p className="text-sm text-foreground/60 mt-1">
+              Análise detalhada de itens (questões) por estudante, mostrando taxa de acerto por questão
+            </p>
+          </div>
 
       {/* Filtros */}
       <Card className="mb-6">
@@ -200,40 +268,46 @@ export default function ItemAnalysisPage() {
         </CardContent>
       </Card>
 
-      {/* Erro */}
-      {error && (
-        <Card className="mb-6 border-destructive">
-          <CardContent className="py-4">
-            <div className="flex items-center gap-2 text-destructive">
-              <AlertCircle className="h-4 w-4" />
-              <span className="text-sm">{error}</span>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+          {/* Erro */}
+          {error && (
+            <Card className="mb-6 border-destructive">
+              <CardContent className="py-4">
+                <div className="flex items-center gap-2 text-destructive">
+                  <FaExclamationCircle className="h-4 w-4" />
+                  <span className="text-sm">{error}</span>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
-      {/* Resultado */}
-      {loading && !itemAnalysis ? (
-        <Card>
-          <CardContent className="py-8 text-center">
-            <Loader2 className="h-6 w-6 animate-spin text-primary mx-auto mb-2" />
-            <p className="text-sm text-muted-foreground">Carregando análise de itens...</p>
-          </CardContent>
-        </Card>
-      ) : itemAnalysis && selectedAdmissionId ? (
-        <ItemAnalysisTable
-          data={itemAnalysis}
-          admissionId={selectedAdmissionId}
-          classIds={selectedClassIds.length > 0 ? selectedClassIds : undefined}
-          availableClasses={availableClasses}
-        />
-      ) : (
-        <Card>
-          <CardContent className="py-8 text-center text-muted-foreground text-sm">
-            Selecione uma avaliação para visualizar a análise de itens
-          </CardContent>
-        </Card>
-      )}
+          {/* Resultado */}
+          {loading && !itemAnalysis ? (
+            <Card>
+              <CardContent className="py-8 text-center">
+                <FaSpinner className="h-6 w-6 animate-spin text-primary mx-auto mb-2" />
+                <p className="text-sm text-muted-foreground">Carregando análise de itens...</p>
+              </CardContent>
+            </Card>
+          ) : itemAnalysis && selectedAdmissionId ? (
+            <ItemAnalysisTable
+              data={itemAnalysis}
+              admissionId={selectedAdmissionId}
+              classIds={selectedClassIds.length > 0 ? selectedClassIds : undefined}
+              availableClasses={availableClasses}
+            />
+          ) : (
+            <Card>
+              <CardContent className="py-8 text-center text-muted-foreground text-sm">
+                Selecione uma avaliação para visualizar a análise de itens
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      </main>
+      <PerfilDialog
+        open={showPerfil}
+        onOpenChange={setShowPerfil}
+      />
     </div>
   )
 }

@@ -7,12 +7,8 @@ import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { TarefaCard } from "@/components/tarefa-card"
 import { RelatorioPedagogico } from "@/components/relatorio-pedagogico"
-import { CriarTarefaDialog } from "@/components/criar-tarefa-dialog"
-import { BancoItens } from "@/components/banco-itens"
-import { ColecoesPage } from "@/components/colecoes-page"
-import { BookingDetalhes } from "@/components/booking-detalhes"
 import { Tarefa, RelatorioPedagogico as RelatorioType } from "@/lib/types"
-import { Plus, Database, Loader2, AlertCircle, RefreshCw, BarChart3 } from "lucide-react"
+import { FaSpinner, FaExclamationCircle, FaChartBar } from "react-icons/fa"
 import { useAuth } from "@/contexts/auth-context"
 import { getStudentBookings, Booking, getTeacherClasses, TeacherClass } from "@/lib/api/bookings"
 import { bookingToTarefa } from "@/lib/api/utils"
@@ -20,7 +16,21 @@ import { getAdmissionsByBookingAndUser } from "@/lib/api/admissions"
 import { getClassComponentReport, getComponentStats, getStudentScores } from "@/lib/api/analytics"
 import { RelatoriosCompletos } from "@/components/analytics/relatorios-completos"
 
-export function ProfessorDashboard() {
+interface ProfessorDashboardProps {
+  activeTab?: string
+  refreshTrigger?: number
+  onShowCriarTarefa?: (show: boolean) => void
+  onShowBancoItens?: (show: boolean) => void
+  onLoadingChange?: (loading: boolean) => void
+}
+
+export function ProfessorDashboard({ 
+  activeTab = "ativas",
+  refreshTrigger = 0,
+  onShowCriarTarefa,
+  onShowBancoItens,
+  onLoadingChange,
+}: ProfessorDashboardProps) {
   const { currentUser } = useAuth()
   const router = useRouter()
   
@@ -35,11 +45,6 @@ export function ProfessorDashboard() {
   // Estados de UI
   const [relatorios, setRelatorios] = useState<RelatorioType[]>([])
   const [relatoriosLoading, setRelatoriosLoading] = useState(false)
-  const [showCriarTarefa, setShowCriarTarefa] = useState(false)
-  const [showBancoItens, setShowBancoItens] = useState(false)
-  const [showColecoes, setShowColecoes] = useState(false)
-  const [bookingSelecionado, setBookingSelecionado] = useState<Booking | null>(null)
-  const [tabAtiva, setTabAtiva] = useState<string>("ativas")
 
 
   // Converter bookings para tarefas
@@ -74,56 +79,53 @@ export function ProfessorDashboard() {
 
     setLoading(true)
     setError(null)
+    onLoadingChange?.(true)
 
     try {
-      if (!currentUser) return
-      
       console.log("Carregando bookings para usuário:", currentUser.uid, currentUser.email)
       
-      // Buscar bookings e todas as turmas do professor em paralelo
-      const [bookingsResponse, todasTurmas] = await Promise.all([
-        getStudentBookings(currentUser.uid, 1, 100),
-        getTeacherClasses(currentUser.uid).catch(() => []) // Se falhar, retorna array vazio
-      ])
+      // Buscar todas as turmas do professor primeiro
+      const todasTurmas = await getTeacherClasses(currentUser.uid).catch(() => [])
       
-      console.log("Bookings recebidos:", {
-        total: bookingsResponse.items?.length || 0,
-        items: bookingsResponse.items,
-        meta: bookingsResponse.meta,
+      // Carregar primeira página para obter o total
+      const firstPage = await getStudentBookings(currentUser.uid, 1, 100)
+      
+      console.log("Primeira página de bookings recebida:", {
+        total: firstPage.items?.length || 0,
+        totalPages: firstPage.meta?.totalPages || 0,
+        items: firstPage.items,
       })
       
-      const allBookings = bookingsResponse.items || []
+      let allBookings = [...(firstPage.items || [])]
+      
+      // Se houver mais páginas, carregar todas em paralelo
+      if (firstPage.meta && firstPage.meta.totalPages > 1) {
+        const promises = []
+        for (let page = 2; page <= firstPage.meta.totalPages; page++) {
+          promises.push(getStudentBookings(currentUser.uid, page, 100))
+        }
+        
+        const remainingPages = await Promise.all(promises)
+        remainingPages.forEach((response) => {
+          if (response.items) {
+            allBookings = [...allBookings, ...response.items]
+          }
+        })
+      }
 
-      // Buscar turmas de cada booking
+      // Associar todas as turmas do professor a todos os bookings
       // MOCK: Por enquanto, associa todas as turmas do professor a todos os bookings
       // TODO: Implementar busca de turmas específicas do booking quando a API suportar
-      const bookingDataPromises = allBookings.map(async (booking) => {
-        try {
-          // MOCK: Usa todas as turmas do professor para cada booking
-          // Em produção, isso deveria vir da API com as turmas específicas de cada booking
-          let turmasDoBooking: TeacherClass[] = todasTurmas
-          
-          console.log(`Associando turmas ao booking ${booking.id}:`, turmasDoBooking.map(t => t.name))
-          
-          return { 
-            bookingId: booking.id, 
-            turmas: turmasDoBooking
-          }
-        } catch (error) {
-          console.error(`Erro ao buscar dados para booking ${booking.id}:`, error)
-          return { 
-            bookingId: booking.id, 
-            turmas: []
-          }
-        }
-      })
-
-      const bookingDataResults = await Promise.all(bookingDataPromises)
       const newBookingTurmasMap = new Map<number, TeacherClass[]>()
       
-      bookingDataResults.forEach(({ bookingId, turmas }) => {
-        newBookingTurmasMap.set(bookingId, turmas)
+      allBookings.forEach((booking) => {
+        // MOCK: Usa todas as turmas do professor para cada booking
+        // Em produção, isso deveria vir da API com as turmas específicas de cada booking
+        newBookingTurmasMap.set(booking.id, todasTurmas)
       })
+
+      console.log(`Total de bookings carregados: ${allBookings.length}`)
+      console.log(`Turmas associadas: ${todasTurmas.length}`)
 
       // Atualizar todos os estados juntos para evitar renderização intermediária
       setBookings(allBookings)
@@ -133,15 +135,16 @@ export function ProfessorDashboard() {
       setError(errorMessage)
     } finally {
       setLoading(false)
+      onLoadingChange?.(false)
     }
-  }, [currentUser])
+  }, [currentUser, onLoadingChange])
 
-  // Carregar bookings ao montar
+  // Carregar bookings ao montar e quando refreshTrigger mudar
   useEffect(() => {
     if (currentUser) {
       carregarBookings()
     }
-  }, [carregarBookings, currentUser])
+  }, [carregarBookings, currentUser, refreshTrigger])
 
   // Função para carregar relatórios baseados nos bookings finalizados
   const carregarRelatorios = useCallback(async () => {
@@ -245,142 +248,33 @@ export function ProfessorDashboard() {
     }
   }, [bookings, bookingTurmasMap, currentUser])
 
-  // Carregar relatórios quando bookings mudarem
+  // Carregar relatórios quando bookings mudarem (apenas uma vez após carregamento inicial)
   useEffect(() => {
-    if (bookings.length > 0 && bookingTurmasMap.size > 0) {
+    if (bookings.length > 0 && bookingTurmasMap.size > 0 && !loading) {
       carregarRelatorios()
     }
-  }, [bookings, bookingTurmasMap, carregarRelatorios])
+  }, [bookings.length, bookingTurmasMap.size, loading, carregarRelatorios])
 
   // Callback quando uma tarefa é criada com sucesso
   const handleTarefaCriada = () => {
     carregarBookings()
   }
 
-  // Handler para ver detalhes do booking
+  // Handler para ver detalhes do booking - navega para rota específica
   const handleVerDetalhes = (tarefaId: string, tabAtual?: string) => {
-    const booking = bookings.find((b) => b.id.toString() === tarefaId)
-    if (booking) {
-      // Armazenar a tab atual antes de abrir os detalhes
-      if (tabAtual) {
-        setTabAtiva(tabAtual)
-      }
-      setBookingSelecionado(booking)
-    }
+    router.push(`/professor/tarefa/${tarefaId}`)
   }
 
-  // Se estiver visualizando detalhes de um booking
-  if (bookingSelecionado) {
-    return (
-      <BookingDetalhes
-        booking={bookingSelecionado}
-        userId={currentUser?.uid || ""}
-        userRole="professor"
-        onVoltar={() => {
-          setBookingSelecionado(null)
-          // Não precisa restaurar a tab aqui, pois o Tabs já mantém o estado
-        }}
-        onBookingUpdated={(updatedBooking, turmasIds) => {
-          // Atualizar o booking na lista
-          setBookings((prev) =>
-            prev.map((b) => (b.id === updatedBooking.id ? updatedBooking : b))
-          )
-          setBookingSelecionado(updatedBooking)
-          
-          // Atualizar turmas do booking se fornecidas
-          if (turmasIds && turmasIds.length > 0 && currentUser) {
-            // Buscar as turmas completas pelos IDs
-            getTeacherClasses(currentUser.uid)
-              .then((todasTurmas) => {
-                const turmasDoBooking = todasTurmas.filter((t) => turmasIds.includes(t.id))
-                setBookingTurmasMap((prev) => {
-                  const newMap = new Map(prev)
-                  newMap.set(updatedBooking.id, turmasDoBooking)
-                  return newMap
-                })
-              })
-              .catch((error) => {
-                console.error("Erro ao atualizar turmas do booking:", error)
-              })
-          }
-        }}
-        turmasAssociadas={
-          bookingTurmasMap.get(bookingSelecionado.id)?.map((t) => t.id) || []
-        }
-      />
-    )
-  }
-
-  if (showBancoItens) {
-    return (
-      <BancoItens
-        onVoltar={() => setShowBancoItens(false)}
-        onAbrirColecoes={() => {
-          setShowBancoItens(false)
-          setShowColecoes(true)
-        }}
-      />
-    )
-  }
-
-  if (showColecoes) {
-    return (
-      <ColecoesPage
-        onVoltar={() => {
-          setShowColecoes(false)
-          setShowBancoItens(true)
-        }}
-      />
-    )
-  }
 
   return (
     <div className="container mx-auto px-4 py-4 max-w-7xl">
-      <Tabs value={tabAtiva} onValueChange={setTabAtiva} className="space-y-3">
-        <div className="flex items-center justify-between">
-          <TabsList>
-            <TabsTrigger value="ativas">
-              Ativas {tarefasAtivas.length > 0 && `(${tarefasAtivas.length})`}
-            </TabsTrigger>
-            <TabsTrigger value="agendadas">
-              Agendadas {tarefasAgendadas.length > 0 && `(${tarefasAgendadas.length})`}
-            </TabsTrigger>
-            <TabsTrigger value="finalizadas">
-              Finalizadas {tarefasFinalizadas.length > 0 && `(${tarefasFinalizadas.length})`}
-            </TabsTrigger>
-            <TabsTrigger value="relatorios">Relatórios</TabsTrigger>
-          </TabsList>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={carregarBookings}
-              disabled={loading}
-              className="h-8 w-8 p-0"
-            >
-              <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
-            </Button>
-            <Button
-              variant="outline"
-              size="default"
-              className="gap-1.5"
-              onClick={() => setShowBancoItens(true)}
-            >
-              <Database className="h-4 w-4" />
-              Banco de Itens
-            </Button>
-            <Button onClick={() => setShowCriarTarefa(true)} size="default" className="gap-1.5">
-              <Plus className="h-4 w-4" />
-              Nova Tarefa
-            </Button>
-          </div>
-        </div>
+      <Tabs value={activeTab} className="space-y-3">
 
         {/* Loading state */}
         {loading && tarefas.length === 0 && (
           <div className="flex items-center justify-center py-12">
             <div className="flex flex-col items-center gap-3">
-              <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              <FaSpinner className="h-6 w-6 animate-spin text-primary" />
               <p className="text-sm text-muted-foreground">Carregando tarefas...</p>
             </div>
           </div>
@@ -391,7 +285,7 @@ export function ProfessorDashboard() {
           <Card>
             <CardContent className="py-8">
               <div className="flex flex-col items-center gap-3 text-center">
-                <AlertCircle className="h-8 w-8 text-destructive" />
+                <FaExclamationCircle className="h-8 w-8 text-destructive" />
                 <div>
                   <p className="font-medium text-sm">Erro ao carregar tarefas</p>
                   <p className="text-xs text-muted-foreground mt-1">{error}</p>
@@ -476,14 +370,14 @@ export function ProfessorDashboard() {
                   onClick={() => router.push("/professor/analytics/item-analysis")}
                   className="gap-2"
                 >
-                  <BarChart3 className="h-4 w-4" />
+                  <FaChartBar className="h-4 w-4" />
                   Análise de Itens
                 </Button>
               </div>
               {relatoriosLoading ? (
                 <Card>
                   <CardContent className="py-8 text-center">
-                    <Loader2 className="h-6 w-6 animate-spin text-primary mx-auto mb-2" />
+                    <FaSpinner className="h-6 w-6 animate-spin text-primary mx-auto mb-2" />
                     <p className="text-sm text-muted-foreground">Carregando relatórios...</p>
                   </CardContent>
                 </Card>
@@ -520,12 +414,6 @@ export function ProfessorDashboard() {
           </>
         )}
       </Tabs>
-
-      <CriarTarefaDialog
-        open={showCriarTarefa}
-        onOpenChange={setShowCriarTarefa}
-        onSuccess={handleTarefaCriada}
-      />
     </div>
   )
 }

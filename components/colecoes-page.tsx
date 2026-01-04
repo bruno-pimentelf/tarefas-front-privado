@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
+import { useRouter } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -54,11 +55,10 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
-interface ColecoesPageProps {
-  onVoltar: () => void
-}
+interface ColecoesPageProps {}
 
-export function ColecoesPage({ onVoltar }: ColecoesPageProps) {
+export function ColecoesPage({}: ColecoesPageProps = {}) {
+  const router = useRouter()
   // Estado das collections da API
   const [colecoes, setColecoes] = useState<Collection[]>([])
   const [colecoesLoading, setColecoesLoading] = useState(true)
@@ -281,19 +281,7 @@ export function ColecoesPage({ onVoltar }: ColecoesPageProps) {
   }
 
   return (
-    <div className="container mx-auto px-4 py-4 max-w-7xl">
-      {/* Botão de voltar */}
-      <div className="mb-4">
-        <Button
-          variant="outline"
-          onClick={onVoltar}
-          className="gap-2"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Voltar
-        </Button>
-      </div>
-
+    <div className="mx-auto px-4 py-4 max-w-7xl w-full">
       {/* Content */}
       {colecoesLoading ? (
         <div className="flex items-center justify-center py-20">
@@ -332,7 +320,7 @@ export function ColecoesPage({ onVoltar }: ColecoesPageProps) {
                   Acesse o Banco de Itens para selecionar questões e criar coleções
                 </p>
               </div>
-              <Button onClick={onVoltar} variant="outline" className="mt-2">
+              <Button onClick={() => router.push('/professor/banco-itens')} variant="outline" className="mt-2">
                 Ir para Banco de Itens
               </Button>
             </div>

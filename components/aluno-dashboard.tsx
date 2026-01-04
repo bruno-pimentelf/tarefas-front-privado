@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import { Card, CardContent } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Tabs, TabsContent } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
 import { TarefaCard } from "@/components/tarefa-card"
 import {
@@ -21,7 +21,17 @@ import { getAdmissionsByBookingAndUser, Record } from "@/lib/api/admissions"
 import { useAuth } from "@/contexts/auth-context"
 import { Loader2, AlertCircle, Trophy, Clock, CheckCircle2 } from "lucide-react"
 
-export function AlunoDashboard() {
+interface AlunoDashboardProps {
+  activeTab: string
+  onTabCountsChange?: (counts: {
+    ativas: number
+    agendadas: number
+    concluidas: number
+    atrasadas: number
+  }) => void
+}
+
+export function AlunoDashboard({ activeTab, onTabCountsChange }: AlunoDashboardProps) {
   const { currentUser } = useAuth()
   const router = useRouter()
   const [bookings, setBookings] = useState<Booking[]>([])
@@ -59,6 +69,18 @@ export function AlunoDashboard() {
       tarefasAtrasadas: atrasadas
     }
   }, [bookings])
+
+  // Notificar mudanças nos contadores
+  useEffect(() => {
+    if (onTabCountsChange) {
+      onTabCountsChange({
+        ativas: tarefasAtivas.length,
+        agendadas: tarefasAgendadas.length,
+        concluidas: tarefasConcluidas.length,
+        atrasadas: tarefasAtrasadas.length,
+      })
+    }
+  }, [tarefasAtivas.length, tarefasAgendadas.length, tarefasConcluidas.length, tarefasAtrasadas.length, onTabCountsChange])
 
 
   // Função para carregar todos os bookings
@@ -224,23 +246,8 @@ export function AlunoDashboard() {
 
   return (
     <div className="container mx-auto px-4 py-4 max-w-7xl">
-      <Tabs defaultValue="ativas" className="space-y-3">
-        <TabsList>
-          <TabsTrigger value="ativas">
-            Ativas {tarefasAtivas.length > 0 && `(${tarefasAtivas.length})`}
-          </TabsTrigger>
-          <TabsTrigger value="agendadas">
-            Agendadas {tarefasAgendadas.length > 0 && `(${tarefasAgendadas.length})`}
-          </TabsTrigger>
-          <TabsTrigger value="concluidas">
-            Concluídas {tarefasConcluidas.length > 0 && `(${tarefasConcluidas.length})`}
-          </TabsTrigger>
-          <TabsTrigger value="atrasadas">
-            Atrasadas {tarefasAtrasadas.length > 0 && `(${tarefasAtrasadas.length})`}
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="ativas" className="space-y-3 mt-3">
+      <Tabs value={activeTab} className="space-y-3">
+        <TabsContent value="ativas" className="space-y-3 mt-0">
           {loading && (
             <div className="flex items-center justify-center py-4">
               <Loader2 className="h-4 w-4 animate-spin text-primary" />
@@ -253,13 +260,14 @@ export function AlunoDashboard() {
               </CardContent>
             </Card>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-              {tarefasAtivas.map((tarefa) => (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {tarefasAtivas.map((tarefa, index) => (
                 <TarefaCard
                   key={tarefa.id}
                   tarefa={tarefa}
                   role="aluno"
                   onVerDetalhes={() => handleAbrirBooking(tarefa.id)}
+                  style={{ animationDelay: `${index * 0.1}s` }}
                 />
               ))}
             </div>
@@ -279,13 +287,14 @@ export function AlunoDashboard() {
               </CardContent>
             </Card>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-              {tarefasAgendadas.map((tarefa) => (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {tarefasAgendadas.map((tarefa, index) => (
                 <TarefaCard
                   key={tarefa.id}
                   tarefa={tarefa}
                   role="aluno"
                   onIniciar={() => handleAbrirBooking(tarefa.id)}
+                  style={{ animationDelay: `${index * 0.1}s` }}
                 />
               ))}
             </div>
@@ -305,14 +314,15 @@ export function AlunoDashboard() {
               </CardContent>
             </Card>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-              {tarefasConcluidas.map((tarefa) => (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {tarefasConcluidas.map((tarefa, index) => (
                 <TarefaCard
                   key={tarefa.id}
                   tarefa={tarefa}
                   role="aluno"
                   concluida={true}
                   onIniciar={() => handleVerEstatisticas(tarefa)}
+                  style={{ animationDelay: `${index * 0.1}s` }}
                 />
               ))}
             </div>
@@ -332,8 +342,8 @@ export function AlunoDashboard() {
               </CardContent>
             </Card>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-              {tarefasAtrasadas.map((tarefa) => (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {tarefasAtrasadas.map((tarefa, index) => (
                 <TarefaCard
                   key={tarefa.id}
                   tarefa={tarefa}
@@ -341,6 +351,7 @@ export function AlunoDashboard() {
                   concluida={false}
                   atrasada={false}
                   onIniciar={() => handleAbrirBooking(tarefa.id)}
+                  style={{ animationDelay: `${index * 0.1}s` }}
                 />
               ))}
             </div>

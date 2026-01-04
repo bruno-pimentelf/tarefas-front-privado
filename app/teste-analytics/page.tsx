@@ -107,77 +107,23 @@ export default function TesteAnalyticsPage() {
   const [scoreDistribution, setScoreDistribution] = useState<ScoreDistributionResponse | null>(null)
   const [rangeDistribution, setRangeDistribution] = useState<ComponentRangeDistributionResponse | null>(null)
 
-  // Carregar exams e turmas disponíveis
+  // Carregar turmas disponíveis (sem carregar bookings/admissions automaticamente)
   useEffect(() => {
-    const carregarOpcoes = async () => {
+    const carregarTurmas = async () => {
       if (!currentUser) return
 
       setLoadingOptions(true)
       try {
-        // Carregar bookings e turmas em paralelo
-        const [bookingsResponse, classes] = await Promise.all([
-          getStudentBookings(currentUser.uid, 1, 100),
-          getTeacherClasses(currentUser.uid).catch(() => []),
-        ])
-
+        const classes = await getTeacherClasses(currentUser.uid).catch(() => [])
         setAvailableClasses(classes)
-
-        // Carregar todas as admissions de todos os bookings
-        const allExams: ExamOption[] = []
-        for (const booking of bookingsResponse.items || []) {
-          try {
-            const admissions = await getAdmissionsByBookingAndUser(booking.id, currentUser.uid)
-            
-            // Para cada admission finalizada, adicionar seus exams
-            for (const admission of admissions) {
-              if (admission.record?.finishedAt && admission.exams && admission.exams.length > 0) {
-                for (const exam of admission.exams) {
-                  allExams.push({
-                    examId: exam.id,
-                    examTitle: exam.title,
-                    admissionId: admission.id,
-                    admissionTitle: admission.title,
-                    bookingTitle: booking.title,
-                  })
-                }
-              }
-            }
-          } catch (err) {
-            console.error(`Erro ao buscar admissions do booking ${booking.id}:`, err)
-          }
-        }
-
-        setExamOptions(allExams)
-
-        // Se houver exam com admissionId 37, definir como selecionado e mostrar informações
-        const exam37 = allExams.find((e) => e.admissionId === 37)
-        if (exam37) {
-          setSelectedExam(exam37)
-          console.log("=== ADMISSION ID 37 ENCONTRADA ===")
-          console.log("Exam Title:", exam37.examTitle)
-          console.log("Admission Title:", exam37.admissionTitle)
-          console.log("Booking Title:", exam37.bookingTitle)
-          console.log("Admission ID:", exam37.admissionId)
-          console.log("Exam ID:", exam37.examId)
-          console.log("================================")
-          
-          // Buscar informações sobre turmas associadas ao booking
-          const booking37 = bookingsResponse.items.find((b) => b.title === exam37.bookingTitle)
-          if (booking37) {
-            console.log("Booking ID:", booking37.id)
-            console.log("Para encontrar as turmas, verifique o booking ID:", booking37.id)
-          }
-        } else {
-          console.log("Admission ID 37 não encontrada nas avaliações finalizadas")
-        }
       } catch (err) {
-        console.error("Erro ao carregar opções:", err)
+        console.error("Erro ao carregar turmas:", err)
       } finally {
         setLoadingOptions(false)
       }
     }
 
-    carregarOpcoes()
+    carregarTurmas()
   }, [currentUser])
 
   const parseClassIds = (input: string): number[] => {

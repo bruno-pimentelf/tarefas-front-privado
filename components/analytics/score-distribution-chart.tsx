@@ -1,11 +1,17 @@
 "use client"
 
 import { useState } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts"
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, LabelList } from "recharts"
 import { ScoreDistributionResponse } from "@/lib/api/analytics"
 import { AnalyticsFiltersDialog, type AnalyticsFilters } from "./analytics-filters"
 import { TeacherClass } from "@/lib/api/bookings"
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+  type ChartConfig,
+} from "@/components/ui/chart"
+import { FaChartBar } from "react-icons/fa"
 
 interface ScoreDistributionChartProps {
   data: ScoreDistributionResponse
@@ -33,49 +39,108 @@ export function ScoreDistributionChart({
 
   // Converter scores de 0-1 para 0-10 (se necessário)
   const convertScore = (score: number): number => {
-    // A distribuição já vem com scores de 0-10, mas vamos garantir
     return score <= 1 ? score * 10 : score
   }
 
   const chartData = data.distribution.map((item) => ({
-    nota: convertScore(item.score),
+    nota: convertScore(item.score).toFixed(1),
     estudantes: item.studentCount,
   }))
 
+  const chartConfig = {
+    estudantes: {
+      label: "Estudantes",
+      color: "#3b82f6",
+    },
+  } satisfies ChartConfig
+
+  const totalStudents = data.distribution.reduce((sum, item) => sum + item.studentCount, 0)
+  const maxCount = Math.max(...data.distribution.map((item) => item.studentCount))
+
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-xl text-blue-600 dark:text-blue-400">PAINEL</CardTitle>
-          <div className="flex gap-2">
-            <AnalyticsFiltersDialog
-              availableClasses={availableClasses}
-              currentFilters={localFilters}
-              onFiltersChange={handleFiltersChange}
-              filterTypes={["schoolYear", "grade", "classIds"]}
-            />
+    <div className="space-y-6">
+      {/* Filtros */}
+      <div className="flex items-center justify-end p-4 bg-muted/30 rounded-lg border">
+        <AnalyticsFiltersDialog
+          availableClasses={availableClasses}
+          currentFilters={localFilters}
+          onFiltersChange={handleFiltersChange}
+          filterTypes={["schoolYear", "grade", "classIds"]}
+        />
+      </div>
+
+      {/* Gráfico */}
+      <div className="rounded-lg border shadow-sm bg-background p-6">
+        <div className="mb-6">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="p-2 rounded-lg bg-primary/10">
+              <FaChartBar className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold">Distribuição de Notas</h3>
+              <p className="text-sm text-muted-foreground">
+                Quantidade de estudantes por faixa de nota
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-4 mt-4">
+            <div className="px-3 py-1.5 rounded-md bg-muted/50 border">
+              <span className="text-xs text-muted-foreground">Total de estudantes: </span>
+              <span className="text-sm font-semibold">{totalStudents}</span>
+            </div>
+            <div className="px-3 py-1.5 rounded-md bg-muted/50 border">
+              <span className="text-xs text-muted-foreground">Maior frequência: </span>
+              <span className="text-sm font-semibold">{maxCount} estudantes</span>
+            </div>
           </div>
         </div>
-        <CardTitle className="text-lg font-semibold mt-4">Distribuição de notas</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="h-80 w-full">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis
-                dataKey="nota"
-                label={{ value: "Nota", position: "insideBottom", offset: -5 }}
+
+        <ChartContainer config={chartConfig} className="h-[400px] w-full">
+          <BarChart
+            accessibilityLayer
+            data={chartData}
+            margin={{
+              top: 20,
+              right: 30,
+              left: 20,
+              bottom: 20,
+            }}
+          >
+            <CartesianGrid vertical={false} strokeDasharray="3 3" />
+            <XAxis
+              dataKey="nota"
+              tickLine={false}
+              axisLine={false}
+              tickMargin={10}
+              tickFormatter={(value) => value}
+              label={{ value: "Nota", position: "insideBottom", offset: -10 }}
+            />
+            <YAxis
+              tickLine={false}
+              axisLine={false}
+              tickMargin={10}
+              label={{ value: "Número de Estudantes", angle: -90, position: "insideLeft" }}
+            />
+            <ChartTooltip
+              cursor={false}
+              content={<ChartTooltipContent hideLabel />}
+            />
+            <Bar
+              dataKey="estudantes"
+              fill="var(--color-estudantes)"
+              radius={[8, 8, 0, 0]}
+            >
+              <LabelList
+                position="top"
+                offset={12}
+                className="fill-foreground"
+                fontSize={12}
+                formatter={(value: number) => value}
               />
-              <YAxis
-                label={{ value: "Número de estudantes", angle: -90, position: "insideLeft" }}
-              />
-              <Tooltip />
-              <Bar dataKey="estudantes" fill="#3b82f6" />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      </CardContent>
-    </Card>
+            </Bar>
+          </BarChart>
+        </ChartContainer>
+      </div>
+    </div>
   )
 }

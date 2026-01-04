@@ -7,7 +7,7 @@ import { RealizarAvaliacao } from "@/components/realizar-avaliacao"
 import { getAdmissionsByBookingAndUser, Admission } from "@/lib/api/admissions"
 import { getStudentBookings, Booking } from "@/lib/api/bookings"
 import { Button } from "@/components/ui/button"
-import { Loader2 } from "lucide-react"
+import { FaSpinner } from "react-icons/fa"
 
 export default function ResponderTarefaPage() {
   const { currentUser, logout } = useAuth()
@@ -85,17 +85,29 @@ export default function ResponderTarefaPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-[calc(100vh-3.5rem)]">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      <div className="flex items-center justify-center h-[calc(100vh-3.5rem)] relative overflow-hidden">
+        <div className="absolute inset-0 opacity-[0.015] dark:opacity-[0.03] pointer-events-none">
+          <div className="absolute inset-0" style={{
+            backgroundImage: `radial-gradient(circle at 2px 2px, currentColor 1px, transparent 0)`,
+            backgroundSize: '50px 50px'
+          }} />
+        </div>
+        <FaSpinner className="h-8 w-8 animate-spin text-muted-foreground relative z-10" />
       </div>
     )
   }
 
   if (error || !admission) {
     return (
-      <div className="flex flex-col items-center justify-center h-[calc(100vh-3.5rem)] gap-4">
-        <p className="text-muted-foreground">{error || "Erro ao carregar avaliação"}</p>
-        <Button onClick={() => router.push(`/aluno/tarefa/${tarefaId}`)} variant="outline" size="sm" className="h-8">
+      <div className="flex flex-col items-center justify-center h-[calc(100vh-3.5rem)] gap-4 relative overflow-hidden">
+        <div className="absolute inset-0 opacity-[0.015] dark:opacity-[0.03] pointer-events-none">
+          <div className="absolute inset-0" style={{
+            backgroundImage: `radial-gradient(circle at 2px 2px, currentColor 1px, transparent 0)`,
+            backgroundSize: '50px 50px'
+          }} />
+        </div>
+        <p className="text-muted-foreground relative z-10">{error || "Erro ao carregar avaliação"}</p>
+        <Button onClick={() => router.push(`/aluno/tarefa/${tarefaId}`)} variant="outline" size="sm" className="h-8 relative z-10">
           Voltar para tarefa
         </Button>
       </div>
@@ -103,7 +115,7 @@ export default function ResponderTarefaPage() {
   }
 
   return (
-    <div className="h-[calc(100vh-3.5rem)]">
+    <div className="h-[calc(100vh-3.5rem)] relative overflow-hidden">
       <RealizarAvaliacao
         admission={admission}
         userId={currentUser.uid}

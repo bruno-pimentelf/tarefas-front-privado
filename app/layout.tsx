@@ -37,12 +37,12 @@ export default function RootLayout({
           defaultTheme="system"
           enableSystem
           disableTransitionOnChange
-        >
-          <ReduxProvider>
-            <AuthProvider>
-              {children}
-            </AuthProvider>
-          </ReduxProvider>
+      >
+        <ReduxProvider>
+          <AuthProvider>
+            {children}
+          </AuthProvider>
+        </ReduxProvider>
         </ThemeProvider>
       </body>
     </html>

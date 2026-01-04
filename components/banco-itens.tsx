@@ -25,8 +25,6 @@ import {
   QuestionsSearchFilters,
   searchQuestions,
   createCollection,
-  getMatrices,
-  MatrixItem,
   ComparisonOperator,
   SortField,
 } from "@/lib/api"
@@ -52,10 +50,21 @@ import {
 import { cn } from "@/lib/utils"
 
 interface BancoItensProps {
-  onVoltar: () => void
-  onAbrirColecoes: () => void
+  onVoltar?: () => void
+  onAbrirColecoes?: () => void
   onDataUpdate?: (data: { total: number; selected: number; loading: boolean }) => void
   refreshTrigger?: number
+  modoSelecao?: boolean
+  onModoSelecaoChange?: (modo: boolean) => void
+  onAbrirFiltroMatrizes?: () => void
+  onAplicarFiltros?: () => void
+  filtroConteudo?: string
+  onFiltroConteudoChange?: (value: string) => void
+  showFiltrosAvancados?: boolean
+  onShowFiltrosAvancadosChange?: (show: boolean) => void
+  onMatrizesSelecionadasChange?: (count: number) => void
+  matrizesSelecionadas?: string[]
+  onMatrizesSelecionadasChangeList?: (matrizes: string[]) => void
 }
 
 export function BancoItens({ 
@@ -63,6 +72,17 @@ export function BancoItens({
   onAbrirColecoes,
   onDataUpdate,
   refreshTrigger = 0,
+  modoSelecao: modoSelecaoProp,
+  onModoSelecaoChange,
+  onAbrirFiltroMatrizes,
+  onAplicarFiltros: onAplicarFiltrosProp,
+  filtroConteudo: filtroConteudoProp,
+  onFiltroConteudoChange,
+  showFiltrosAvancados: showFiltrosAvancadosProp,
+  onShowFiltrosAvancadosChange,
+  onMatrizesSelecionadasChange,
+  matrizesSelecionadas: matrizesSelecionadasProp,
+  onMatrizesSelecionadasChangeList,
 }: BancoItensProps) {
   // Estado das questões da API
   const [questoes, setQuestoes] = useState<Question[]>([])
@@ -80,36 +100,27 @@ export function BancoItens({
   const [nomeColecao, setNomeColecao] = useState("")
   const [descricaoColecao, setDescricaoColecao] = useState("")
   const [questoesSelecionadas, setQuestoesSelecionadas] = useState<Set<number>>(new Set())
-  const [filtroConteudo, setFiltroConteudo] = useState("")
+  const [modoSelecao, setModoSelecao] = useState(modoSelecaoProp || false)
+  const [filtroConteudo, setFiltroConteudo] = useState(filtroConteudoProp || "")
   const [filtroLanguage, setFiltroLanguage] = useState("")
   const [filtroAnswersCountOperator, setFiltroAnswersCountOperator] = useState<"eq" | "ne" | "gt" | "gte" | "lt" | "lte" | "">("")
   const [filtroAnswersCountValue, setFiltroAnswersCountValue] = useState("")
   const [filtroSort, setFiltroSort] = useState<"id" | "name" | "language" | "created_at" | "updated_at" | "answers_count" | "">("")
   const [filtroOrder, setFiltroOrder] = useState<"asc" | "desc">("desc")
-  const [showFiltrosAvancados, setShowFiltrosAvancados] = useState(false)
+  const [showFiltrosAvancados, setShowFiltrosAvancados] = useState(showFiltrosAvancadosProp || false)
   const [questaoPreview, setQuestaoPreview] = useState<Question | null>(null)
   const [operacaoEmAndamento, setOperacaoEmAndamento] = useState(false)
 
-  // Estados para matrizes
-  const [matrizes, setMatrizes] = useState<MatrixItem[]>([])
-  const [matrizesLoading, setMatrizesLoading] = useState(false)
-  const [matrizesSelecionadas, setMatrizesSelecionadas] = useState<string[]>([])
-  const [showFiltroMatrizes, setShowFiltroMatrizes] = useState(false)
-  const [termoBuscaMatriz, setTermoBuscaMatriz] = useState("")
+  // Estados para matrizes (agora controlado pela página)
+  const [matrizesSelecionadas, setMatrizesSelecionadas] = useState<string[]>(matrizesSelecionadasProp || [])
 
-  // Função para carregar matrizes
-  const carregarMatrizes = useCallback(async (term?: string) => {
-    setMatrizesLoading(true)
-    try {
-      const matrizesData = await getMatrices(term)
-      setMatrizes(matrizesData)
-    } catch (error: any) {
-      console.error("Erro ao carregar matrizes:", error)
-      setMatrizes([])
-    } finally {
-      setMatrizesLoading(false)
+  // Sincronizar matrizes selecionadas com prop
+  useEffect(() => {
+    if (matrizesSelecionadasProp !== undefined) {
+      setMatrizesSelecionadas(matrizesSelecionadasProp)
     }
-  }, [])
+  }, [matrizesSelecionadasProp])
+
 
   // Função para carregar questões
   const carregarQuestoes = useCallback(async () => {
@@ -175,12 +186,6 @@ export function BancoItens({
     filtroOrder,
   ])
 
-  // Carregar matrizes quando abrir o dialog
-  useEffect(() => {
-    if (showFiltroMatrizes && matrizes.length === 0) {
-      carregarMatrizes()
-    }
-  }, [showFiltroMatrizes, carregarMatrizes, matrizes.length])
 
   // Carregar dados iniciais
   useEffect(() => {
@@ -214,28 +219,67 @@ export function BancoItens({
   const handleAplicarFiltros = () => {
     setQuestoesPagination((prev) => ({ ...prev, page: 1 }))
     carregarQuestoes()
+    onAplicarFiltrosProp?.()
   }
 
-  // Handler para adicionar/remover matriz
-  const handleToggleMatriz = (matrizId: string) => {
-    setMatrizesSelecionadas((prev) => {
-      if (prev.includes(matrizId)) {
-        return prev.filter((id) => id !== matrizId)
-      } else {
-        return [...prev, matrizId]
-      }
-    })
+  // Handler para definir modo de seleção (notifica componente pai)
+  const handleSetModoSelecao = (novoModo: boolean) => {
+    setModoSelecao(novoModo)
+    onModoSelecaoChange?.(novoModo)
+    if (!novoModo) {
+      setQuestoesSelecionadas(new Set())
+    }
   }
 
-  // Handler para limpar filtro de matrizes
-  const handleLimparMatrizes = () => {
-    setMatrizesSelecionadas([])
+  // Handler para definir filtro de conteúdo (notifica componente pai)
+  const handleSetFiltroConteudo = (valor: string) => {
+    setFiltroConteudo(valor)
+    onFiltroConteudoChange?.(valor)
   }
 
-  // Handler para buscar matrizes por termo
-  const handleBuscarMatrizes = () => {
-    carregarMatrizes(termoBuscaMatriz.trim() || undefined)
+  // Handler para definir filtros avançados (notifica componente pai)
+  const handleSetShowFiltrosAvancados = (mostrar: boolean) => {
+    setShowFiltrosAvancados(mostrar)
+    onShowFiltrosAvancadosChange?.(mostrar)
   }
+
+  // Sincronizar filtroConteudo com prop
+  useEffect(() => {
+    if (filtroConteudoProp !== undefined) {
+      setFiltroConteudo(filtroConteudoProp)
+    }
+  }, [filtroConteudoProp])
+
+  // Sincronizar modoSelecao com prop
+  useEffect(() => {
+    if (modoSelecaoProp !== undefined) {
+      setModoSelecao(modoSelecaoProp)
+    }
+  }, [modoSelecaoProp])
+
+  // Sincronizar showFiltrosAvancados com prop
+  useEffect(() => {
+    if (showFiltrosAvancadosProp !== undefined) {
+      setShowFiltrosAvancados(showFiltrosAvancadosProp)
+    }
+  }, [showFiltrosAvancadosProp])
+
+  // Notificar mudanças no modo de seleção
+  useEffect(() => {
+    onModoSelecaoChange?.(modoSelecao)
+  }, [modoSelecao, onModoSelecaoChange])
+
+  // Notificar mudanças no filtro de conteúdo
+  useEffect(() => {
+    onFiltroConteudoChange?.(filtroConteudo)
+  }, [filtroConteudo, onFiltroConteudoChange])
+
+  // Notificar mudanças nos filtros avançados
+  useEffect(() => {
+    onShowFiltrosAvancadosChange?.(showFiltrosAvancados)
+  }, [showFiltrosAvancados, onShowFiltrosAvancadosChange])
+
+
 
   const handleToggleQuestao = (questaoId: number, e?: React.MouseEvent) => {
     e?.stopPropagation()
@@ -249,6 +293,15 @@ export function BancoItens({
       return novo
     })
   }
+
+  const handleCardClick = (questao: Question) => {
+    if (modoSelecao) {
+      handleToggleQuestao(questao.id)
+    } else {
+      setQuestaoPreview(questao)
+    }
+  }
+
 
   const handleCriarColecao = async () => {
     if (!descricaoColecao.trim() || questoesSelecionadas.size === 0) return
@@ -266,6 +319,7 @@ export function BancoItens({
       setDescricaoColecao("")
       setQuestoesSelecionadas(new Set())
       setShowCriarColecao(false)
+      handleSetModoSelecao(false)
     } catch (error: any) {
       alert(error.message || "Erro ao criar coleção")
     } finally {
@@ -282,105 +336,15 @@ export function BancoItens({
   const questoesSelecionadasList = questoes.filter((q) => questoesSelecionadas.has(q.id))
 
   return (
-    <div className="container mx-auto px-4 py-4 max-w-7xl">
-      {/* Botão de voltar */}
-      <div className="mb-4">
-        <Button
-          variant="outline"
-          onClick={onVoltar}
-          className="gap-2"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Voltar
-        </Button>
-      </div>
-
+    <div className="mx-auto px-4 py-4 max-w-7xl w-full">
       {/* Main Content */}
       <Card>
-        <CardContent className="space-y-3 pt-6">
-          {/* Filtros */}
-          <div className="flex items-center gap-2 flex-wrap justify-between">
-            <div className="flex items-center gap-2">
-              <Input
-                placeholder="Buscar por conteúdo..."
-                value={filtroConteudo}
-                onChange={(e) => setFiltroConteudo(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleAplicarFiltros()}
-                className="h-8 w-48 text-xs"
-              />
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowFiltrosAvancados(!showFiltrosAvancados)}
-                className="h-8 text-xs gap-1.5"
-              >
-                {showFiltrosAvancados ? (
-                  <ChevronUp className="h-3 w-3" />
-                ) : (
-                  <ChevronDown className="h-3 w-3" />
-                )}
-                Filtros Avançados
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowFiltroMatrizes(true)}
-                className="h-8 text-xs gap-1.5"
-              >
-                <Filter className="h-3 w-3" />
-                Matrizes
-                {matrizesSelecionadas.length > 0 && (
-                  <Badge variant="secondary" className="ml-1 text-xs h-4 px-1">
-                    {matrizesSelecionadas.length}
-                  </Badge>
-                )}
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleAplicarFiltros}
-                className="h-8 text-xs"
-              >
-                Buscar
-              </Button>
-            </div>
-            <Button
-              variant="default"
-              size="default"
-              onClick={onAbrirColecoes}
-              className="bg-blue-600 hover:bg-blue-700 text-white font-medium gap-2 h-9 px-4"
-            >
-              <Layers className="h-4 w-4" />
-              Coleções
-            </Button>
-            {matrizesSelecionadas.length > 0 && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleLimparMatrizes}
-                className="h-8 text-xs gap-1.5"
-              >
-                <X className="h-3 w-3" />
-                Limpar filtro de matrizes
-              </Button>
-            )}
-            {questoesSelecionadas.size > 0 && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setQuestoesSelecionadas(new Set())}
-                className="h-8 text-xs gap-1.5"
-              >
-                <X className="h-3 w-3" />
-                Limpar seleção
-              </Button>
-            )}
-          </div>
+        <CardContent className="space-y-2 pt-3 px-3 pb-3">
 
           {/* Filtros Avançados */}
           {showFiltrosAvancados && (
-            <div className="border border-dashed rounded-md p-4 space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="border border-dashed rounded-md p-3 space-y-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                 {/* Idioma */}
                 <div className="space-y-1.5">
                   <label className="text-xs font-medium">Idioma</label>
@@ -482,23 +446,23 @@ export function BancoItens({
 
           {/* Lista de questões */}
           {questoesLoading ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             </div>
           ) : questoesError ? (
-            <div className="text-center py-12">
+            <div className="text-center py-8">
               <p className="text-sm text-destructive mb-2">{questoesError}</p>
-              <Button variant="outline" size="sm" onClick={() => carregarQuestoes()}>
+              <Button variant="outline" size="sm" onClick={() => carregarQuestoes()} className="h-8 text-xs">
                 Tentar novamente
               </Button>
             </div>
           ) : questoes.length === 0 ? (
-            <div className="text-center py-12">
+            <div className="text-center py-8">
               <p className="text-sm text-muted-foreground">Nenhuma questão encontrada</p>
             </div>
           ) : (
             <>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
                 {questoes.map((questao) => {
                   const isSelecionada = questoesSelecionadas.has(questao.id)
                   const isObjective = isObjectiveQuestion(questao)
@@ -507,12 +471,13 @@ export function BancoItens({
                       key={questao.id}
                       className={cn(
                         "flex flex-col cursor-pointer transition-all hover:shadow-md",
-                        isSelecionada && "border-primary bg-primary/5 ring-2 ring-primary/20"
+                        modoSelecao && isSelecionada && "border-primary bg-primary/5 ring-2 ring-primary/20",
+                        modoSelecao && !isSelecionada && "hover:border-primary/30"
                       )}
-                      onClick={() => setQuestaoPreview(questao)}
+                      onClick={() => handleCardClick(questao)}
                     >
-                      <CardContent className="p-4 flex-1 flex flex-col">
-                        <div className="space-y-3 flex-1 flex flex-col">
+                      <CardContent className="p-3 flex-1 flex flex-col">
+                        <div className="space-y-2 flex-1 flex flex-col">
                           <div className="flex items-start justify-between gap-2">
                             <div className="flex items-center gap-1.5 flex-wrap flex-1">
                               <Badge variant="outline" className="text-xs">
@@ -528,17 +493,11 @@ export function BancoItens({
                                   {questao.language}
                                 </Badge>
                               )}
-                            </div>
-                            <div
-                              className="shrink-0"
-                              onClick={(e) => handleToggleQuestao(questao.id, e)}
-                            >
-                              {isSelecionada ? (
-                                <div className="h-5 w-5 rounded-full bg-primary flex items-center justify-center cursor-pointer hover:bg-primary/80 transition-colors">
-                                  <Check className="h-3 w-3 text-primary-foreground" />
-                                </div>
-                              ) : (
-                                <div className="h-5 w-5 rounded-full border-2 border-muted-foreground/30 cursor-pointer hover:border-primary/50 transition-colors" />
+                              {modoSelecao && isSelecionada && (
+                                <Badge variant="default" className="text-xs bg-primary">
+                                  <Check className="h-3 w-3 mr-1" />
+                                  Selecionada
+                                </Badge>
                               )}
                             </div>
                           </div>
@@ -565,19 +524,21 @@ export function BancoItens({
                               </div>
                             )}
                           </div>
-                          <div className="flex items-center gap-2 pt-2 border-t mt-auto">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                setQuestaoPreview(questao)
-                              }}
-                              className="h-7 text-xs gap-1.5"
-                            >
-                              <Eye className="h-3 w-3" />
-                              Ver detalhes
-                            </Button>
+                          <div className="flex items-center gap-2 pt-1.5 border-t mt-auto">
+                            {!modoSelecao && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  setQuestaoPreview(questao)
+                                }}
+                                className="h-7 text-xs gap-1.5"
+                              >
+                                <Eye className="h-3 w-3" />
+                                Ver detalhes
+                              </Button>
+                            )}
                             {questao.totalAnswersCount != null && questao.totalAnswersCount > 0 && (
                               <Badge variant="secondary" className="text-xs ml-auto">
                                 {questao.totalAnswersCount} respostas
@@ -593,7 +554,7 @@ export function BancoItens({
 
               {/* Paginação de questões */}
               {questoesPagination.totalPages > 1 && (
-                <div className="flex items-center justify-center gap-2 pt-4">
+                <div className="flex items-center justify-center gap-2 pt-2">
                   <Button
                     variant="outline"
                     size="sm"
@@ -642,7 +603,10 @@ export function BancoItens({
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => setQuestoesSelecionadas(new Set())}
+                  onClick={() => {
+                    setQuestoesSelecionadas(new Set())
+                    handleSetModoSelecao(false)
+                  }}
                   className="h-7 w-7 p-0"
                 >
                   <X className="h-4 w-4" />
@@ -650,12 +614,12 @@ export function BancoItens({
               </div>
             </CardHeader>
             <CardContent className="pt-0 space-y-3">
-              {/* Lista resumida de questões selecionadas */}
-              <div className="max-h-32 overflow-y-auto space-y-1.5">
-                {questoesSelecionadasList.slice(0, 5).map((q) => (
+              {/* Lista scrollável de questões selecionadas */}
+              <div className="max-h-64 overflow-y-auto space-y-1.5 pr-1">
+                {questoesSelecionadasList.map((q) => (
                   <div
                     key={q.id}
-                    className="flex items-center gap-2 p-2 bg-muted/30 rounded-md text-xs"
+                    className="flex items-center gap-2 p-2 bg-muted/30 rounded-md text-xs hover:bg-muted/50 transition-colors"
                   >
                     <Badge variant="outline" className="text-xs shrink-0">
                       {isObjectiveQuestion(q) ? "Obj" : "Dis"}
@@ -664,18 +628,16 @@ export function BancoItens({
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => handleToggleQuestao(q.id)}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleToggleQuestao(q.id)
+                      }}
                       className="h-5 w-5 p-0 shrink-0 hover:text-destructive"
                     >
                       <X className="h-3 w-3" />
                     </Button>
                   </div>
                 ))}
-                {questoesSelecionadas.size > 5 && (
-                  <p className="text-xs text-muted-foreground text-center py-1">
-                    +{questoesSelecionadas.size - 5} mais...
-                  </p>
-                )}
               </div>
 
               {/* Botão para criar coleção */}
@@ -932,105 +894,6 @@ export function BancoItens({
         </DialogContent>
       </Dialog>
 
-      {/* Dialog de filtro de matrizes */}
-      <Dialog open={showFiltroMatrizes} onOpenChange={setShowFiltroMatrizes}>
-        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="text-base">Filtrar por Matrizes de Conhecimento</DialogTitle>
-            <DialogDescription className="text-xs">
-              Selecione as matrizes para filtrar as questões
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-3 py-2">
-            {/* Campo de busca */}
-            <div className="flex items-center gap-2">
-              <Input
-                placeholder="Buscar matriz por termo..."
-                value={termoBuscaMatriz}
-                onChange={(e) => setTermoBuscaMatriz(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleBuscarMatrizes()}
-                className="h-9 text-sm flex-1"
-              />
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleBuscarMatrizes}
-                disabled={matrizesLoading}
-                className="h-9"
-              >
-                {matrizesLoading ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  "Buscar"
-                )}
-              </Button>
-            </div>
-            {matrizesLoading ? (
-              <div className="flex items-center justify-center py-8">
-                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-              </div>
-            ) : matrizes.length === 0 ? (
-              <div className="text-center py-8">
-                <p className="text-sm text-muted-foreground">
-                  {termoBuscaMatriz 
-                    ? "Nenhuma matriz encontrada para este termo" 
-                    : "Digite um termo para buscar matrizes"}
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-2 max-h-96 overflow-y-auto">
-                {matrizes.map((matriz) => {
-                  const isSelecionada = matrizesSelecionadas.includes(matriz.id)
-                  return (
-                    <div
-                      key={matriz.id}
-                      className={cn(
-                        "flex items-start gap-3 p-3 rounded-md border cursor-pointer transition-all hover:bg-muted/50",
-                        isSelecionada && "bg-primary/5 border-primary/20 ring-1 ring-primary/20"
-                      )}
-                      onClick={() => handleToggleMatriz(matriz.id)}
-                    >
-                      <div className="shrink-0 mt-0.5">
-                        {isSelecionada ? (
-                          <div className="h-4 w-4 rounded bg-primary flex items-center justify-center">
-                            <Check className="h-3 w-3 text-primary-foreground" />
-                          </div>
-                        ) : (
-                          <div className="h-4 w-4 rounded border-2 border-muted-foreground/30" />
-                        )}
-                      </div>
-                      <div className="flex-1 space-y-1">
-                        <div className="flex items-center gap-2">
-                          <p className="text-sm font-medium">{matriz.label}</p>
-                          <Badge variant="outline" className="text-xs">
-                            {matriz.acronym}
-                          </Badge>
-                        </div>
-                        {matriz.title && (
-                          <p className="text-xs text-muted-foreground">{matriz.title}</p>
-                        )}
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            )}
-          </div>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={handleLimparMatrizes}
-              size="sm"
-              disabled={matrizesSelecionadas.length === 0}
-            >
-              Limpar
-            </Button>
-            <Button onClick={() => setShowFiltroMatrizes(false)} size="sm">
-              Aplicar ({matrizesSelecionadas.length})
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   )
 }

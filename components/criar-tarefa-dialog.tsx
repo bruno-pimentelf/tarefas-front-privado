@@ -21,7 +21,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
-import { Loader2, X, AlertCircle, CheckCircle2, BookOpen } from "lucide-react"
+import { FaSpinner, FaTimes, FaExclamationCircle, FaCheckCircle, FaBook, FaPlus } from "react-icons/fa"
 import { useAuth } from "@/contexts/auth-context"
 import {
   TeacherClass,
@@ -263,35 +263,40 @@ export function CriarTarefaDialog({ open, onOpenChange, onSuccess }: CriarTarefa
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto sm:max-w-2xl">
-        <DialogHeader>
-          <DialogTitle>Criar Nova Tarefa</DialogTitle>
-          <DialogDescription>
+      <DialogContent className="max-w-5xl max-h-[90vh] p-0 flex flex-col sm:max-w-5xl">
+        {/* Header fixo */}
+        <DialogHeader className="flex-shrink-0 bg-background border-b px-6 py-4">
+          <DialogTitle className="text-xl font-bold">Criar Nova Tarefa</DialogTitle>
+          <DialogDescription className="text-sm text-foreground/70 mt-1">
             Crie uma tarefa completa com avaliação e questões para seus alunos
           </DialogDescription>
         </DialogHeader>
 
-        {submitSuccess ? (
-          <div className="flex flex-col items-center justify-center py-8">
-            <div className="h-16 w-16 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center mb-4">
-              <CheckCircle2 className="h-8 w-8 text-green-600 dark:text-green-400" />
+        {/* Conteúdo scrollável */}
+        <div className="flex-1 overflow-y-auto px-6 py-4 min-h-0">
+          {submitSuccess ? (
+            <div className="flex flex-col items-center justify-center py-12">
+              <div className="h-20 w-20 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center mb-4 relative">
+                <div className="absolute inset-0 bg-green-500/20 rounded-full animate-ping" />
+                <FaCheckCircle className="h-10 w-10 text-green-600 dark:text-green-400 relative z-10" />
+              </div>
+              <h3 className="text-xl font-semibold mb-2 text-foreground">Tarefa criada com sucesso!</h3>
+              <p className="text-sm text-foreground/60 text-center max-w-md">
+                A tarefa foi criada com a avaliação e questões associadas.
+              </p>
             </div>
-            <h3 className="text-lg font-semibold mb-2">Tarefa criada com sucesso!</h3>
-            <p className="text-sm text-muted-foreground text-center">
-              A tarefa foi criada com a avaliação e questões associadas.
-            </p>
-          </div>
-        ) : (
-          <form onSubmit={handleSubmit} className="space-y-6">
+          ) : (
+            <form id="criar-tarefa-form" onSubmit={handleSubmit} className="space-y-8">
             {/* Seção: Informações da Tarefa */}
-            <div className="space-y-4">
-              <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+            <div className="space-y-5 p-5 bg-muted/30 rounded-lg border border-border/50">
+              <h4 className="text-sm font-semibold text-foreground/80 uppercase tracking-wide flex items-center gap-2">
+                <div className="h-1.5 w-1.5 rounded-full bg-primary" />
                 Informações da Tarefa
               </h4>
 
               {/* Título */}
               <div className="space-y-2">
-                <Label htmlFor="titulo">Título da Tarefa *</Label>
+                <Label htmlFor="titulo" className="text-sm font-medium">Título da Tarefa *</Label>
                 <Input
                   id="titulo"
                   value={titulo}
@@ -299,24 +304,26 @@ export function CriarTarefaDialog({ open, onOpenChange, onSuccess }: CriarTarefa
                   placeholder="Ex: Prova de Matemática - 1º Bimestre"
                   required
                   disabled={submitting}
+                  className="h-10"
                 />
               </div>
 
               {/* Descrição */}
               <div className="space-y-2">
-                <Label htmlFor="descricao">Descrição (opcional)</Label>
+                <Label htmlFor="descricao" className="text-sm font-medium">Descrição (opcional)</Label>
                 <Textarea
                   id="descricao"
                   value={descricao}
                   onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setDescricao(e.target.value)}
                   placeholder="Descreva a tarefa para os alunos..."
-                  rows={2}
+                  rows={3}
                   disabled={submitting}
+                  className="resize-none"
                 />
               </div>
 
               {/* Datas */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="dataInicio">Data e Hora de Início *</Label>
                   <Input
@@ -348,12 +355,12 @@ export function CriarTarefaDialog({ open, onOpenChange, onSuccess }: CriarTarefa
                 
                 {turmasLoading ? (
                   <div className="flex items-center gap-2 p-3 bg-muted/30 rounded-md">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    <span className="text-sm text-muted-foreground">Carregando turmas...</span>
+                    <FaSpinner className="h-4 w-4 animate-spin" />
+                    <span className="text-sm text-foreground/60">Carregando turmas...</span>
                   </div>
                 ) : turmasError ? (
-                  <div className="flex items-center gap-2 p-3 bg-destructive/10 rounded-md text-destructive">
-                    <AlertCircle className="h-4 w-4" />
+                  <div className="flex items-center gap-2 p-3 bg-destructive/10 rounded-md text-destructive border border-destructive/20">
+                    <FaExclamationCircle className="h-4 w-4 shrink-0" />
                     <span className="text-sm">{turmasError}</span>
                     <Button
                       type="button"
@@ -420,7 +427,7 @@ export function CriarTarefaDialog({ open, onOpenChange, onSuccess }: CriarTarefa
                                 disabled={submitting}
                                 className="h-5 w-5 p-0 hover:bg-destructive/20"
                               >
-                                <X className="h-3 w-3" />
+                                <FaTimes className="h-3 w-3" />
                               </Button>
                             </Badge>
                           )
@@ -433,8 +440,9 @@ export function CriarTarefaDialog({ open, onOpenChange, onSuccess }: CriarTarefa
             </div>
 
             {/* Separador */}
-            <div className="border-t pt-6">
-              <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-4">
+            <div className="space-y-5 p-5 bg-muted/30 rounded-lg border border-border/50">
+              <h4 className="text-sm font-semibold text-foreground/80 uppercase tracking-wide flex items-center gap-2">
+                <div className="h-1.5 w-1.5 rounded-full bg-primary" />
                 Configuração da Avaliação
               </h4>
 
@@ -479,8 +487,9 @@ export function CriarTarefaDialog({ open, onOpenChange, onSuccess }: CriarTarefa
             </div>
 
             {/* Separador */}
-            <div className="border-t pt-6">
-              <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-4">
+            <div className="space-y-5 p-5 bg-muted/30 rounded-lg border border-border/50">
+              <h4 className="text-sm font-semibold text-foreground/80 uppercase tracking-wide flex items-center gap-2">
+                <div className="h-1.5 w-1.5 rounded-full bg-primary" />
                 Seleção de Questões
               </h4>
 
@@ -490,12 +499,12 @@ export function CriarTarefaDialog({ open, onOpenChange, onSuccess }: CriarTarefa
                 
                 {collectionsLoading ? (
                   <div className="flex items-center gap-2 p-3 bg-muted/30 rounded-md">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    <span className="text-sm text-muted-foreground">Carregando coleções...</span>
+                    <FaSpinner className="h-4 w-4 animate-spin" />
+                    <span className="text-sm text-foreground/60">Carregando coleções...</span>
                   </div>
                 ) : collectionsError ? (
-                  <div className="flex items-center gap-2 p-3 bg-destructive/10 rounded-md text-destructive">
-                    <AlertCircle className="h-4 w-4" />
+                  <div className="flex items-center gap-2 p-3 bg-destructive/10 rounded-md text-destructive border border-destructive/20">
+                    <FaExclamationCircle className="h-4 w-4 shrink-0" />
                     <span className="text-sm">{collectionsError}</span>
                     <Button
                       type="button"
@@ -527,7 +536,7 @@ export function CriarTarefaDialog({ open, onOpenChange, onSuccess }: CriarTarefa
                         {collections.map((collection) => (
                           <SelectItem key={collection.id} value={String(collection.id)}>
                             <div className="flex items-center gap-2">
-                              <BookOpen className="h-4 w-4 text-muted-foreground" />
+                              <FaBook className="h-4 w-4 text-foreground/60" />
                               <span>{collection.title || collection.description}</span>
                             </div>
                           </SelectItem>
@@ -536,14 +545,14 @@ export function CriarTarefaDialog({ open, onOpenChange, onSuccess }: CriarTarefa
                     </Select>
 
                     {selectedCollectionId && (
-                      <div className="mt-2 p-3 bg-primary/5 border border-primary/20 rounded-md">
+                      <div className="mt-2 p-4 bg-primary/5 border border-primary/20 rounded-md transition-all duration-200 hover:bg-primary/10">
                         <div className="flex items-center gap-2">
-                          <BookOpen className="h-4 w-4 text-primary" />
-                          <span className="text-sm font-medium">
+                          <FaBook className="h-4 w-4 text-primary" />
+                          <span className="text-sm font-medium text-foreground">
                             {getSelectedCollection()?.title || getSelectedCollection()?.description}
                           </span>
                         </div>
-                        <p className="text-xs text-muted-foreground mt-1">
+                        <p className="text-xs text-foreground/60 mt-1.5">
                           As questões desta coleção serão incluídas na avaliação.
                         </p>
                       </div>
@@ -555,44 +564,54 @@ export function CriarTarefaDialog({ open, onOpenChange, onSuccess }: CriarTarefa
 
             {/* Mensagem de erro */}
             {submitError && (
-              <div className="flex items-center gap-2 p-3 bg-destructive/10 rounded-md text-destructive">
-                <AlertCircle className="h-4 w-4 shrink-0" />
+              <div className="flex items-center gap-2 p-4 bg-destructive/10 rounded-md text-destructive border border-destructive/20">
+                <FaExclamationCircle className="h-4 w-4 shrink-0" />
                 <span className="text-sm">{submitError}</span>
               </div>
             )}
 
             {/* Progresso de criação */}
             {submitting && currentStep && (
-              <div className="flex items-center gap-2 p-3 bg-primary/10 rounded-md">
-                <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                <span className="text-sm text-primary">{currentStep}</span>
+              <div className="flex items-center gap-2 p-4 bg-primary/10 rounded-md border border-primary/20">
+                <FaSpinner className="h-4 w-4 animate-spin text-primary" />
+                <span className="text-sm text-primary font-medium">{currentStep}</span>
               </div>
             )}
+            </form>
+          )}
+        </div>
 
-            <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => onOpenChange(false)}
-                disabled={submitting}
-              >
-                Cancelar
-              </Button>
-              <Button
-                type="submit"
-                disabled={submitting || turmasLoading || collectionsLoading || collections.length === 0}
-              >
-                {submitting ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Criando...
-                  </>
-                ) : (
-                  "Criar Tarefa"
-                )}
-              </Button>
-            </DialogFooter>
-          </form>
+        {/* Footer fixo */}
+        {!submitSuccess && (
+          <div className="flex-shrink-0 bg-background border-t px-6 py-4 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              disabled={submitting}
+              className="h-10"
+            >
+              Cancelar
+            </Button>
+            <Button
+              type="submit"
+              form="criar-tarefa-form"
+              disabled={submitting || turmasLoading || collectionsLoading || collections.length === 0}
+              className="h-10 gap-2"
+            >
+              {submitting ? (
+                <>
+                  <FaSpinner className="h-4 w-4 animate-spin" />
+                  Criando...
+                </>
+              ) : (
+                <>
+                  <FaPlus className="h-4 w-4" />
+                  Criar Tarefa
+                </>
+              )}
+            </Button>
+          </div>
         )}
       </DialogContent>
     </Dialog>
