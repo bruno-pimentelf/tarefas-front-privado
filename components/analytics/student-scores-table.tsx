@@ -122,17 +122,17 @@ export function StudentScoresTable({
     ]
 
     const rows = sortedData.map((student) => [
-      student.rankingTrieduc.toString(),
+      student.rankingClass.toString(),
       student.rankingSchool.toString(),
       student.studentName,
       student.email,
       student.className,
-      formatScore(student.componentScores.LC),
-      formatScore(student.componentScores.MT),
-      formatScore(student.componentScores.CN),
-      formatScore(student.componentScores.CH),
-      student.essayScore !== null ? formatScore(student.essayScore) : "-",
-      formatScore(student.averageScore),
+      student.componentScores?.LC !== undefined ? formatScore(student.componentScores.LC) : "-",
+      student.componentScores?.MT !== undefined ? formatScore(student.componentScores.MT) : "-",
+      student.componentScores?.CN !== undefined ? formatScore(student.componentScores.CN) : "-",
+      student.componentScores?.CH !== undefined ? formatScore(student.componentScores.CH) : "-",
+      student.essayScore !== null && student.essayScore !== undefined ? formatScore(student.essayScore) : "-",
+      student.averageScore !== undefined ? formatScore(student.averageScore) : "-",
     ])
 
     const csvContent = [
@@ -168,17 +168,17 @@ export function StudentScoresTable({
     ]
 
     const rows = sortedData.map((student) => [
-      student.rankingTrieduc,
+      student.rankingClass,
       student.rankingSchool,
       student.studentName,
       student.email,
       student.className,
-      student.componentScores.LC !== undefined ? convertScore(student.componentScores.LC) : null,
-      student.componentScores.MT !== undefined ? convertScore(student.componentScores.MT) : null,
-      student.componentScores.CN !== undefined ? convertScore(student.componentScores.CN) : null,
-      student.componentScores.CH !== undefined ? convertScore(student.componentScores.CH) : null,
-      student.essayScore !== null ? convertScore(student.essayScore) : null,
-      convertScore(student.averageScore),
+      student.componentScores?.LC !== undefined ? convertScore(student.componentScores.LC) : null,
+      student.componentScores?.MT !== undefined ? convertScore(student.componentScores.MT) : null,
+      student.componentScores?.CN !== undefined ? convertScore(student.componentScores.CN) : null,
+      student.componentScores?.CH !== undefined ? convertScore(student.componentScores.CH) : null,
+      student.essayScore !== null && student.essayScore !== undefined ? convertScore(student.essayScore) : null,
+      student.averageScore !== undefined ? convertScore(student.averageScore) : null,
     ])
 
     const worksheetData = [headers, ...rows]
@@ -355,8 +355,8 @@ export function StudentScoresTable({
                     style={{ animationDelay: `${index * 20}ms` }}
                   >
                     <td className="p-2 text-center sticky left-0 bg-background z-10 border-r group-hover:bg-gradient-to-r group-hover:from-primary/5 group-hover:to-transparent transition-colors">
-                      <Badge className={`${getRankingBadgeColor(student.rankingTrieduc, sortedData.length)} border`}>
-                        #{student.rankingTrieduc}
+                      <Badge className={`${getRankingBadgeColor(student.rankingClass, sortedData.length)} border`}>
+                        #{student.rankingClass}
                       </Badge>
                     </td>
                     <td className="p-2 text-center">
@@ -376,7 +376,7 @@ export function StudentScoresTable({
                     </td>
                     <td className="p-2 text-sm">{student.className}</td>
                     <td className="p-2 text-center border-l border-border/30 hover:bg-muted/30 transition-colors">
-                      {student.componentScores.LC !== undefined ? (
+                      {student.componentScores?.LC !== undefined ? (
                         <Badge className={`${getScoreBgColor(student.componentScores.LC)} border-0`}>
                           <span className={getScoreColor(student.componentScores.LC)}>
                             {formatScore(student.componentScores.LC)}
@@ -387,7 +387,7 @@ export function StudentScoresTable({
                       )}
                     </td>
                     <td className="p-2 text-center border-l border-border/30 hover:bg-muted/30 transition-colors">
-                      {student.componentScores.MT !== undefined ? (
+                      {student.componentScores?.MT !== undefined ? (
                         <Badge className={`${getScoreBgColor(student.componentScores.MT)} border-0`}>
                           <span className={getScoreColor(student.componentScores.MT)}>
                             {formatScore(student.componentScores.MT)}
@@ -398,7 +398,7 @@ export function StudentScoresTable({
                       )}
                     </td>
                     <td className="p-2 text-center border-l border-border/30 hover:bg-muted/30 transition-colors">
-                      {student.componentScores.CN !== undefined ? (
+                      {student.componentScores?.CN !== undefined ? (
                         <Badge className={`${getScoreBgColor(student.componentScores.CN)} border-0`}>
                           <span className={getScoreColor(student.componentScores.CN)}>
                             {formatScore(student.componentScores.CN)}
@@ -409,7 +409,7 @@ export function StudentScoresTable({
                       )}
                     </td>
                     <td className="p-2 text-center border-l border-border/30 hover:bg-muted/30 transition-colors">
-                      {student.componentScores.CH !== undefined ? (
+                      {student.componentScores?.CH !== undefined ? (
                         <Badge className={`${getScoreBgColor(student.componentScores.CH)} border-0`}>
                           <span className={getScoreColor(student.componentScores.CH)}>
                             {formatScore(student.componentScores.CH)}

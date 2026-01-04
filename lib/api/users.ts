@@ -1,10 +1,6 @@
 import { usersApi } from "./client"
 import { User as FirebaseUser } from "firebase/auth"
 
-// ==========================================
-// Types para Users API
-// ==========================================
-
 export interface Address {
   country: string
   state: string
@@ -18,8 +14,8 @@ export interface Address {
 
 export interface SyncUserInput {
   userId: string
-  firstName: string  // Obrigatório
-  lastName: string   // Obrigatório
+  firstName: string
+  lastName: string
   email: string
   phone?: string
   dateOfBirth?: string
@@ -41,29 +37,33 @@ export interface SyncedUser {
   updatedAt?: string
 }
 
-// ==========================================
-// API Functions
-// ==========================================
+export interface CreateUserInput {
+  email: string
+  password: string
+  firstName: string
+  lastName: string
+  roleId: number
+  schoolId: number
+  phone?: string
+  dateOfBirth?: string
+}
 
-/**
- * Sincroniza o usuário com o backend
- * POST /sync
- * 
- * Extrai os dados disponíveis do Firebase User e sincroniza com o backend.
- * Se o usuário já existe, será atualizado; caso contrário, será criado.
- */
+export interface CreateUserResponse {
+  userId: string
+  email: string
+  firstName: string
+  lastName: string
+  message: string
+}
+
 export async function syncUser(firebaseUser: FirebaseUser): Promise<SyncedUser> {
-  // Validação: email é obrigatório
   if (!firebaseUser.email) {
     throw new Error("Email do usuário não está disponível")
   }
 
-  // Extrai nome completo do displayName se disponível
   const displayName = firebaseUser.displayName?.trim() || ""
   const nameParts = displayName ? displayName.split(/\s+/).filter(part => part.length > 0) : []
-  
-  // Prepara os dados para sincronização
-  // firstName e lastName são OBRIGATÓRIOS segundo a API
+
   const syncData: SyncUserInput = {
     userId: firebaseUser.uid,
     email: firebaseUser.email,
@@ -71,18 +71,13 @@ export async function syncUser(firebaseUser: FirebaseUser): Promise<SyncedUser> 
     lastName: nameParts.length > 1 ? nameParts.slice(1).join(" ").trim() : "Sem Sobrenome",
   }
 
-  // Adiciona phone apenas se existir e não for vazio
   if (firebaseUser.phoneNumber?.trim()) {
     syncData.phone = firebaseUser.phoneNumber.trim()
   }
 
-  // Adiciona profilePictureUrl apenas se existir e não for vazio
   if (firebaseUser.photoURL?.trim()) {
     syncData.profilePictureUrl = firebaseUser.photoURL.trim()
   }
-
-  // dateOfBirth e address não estão disponíveis no Firebase User
-  // Eles devem ser preenchidos pelo backend ou em uma atualização posterior
 
   try {
     console.log("Sincronizando novo usuário:", {
@@ -96,7 +91,6 @@ export async function syncUser(firebaseUser: FirebaseUser): Promise<SyncedUser> 
     console.log("Usuário sincronizado com sucesso:", result)
     return result
   } catch (error: any) {
-    // Log detalhado do erro para debug
     console.error("Erro ao sincronizar usuário:", {
       message: error?.message,
       status: error?.status,
@@ -104,8 +98,26 @@ export async function syncUser(firebaseUser: FirebaseUser): Promise<SyncedUser> 
       responseData: error?.response?.data,
       syncData,
     })
-    
-    // Lança o erro para que o signUp possa tratá-lo adequadamente
+    throw error
+  }
+}
+
+/**
+ * Create user with email, password and role
+ * POST /users/create
+ * 
+ * Note: This endpoint may not be implemented yet. If it returns 404, 
+ * the function will throw an error indicating it needs to be implemented.
+ */
+export async function createUser(data: CreateUserInput): Promise<CreateUserResponse> {
+  try {
+    const result = await usersApi.post<CreateUserResponse>("/create", data)
+    return result
+  } catch (error: any) {
+    // If endpoint doesn't exist, provide helpful error
+    if (error?.status === 404) {
+      throw new Error("Endpoint de criação de usuário não implementado. Esta funcionalidade requer integração com Firebase Admin SDK no backend.")
+    }
     throw error
   }
 }

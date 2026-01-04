@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import { Card, CardContent } from "@/components/ui/card"
-import { Tabs, TabsContent } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
 import { TarefaCard } from "@/components/tarefa-card"
 import {
@@ -22,16 +21,12 @@ import { useAuth } from "@/contexts/auth-context"
 import { Loader2, AlertCircle, Trophy, Clock, CheckCircle2 } from "lucide-react"
 
 interface AlunoDashboardProps {
-  activeTab: string
-  onTabCountsChange?: (counts: {
-    ativas: number
-    agendadas: number
-    concluidas: number
-    atrasadas: number
-  }) => void
+  activeTab?: string
+  onTabChange?: (tab: string) => void
+  onCountsChange?: (counts: { ativas: number; agendadas: number; concluidas: number; atrasadas: number }) => void
 }
 
-export function AlunoDashboard({ activeTab, onTabCountsChange }: AlunoDashboardProps) {
+export function AlunoDashboard({ activeTab = "ativas", onTabChange, onCountsChange }: AlunoDashboardProps) {
   const { currentUser } = useAuth()
   const router = useRouter()
   const [bookings, setBookings] = useState<Booking[]>([])
@@ -72,16 +67,15 @@ export function AlunoDashboard({ activeTab, onTabCountsChange }: AlunoDashboardP
 
   // Notificar mudanças nos contadores
   useEffect(() => {
-    if (onTabCountsChange) {
-      onTabCountsChange({
+    if (onCountsChange) {
+      onCountsChange({
         ativas: tarefasAtivas.length,
         agendadas: tarefasAgendadas.length,
         concluidas: tarefasConcluidas.length,
-        atrasadas: tarefasAtrasadas.length,
+        atrasadas: tarefasAtrasadas.length
       })
     }
-  }, [tarefasAtivas.length, tarefasAgendadas.length, tarefasConcluidas.length, tarefasAtrasadas.length, onTabCountsChange])
-
+  }, [tarefasAtivas.length, tarefasAgendadas.length, tarefasConcluidas.length, tarefasAtrasadas.length, onCountsChange])
 
   // Função para carregar todos os bookings
   const carregarBookings = useCallback(async () => {
@@ -91,16 +85,8 @@ export function AlunoDashboard({ activeTab, onTabCountsChange }: AlunoDashboardP
     setError(null)
 
     try {
-      console.log("Carregando bookings para aluno:", currentUser.uid, currentUser.email)
-      
       // Carregar primeira página para obter o total
       const firstPage = await getStudentBookings(currentUser.uid, 1, 100)
-      
-      console.log("Primeira página de bookings recebida:", {
-        total: firstPage.items?.length || 0,
-        totalPages: firstPage.meta?.totalPages || 0,
-        items: firstPage.items,
-      })
       
       let allBookings = [...(firstPage.items || [])]
       
@@ -144,6 +130,8 @@ export function AlunoDashboard({ activeTab, onTabCountsChange }: AlunoDashboardP
 
   // Handler para ver estatísticas de tarefa concluída
   const handleVerEstatisticas = async (tarefa: Tarefa) => {
+    if (!currentUser) return
+    
     setEstatisticas({ tarefa, record: null, loading: true })
     setShowEstatisticas(true)
 
@@ -155,7 +143,6 @@ export function AlunoDashboard({ activeTab, onTabCountsChange }: AlunoDashboardP
       }
 
       // Buscar admissions do booking
-      if (!currentUser) return
       const admissions = await getAdmissionsByBookingAndUser(booking.id, currentUser.uid)
       
       // Encontrar a admission com record finalizado
@@ -244,120 +231,135 @@ export function AlunoDashboard({ activeTab, onTabCountsChange }: AlunoDashboardP
     )
   }
 
+  // Determinar qual conteúdo mostrar baseado na tab ativa
+  const getCurrentContent = () => {
+    switch (activeTab) {
+      case "agendadas":
+        return (
+          <>
+            {loading && (
+              <div className="flex items-center justify-center py-4">
+                <Loader2 className="h-4 w-4 animate-spin text-primary" />
+              </div>
+            )}
+            {!loading && tarefasAgendadas.length === 0 ? (
+              <Card>
+                <CardContent className="py-8 text-center text-muted-foreground text-sm">
+                  Nenhuma tarefa agendada
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                {tarefasAgendadas.map((tarefa) => (
+                  <TarefaCard
+                    key={tarefa.id}
+                    tarefa={tarefa}
+                    role="aluno"
+                    onIniciar={() => handleAbrirBooking(tarefa.id)}
+                  />
+                ))}
+              </div>
+            )}
+          </>
+        )
+      case "concluidas":
+        return (
+          <>
+            {loading && (
+              <div className="flex items-center justify-center py-4">
+                <Loader2 className="h-4 w-4 animate-spin text-primary" />
+              </div>
+            )}
+            {!loading && tarefasConcluidas.length === 0 ? (
+              <Card>
+                <CardContent className="py-8 text-center text-muted-foreground text-sm">
+                  Nenhuma tarefa concluída ainda
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                {tarefasConcluidas.map((tarefa) => (
+                  <TarefaCard
+                    key={tarefa.id}
+                    tarefa={tarefa}
+                    role="aluno"
+                    concluida={true}
+                    onIniciar={() => handleVerEstatisticas(tarefa)}
+                  />
+                ))}
+              </div>
+            )}
+          </>
+        )
+      case "atrasadas":
+        return (
+          <>
+            {loading && (
+              <div className="flex items-center justify-center py-4">
+                <Loader2 className="h-4 w-4 animate-spin text-primary" />
+              </div>
+            )}
+            {!loading && tarefasAtrasadas.length === 0 ? (
+              <Card>
+                <CardContent className="py-8 text-center text-muted-foreground text-sm">
+                  Nenhuma tarefa atrasada. Parabéns! 🎉
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                {tarefasAtrasadas.map((tarefa) => (
+                  <TarefaCard
+                    key={tarefa.id}
+                    tarefa={tarefa}
+                    role="aluno"
+                    concluida={false}
+                    atrasada={false}
+                    onIniciar={() => handleAbrirBooking(tarefa.id)}
+                  />
+                ))}
+              </div>
+            )}
+          </>
+        )
+      default: // "ativas"
+        return (
+          <>
+            {loading && (
+              <div className="flex items-center justify-center py-4">
+                <Loader2 className="h-4 w-4 animate-spin text-primary" />
+              </div>
+            )}
+            {!loading && tarefasAtivas.length === 0 ? (
+              <Card>
+                <CardContent className="py-8 text-center text-muted-foreground text-sm">
+                  Nenhuma tarefa ativa no momento
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                {tarefasAtivas.map((tarefa) => (
+                  <TarefaCard
+                    key={tarefa.id}
+                    tarefa={tarefa}
+                    role="aluno"
+                    onVerDetalhes={() => handleAbrirBooking(tarefa.id)}
+                  />
+                ))}
+              </div>
+            )}
+          </>
+        )
+    }
+  }
+
   return (
-    <div className="container mx-auto px-4 py-4 max-w-7xl">
-      <Tabs value={activeTab} className="space-y-3">
-        <TabsContent value="ativas" className="space-y-3 mt-0">
+    <div className="space-y-3">
+      {getCurrentContent()}
           {loading && (
             <div className="flex items-center justify-center py-4">
               <Loader2 className="h-4 w-4 animate-spin text-primary" />
             </div>
           )}
-          {!loading && tarefasAtivas.length === 0 ? (
-            <Card>
-              <CardContent className="py-8 text-center text-muted-foreground text-sm">
-                Nenhuma tarefa ativa no momento
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {tarefasAtivas.map((tarefa, index) => (
-                <TarefaCard
-                  key={tarefa.id}
-                  tarefa={tarefa}
-                  role="aluno"
-                  onVerDetalhes={() => handleAbrirBooking(tarefa.id)}
-                  style={{ animationDelay: `${index * 0.1}s` }}
-                />
-              ))}
-            </div>
-          )}
-        </TabsContent>
-
-        <TabsContent value="agendadas" className="space-y-3 mt-3">
-          {loading && (
-            <div className="flex items-center justify-center py-4">
-              <Loader2 className="h-4 w-4 animate-spin text-primary" />
-            </div>
-          )}
-          {!loading && tarefasAgendadas.length === 0 ? (
-            <Card>
-              <CardContent className="py-8 text-center text-muted-foreground text-sm">
-                Nenhuma tarefa agendada
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {tarefasAgendadas.map((tarefa, index) => (
-                <TarefaCard
-                  key={tarefa.id}
-                  tarefa={tarefa}
-                  role="aluno"
-                  onIniciar={() => handleAbrirBooking(tarefa.id)}
-                  style={{ animationDelay: `${index * 0.1}s` }}
-                />
-              ))}
-            </div>
-          )}
-        </TabsContent>
-
-        <TabsContent value="concluidas" className="space-y-3 mt-3">
-          {loading && (
-            <div className="flex items-center justify-center py-4">
-              <Loader2 className="h-4 w-4 animate-spin text-primary" />
-            </div>
-          )}
-          {!loading && tarefasConcluidas.length === 0 ? (
-            <Card>
-              <CardContent className="py-8 text-center text-muted-foreground text-sm">
-                Nenhuma tarefa concluída ainda
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {tarefasConcluidas.map((tarefa, index) => (
-                <TarefaCard
-                  key={tarefa.id}
-                  tarefa={tarefa}
-                  role="aluno"
-                  concluida={true}
-                  onIniciar={() => handleVerEstatisticas(tarefa)}
-                  style={{ animationDelay: `${index * 0.1}s` }}
-                />
-              ))}
-            </div>
-          )}
-        </TabsContent>
-
-        <TabsContent value="atrasadas" className="space-y-3 mt-3">
-          {loading && (
-            <div className="flex items-center justify-center py-4">
-              <Loader2 className="h-4 w-4 animate-spin text-primary" />
-            </div>
-          )}
-          {!loading && tarefasAtrasadas.length === 0 ? (
-            <Card>
-              <CardContent className="py-8 text-center text-muted-foreground text-sm">
-                Nenhuma tarefa atrasada. Parabéns! 🎉
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {tarefasAtrasadas.map((tarefa, index) => (
-                <TarefaCard
-                  key={tarefa.id}
-                  tarefa={tarefa}
-                  role="aluno"
-                  concluida={false}
-                  atrasada={false}
-                  onIniciar={() => handleAbrirBooking(tarefa.id)}
-                  style={{ animationDelay: `${index * 0.1}s` }}
-                />
-              ))}
-            </div>
-          )}
-        </TabsContent>
-      </Tabs>
 
       {/* Dialog de Estatísticas */}
       <Dialog open={showEstatisticas} onOpenChange={setShowEstatisticas}>

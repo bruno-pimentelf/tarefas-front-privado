@@ -65,12 +65,15 @@ export function RelatoriosCompletos({ booking, classIds, userId }: RelatoriosCom
     setFilters(newFilters)
   }
 
+  // Carregar admissions apenas quando booking ou userId mudarem
   useEffect(() => {
-    const carregarRelatorios = async () => {
-      setLoading(true)
-      setError(null)
+    const carregarAdmissions = async () => {
+      if (!booking.id || !userId) return
 
       try {
+        setLoading(true)
+        setError(null)
+
         // Buscar admissions do booking
         const admissions = await getAdmissionsByBookingAndUser(booking.id, userId)
         
@@ -84,6 +87,24 @@ export function RelatoriosCompletos({ booking, classIds, userId }: RelatoriosCom
         }
 
         setAdmissionId(admissionFinalizada.id)
+      } catch (err: any) {
+        console.error("Erro ao carregar admissions:", err)
+        setError(err?.message || "Erro ao carregar admissions")
+        setLoading(false)
+      }
+    }
+
+    carregarAdmissions()
+  }, [booking.id, userId])
+
+  // Carregar dados de analytics quando admissionId ou filters mudarem
+  useEffect(() => {
+    const carregarAnalytics = async () => {
+      if (!admissionId) return
+
+      try {
+        setLoading(true)
+        setError(null)
 
         const apiFilters = {
           schoolYear: filters.schoolYear,
@@ -100,12 +121,12 @@ export function RelatoriosCompletos({ booking, classIds, userId }: RelatoriosCom
           rangeDist,
           itemAnalysisData,
         ] = await Promise.allSettled([
-          getComponentStats(admissionFinalizada.id, apiFilters),
-          getClassComponentReport(admissionFinalizada.id, apiFilters),
-          getStudentScores(admissionFinalizada.id, apiFilters),
-          getScoreDistribution(admissionFinalizada.id, apiFilters),
-          getComponentRangeDistribution(admissionFinalizada.id, apiFilters),
-          getItemAnalysis(admissionFinalizada.id, { classIds: apiFilters.classIds, grade: apiFilters.grade }),
+          getComponentStats(admissionId, apiFilters),
+          getClassComponentReport(admissionId, apiFilters),
+          getStudentScores(admissionId, apiFilters),
+          getScoreDistribution(admissionId, apiFilters),
+          getComponentRangeDistribution(admissionId, apiFilters),
+          getItemAnalysis(admissionId, { classIds: apiFilters.classIds, grade: apiFilters.grade }),
         ])
 
         if (stats.status === "fulfilled") setComponentStats(stats.value)
@@ -122,10 +143,8 @@ export function RelatoriosCompletos({ booking, classIds, userId }: RelatoriosCom
       }
     }
 
-    if (booking.id && userId) {
-      carregarRelatorios()
-    }
-  }, [booking.id, userId, classIds, filters])
+    carregarAnalytics()
+  }, [admissionId, filters, classIds])
 
   if (loading) {
     return (

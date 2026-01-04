@@ -10,10 +10,10 @@ import { Label } from "@/components/ui/label"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { Sidebar } from "@/components/sidebar"
 import { FaSpinner, FaExclamationCircle, FaArrowLeft, FaSignOutAlt, FaChartBar, FaTrophy, FaUser, FaFlask } from "react-icons/fa"
-import { getItemAnalysis, type ItemAnalysisResponse } from "@/lib/api/analytics"
-import { ItemAnalysisTable } from "@/components/analytics/item-analysis-table"
 import { getStudentBookings, getTeacherClasses, type Booking, type TeacherClass } from "@/lib/api/bookings"
 import { getAdmissionsByBookingAndUser, type Admission } from "@/lib/api/admissions"
+import { getItemAnalysis, type ItemAnalysisResponse } from "@/lib/api/analytics"
+import { ItemAnalysisTable } from "@/components/analytics/item-analysis-table"
 import { PerfilDialog } from "@/components/perfil-dialog"
 import {
   Select,
@@ -61,20 +61,16 @@ export default function ItemAnalysisPage() {
         setBookings(bookingsResponse.items || [])
         setAvailableClasses(classes)
 
-        // Carregar todas as admissions de todos os bookings
+        // Buscar admissions para cada booking individualmente (sem otimização - múltiplas chamadas)
         const allAdmissions: Admission[] = []
         for (const booking of bookingsResponse.items || []) {
           try {
-            const bookingAdmissions = await getAdmissionsByBookingAndUser(
-              booking.id,
-              currentUser.uid
-            )
-            allAdmissions.push(...bookingAdmissions)
+            const admissions = await getAdmissionsByBookingAndUser(booking.id, currentUser.uid)
+            allAdmissions.push(...admissions)
           } catch (err) {
             console.error(`Erro ao buscar admissions do booking ${booking.id}:`, err)
           }
         }
-
         setAdmissions(allAdmissions.filter((a) => a.record?.finishedAt)) // Apenas finalizadas
       } catch (err: any) {
         setError(err?.message || "Erro ao carregar dados")

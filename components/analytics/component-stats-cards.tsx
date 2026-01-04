@@ -72,7 +72,7 @@ export function ComponentStatsCards({
                 {convertScore(data.overallAverage).toFixed(1)}
               </div>
               <div className="text-xs text-muted-foreground">
-                ({data.overallCorrectAnswers} acertos em {data.overallTotalQuestions} itens)
+                ({data.overallCorrectAnswers || 0} acertos em {data.overallTotalQuestions || 0} itens)
               </div>
             </CardContent>
           </Card>

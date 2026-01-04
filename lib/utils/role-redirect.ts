@@ -18,9 +18,14 @@ export function getRouteByRole(roleName: string | null | undefined): string {
     return "/aluno"
   }
   
-  // teacher ou coordinator -> /professor
-  if (roleLower === "teacher" || roleLower === "coordinator") {
+  // teacher -> /professor
+  if (roleLower === "teacher") {
     return "/professor"
+  }
+  
+  // coordinator -> /coordenador
+  if (roleLower === "coordinator") {
+    return "/coordenador"
   }
   
   // Fallback: se não reconhecer a role, volta para auth
@@ -40,7 +45,11 @@ export function canAccessRoute(roleName: string | null | undefined, route: strin
   }
   
   if (route.startsWith("/professor")) {
-    return roleLower === "teacher" || roleLower === "coordinator"
+    return roleLower === "teacher"
+  }
+  
+  if (route.startsWith("/coordenador")) {
+    return roleLower === "coordinator"
   }
   
   return false

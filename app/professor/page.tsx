@@ -1,59 +1,114 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { useRouter } from "next/navigation"
-import { ProfessorDashboard } from "@/components/professor-dashboard"
 import { useAuth } from "@/contexts/auth-context"
 import { Button } from "@/components/ui/button"
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { FaSignOutAlt, FaTrophy, FaChartBar, FaUser, FaFlask, FaSync, FaDatabase, FaPlus } from "react-icons/fa"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { LogOut, Trophy, BarChart3, User, BookOpen, Users, CheckCircle2, TrendingUp, Loader2 } from "lucide-react"
 import { GamificationDialog } from "@/components/gamification-dialog"
 import { EstatisticasDialog } from "@/components/estatisticas-dialog"
-import { CriarTarefaDialog } from "@/components/criar-tarefa-dialog"
-import { PerfilDialog } from "@/components/perfil-dialog"
+import { Gamification } from "@/components/gamification"
 import { mockGamificacao } from "@/lib/mock-data"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { Sidebar } from "@/components/sidebar"
-import { getUserRoleName, canAccessRoute, DEFAULT_SCHOOL_ID } from "@/lib/utils/role-redirect"
-import { FaSpinner } from "react-icons/fa"
+import { getStudentBookings, Booking, getTeacherClasses, TeacherClass } from "@/lib/api/bookings"
+import { getAdmissionsByBookingAndUser, Admission } from "@/lib/api/admissions"
+import { Fredoka } from "next/font/google"
+
+const fredoka = Fredoka({
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
+  variable: "--font-fredoka",
+})
 
 export default function ProfessorPage() {
   const { currentUser, logout } = useAuth()
   const router = useRouter()
   const [showGamificacao, setShowGamificacao] = useState(false)
   const [showEstatisticas, setShowEstatisticas] = useState(false)
-  const [showPerfil, setShowPerfil] = useState(false)
-  const [activeTab, setActiveTab] = useState("ativas")
-  const [showCriarTarefa, setShowCriarTarefa] = useState(false)
-  const [refreshTrigger, setRefreshTrigger] = useState(0)
-  const [isRefreshing, setIsRefreshing] = useState(false)
-  const [checkingRole, setCheckingRole] = useState(true)
+  const [showDashboard, setShowDashboard] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [bookings, setBookings] = useState<Booking[]>([])
+  const [classes, setClasses] = useState<TeacherClass[]>([])
+  const [admissions, setAdmissions] = useState<Admission[]>([])
+
+  // Carregar dados do professor
+  useEffect(() => {
+    const carregarDados = async () => {
+      if (!currentUser) return
+
+      try {
+        setLoading(true)
+        
+        // Carregar bookings e classes em paralelo
+        const [bookingsResponse, classesData] = await Promise.all([
+          getStudentBookings(currentUser.uid, 1, 100).catch(() => ({ items: [], meta: { page: 1, limit: 100, total: 0, totalPages: 0 } })),
+          getTeacherClasses(currentUser.uid).catch(() => [])
+        ])
+        
+        setBookings(bookingsResponse.items || [])
+        setClasses(classesData)
+
+        // Buscar admissions para cada booking
+        const allAdmissions: Admission[] = []
+        for (const booking of bookingsResponse.items || []) {
+          try {
+            const bookingAdmissions = await getAdmissionsByBookingAndUser(booking.id, currentUser.uid)
+            allAdmissions.push(...bookingAdmissions)
+          } catch (err) {
+            console.error(`Erro ao buscar admissions do booking ${booking.id}:`, err)
+          }
+        }
+
+        setAdmissions(allAdmissions)
+      } catch (err: any) {
+        console.error("Erro ao carregar dados:", err)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    carregarDados()
+  }, [currentUser])
+
+  // Calcular estatísticas
+  const estatisticas = useMemo(() => {
+    const tarefasAtivas = bookings.filter(
+      (b) => b.status === "in_progress" || (b.status === "not_started" && new Date(b.endTime || 0) > new Date())
+    ).length
+    
+    const tarefasFinalizadas = bookings.filter(
+      (b) => b.status === "finished" || (b.endTime && new Date(b.endTime) < new Date())
+    ).length
+
+    const tarefasAgendadas = bookings.filter(
+      (b) => b.status === "not_started" && new Date(b.startTime || 0) > new Date()
+    ).length
+
+    const totalAlunos = classes.reduce((acc, cls) => acc + (cls as any).studentsCount || 0, 0)
+
+    // Calcular taxa de conclusão baseada em admissions finalizadas
+    const admissionsFinalizadas = admissions.filter(a => a.record?.finishedAt).length
+    const totalAdmissions = admissions.length
+    const taxaConclusao = totalAdmissions > 0 
+      ? Math.round((admissionsFinalizadas / totalAdmissions) * 100)
+      : 0
+
+    return {
+      tarefasAtivas,
+      tarefasFinalizadas,
+      tarefasAgendadas,
+      totalAlunos,
+      taxaConclusao,
+      totalTurmas: classes.length,
+    }
+  }, [bookings, classes, admissions])
 
   useEffect(() => {
     if (!currentUser) {
       router.push("/auth")
-      return
     }
-
-    // Verificar se o usuário tem permissão para acessar /professor
-    const checkRole = async () => {
-      try {
-        const roleName = await getUserRoleName(currentUser.uid, DEFAULT_SCHOOL_ID)
-        
-        if (!roleName || !canAccessRoute(roleName, "/professor")) {
-          // Se não tem role ou não tem permissão, redireciona para /perfil
-          router.push("/perfil")
-          return
-        }
-      } catch (error) {
-        // Em caso de erro, redireciona para /perfil
-        router.push("/perfil")
-      } finally {
-        setCheckingRole(false)
-      }
-    }
-
-    checkRole()
   }, [currentUser, router])
 
   const handleLogout = async () => {
@@ -61,99 +116,89 @@ export default function ProfessorPage() {
     router.push("/auth")
   }
 
-  if (!currentUser || checkingRole) {
+  const handleVoltar = () => {
+    // Volta para seleção de perfil, permitindo trocar de role se necessário
+    router.push("/perfil")
+  }
+
+  if (!currentUser) {
+    return null
+  }
+
+  const sidebarItems = [
+    {
+      icon: <BarChart3 className="h-5 w-5" />,
+      label: "Estatísticas",
+      onClick: () => setShowEstatisticas(true),
+    },
+    {
+      icon: <Trophy className="h-5 w-5" />,
+      label: "Níveis",
+      onClick: () => setShowGamificacao(true),
+    },
+    {
+      icon: <User className="h-5 w-5" />,
+      label: "Trocar Perfil",
+      onClick: handleVoltar,
+    },
+  ]
+
+  if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-3">
-          <FaSpinner className="h-8 w-8 animate-spin text-primary" />
-          <p className="text-sm text-muted-foreground">Verificando permissões...</p>
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-sm text-muted-foreground">Carregando dados...</p>
         </div>
       </div>
     )
   }
 
-  // Sidebar items com ícones do react-icons
-  const sidebarItems = [
-    {
-      icon: <FaChartBar className="h-5 w-5" />,
-      label: "Estatísticas",
-      onClick: () => setShowEstatisticas(true),
-    },
-    {
-      icon: <FaTrophy className="h-5 w-5" />,
-      label: "Níveis",
-      onClick: () => setShowGamificacao(true),
-    },
-    {
-      icon: <FaFlask className="h-5 w-5" />,
-      label: "Analytics",
-      onClick: () => router.push("/professor/analytics"),
-    },
-    {
-      icon: <FaUser className="h-5 w-5" />,
-      label: "Meu Perfil",
-      onClick: () => setShowPerfil(true),
-    },
-  ]
-
   return (
     <div className="min-h-screen bg-background relative overflow-hidden">
       {/* Animated background pattern */}
       <div className="absolute inset-0 opacity-[0.015] dark:opacity-[0.03] pointer-events-none">
-        <div className="absolute inset-0" style={{
-          backgroundImage: `radial-gradient(circle at 2px 2px, currentColor 1px, transparent 0)`,
-          backgroundSize: '50px 50px'
-        }} />
+        <div
+          className="absolute inset-0"
+          style={{
+            backgroundImage: `radial-gradient(circle at 2px 2px, currentColor 1px, transparent 0)`,
+            backgroundSize: "50px 50px",
+          }}
+        />
       </div>
-      
+
       {/* Gradient orbs */}
       <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-primary/3 rounded-full blur-3xl animate-pulse" />
-      <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-accent/3 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1.5s' }} />
-      
+      <div
+        className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-accent/3 rounded-full blur-3xl animate-pulse"
+        style={{ animationDelay: "1.5s" }}
+      />
+
       <Sidebar items={sidebarItems} />
-      
       <header className="fixed top-0 z-50 left-16 right-0 border-b bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container mx-auto px-4 max-w-7xl">
           <div className="flex h-14 items-center justify-between gap-4">
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1">
-              <TabsList variant="line" className="h-auto bg-transparent p-0">
-                <TabsTrigger value="ativas">Ativas</TabsTrigger>
-                <TabsTrigger value="agendadas">Agendadas</TabsTrigger>
-                <TabsTrigger value="finalizadas">Finalizadas</TabsTrigger>
-                <TabsTrigger value="relatorios">Relatórios</TabsTrigger>
-              </TabsList>
-            </Tabs>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setRefreshTrigger(prev => prev + 1)}
-                disabled={isRefreshing}
-                className="h-8 w-8 p-0 hover:bg-accent/10 transition-all duration-200"
-                title="Atualizar"
-              >
-                <FaSync className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => router.push("/professor/banco-itens")}
-                className="gap-1.5 h-8 hover:bg-accent/10 transition-all duration-200"
-              >
-                <FaDatabase className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline text-xs">Banco de Itens</span>
-              </Button>
-              <Button
-                onClick={() => setShowCriarTarefa(true)}
-                size="sm"
-                className="gap-1.5 h-8"
-              >
-                <FaPlus className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline text-xs">Nova Tarefa</span>
-              </Button>
+            <h1 
+              className={`text-xl font-semibold ${fredoka.variable}`}
+              style={{ 
+                fontFamily: 'var(--font-fredoka), "Fredoka One", cursive, sans-serif',
+                letterSpacing: '0.05em',
+                textShadow: '2px 2px 4px rgba(37, 99, 235, 0.3), 0 0 20px rgba(59, 130, 246, 0.2)',
+                background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 30%, #1d4ed8 60%, #1e40af 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text',
+                lineHeight: '1.4',
+                display: 'inline-block',
+                fontWeight: 600
+              }}
+            >
+              Professor
+            </h1>
+            <div className="flex items-center gap-1">
               <ThemeToggle />
               <Button variant="ghost" onClick={handleLogout} size="sm" className="gap-1.5 h-8 hover:bg-accent/10 transition-all duration-200">
-                <FaSignOutAlt className="h-3.5 w-3.5" />
+                <LogOut className="h-3.5 w-3.5" />
                 <span className="hidden sm:inline text-xs">Sair</span>
               </Button>
             </div>
@@ -162,13 +207,79 @@ export default function ProfessorPage() {
       </header>
 
       <main className="ml-16 relative pt-14">
-        <ProfessorDashboard 
-          activeTab={activeTab}
-          refreshTrigger={refreshTrigger}
-          onShowCriarTarefa={setShowCriarTarefa}
-          onShowBancoItens={() => router.push("/professor/banco-itens")}
-          onLoadingChange={setIsRefreshing}
-        />
+        <div className="container mx-auto px-4 py-6 max-w-7xl">
+            {/* Estatísticas Gerais */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-semibold flex items-center gap-1.5">
+                    <BookOpen className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                    Tarefas Ativas
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{estatisticas.tarefasAtivas}</div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {estatisticas.tarefasAtivas === 1 ? "tarefa em andamento" : "tarefas em andamento"}
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-semibold flex items-center gap-1.5">
+                    <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" />
+                    Tarefas Finalizadas
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{estatisticas.tarefasFinalizadas}</div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {estatisticas.tarefasFinalizadas === 1 ? "tarefa concluída" : "tarefas concluídas"}
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-semibold flex items-center gap-1.5">
+                    <Users className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                    Total de Alunos
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{estatisticas.totalAlunos}</div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {estatisticas.totalTurmas} {estatisticas.totalTurmas === 1 ? "turma" : "turmas"}
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-semibold flex items-center gap-1.5">
+                    <TrendingUp className="h-4 w-4 text-orange-600 dark:text-orange-400" />
+                    Taxa de Conclusão
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{estatisticas.taxaConclusao}%</div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    média geral
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Gamificação */}
+            <div>
+              <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                <Trophy className="h-5 w-5 text-primary" />
+                Gamificação
+              </h2>
+              <Gamification gamificacao={mockGamificacao} />
+            </div>
+          </div>
       </main>
 
       <GamificationDialog
@@ -179,21 +290,9 @@ export default function ProfessorPage() {
       <EstatisticasDialog
         open={showEstatisticas}
         onOpenChange={setShowEstatisticas}
-        tarefasAtivas={0}
-        totalAlunos={0}
-        taxaConclusao={0}
-      />
-      <CriarTarefaDialog
-        open={showCriarTarefa}
-        onOpenChange={setShowCriarTarefa}
-        onSuccess={() => {
-          setShowCriarTarefa(false)
-          setRefreshTrigger(prev => prev + 1)
-        }}
-      />
-      <PerfilDialog
-        open={showPerfil}
-        onOpenChange={setShowPerfil}
+        tarefasAtivas={estatisticas.tarefasAtivas}
+        totalAlunos={estatisticas.totalAlunos}
+        taxaConclusao={estatisticas.taxaConclusao}
       />
     </div>
   )

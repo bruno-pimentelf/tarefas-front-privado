@@ -66,8 +66,14 @@ export function PerfilDialog({ open, onOpenChange }: PerfilDialogProps) {
     try {
       const rolesData = await getRoles()
       setRoles(rolesData)
+      // Se não há role selecionada e há roles disponíveis, seleciona a primeira
+      if (!selectedRoleId && rolesData.length > 0) {
+        setSelectedRoleId(rolesData[0].id.toString())
+      }
     } catch (err: any) {
+      console.error("Erro ao carregar roles:", err)
       setError(err.message || "Erro ao carregar roles")
+      // Não bloqueia a interface se houver erro - permite tentar novamente
     } finally {
       setLoadingRoles(false)
     }
@@ -196,16 +202,73 @@ export function PerfilDialog({ open, onOpenChange }: PerfilDialogProps) {
             </div>
           )}
 
+          {/* Mensagem quando não há role */}
+          {!currentUserRole && !loadingUserRole && (
+            <div className="p-4 rounded-lg bg-yellow-500/10 border border-yellow-500/20">
+              <div className="flex items-start gap-2">
+                <FaExclamationCircle className="h-4 w-4 text-yellow-600 dark:text-yellow-400 mt-0.5 shrink-0" />
+                <div className="flex-1">
+                  <Label className="text-xs text-yellow-700 dark:text-yellow-300 mb-1 block font-medium">
+                    Nenhuma role associada
+                  </Label>
+                  <p className="text-xs text-yellow-600 dark:text-yellow-400">
+                    Selecione uma role abaixo para associar ao seu usuário.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Seleção de Role */}
           <div className="space-y-2">
-            <Label htmlFor="role">Selecionar Role</Label>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="role">
+                {currentUserRole ? "Alterar Role" : "Selecionar Role"}
+              </Label>
+              {error && roles.length === 0 && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={loadRoles}
+                  disabled={loadingRoles}
+                  className="h-7 text-xs"
+                >
+                  {loadingRoles ? (
+                    <FaSpinner className="h-3 w-3 animate-spin mr-1" />
+                  ) : null}
+                  Tentar novamente
+                </Button>
+              )}
+            </div>
             {loadingRoles ? (
               <div className="flex items-center gap-2 p-4 text-sm text-muted-foreground">
                 <FaSpinner className="h-4 w-4 animate-spin" />
                 <span>Carregando roles...</span>
               </div>
             ) : roles.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Nenhuma role disponível</p>
+              <div className="p-4 rounded-lg bg-muted/30 border">
+                <p className="text-sm text-muted-foreground mb-2">
+                  {error ? "Erro ao carregar roles" : "Nenhuma role disponível"}
+                </p>
+                {error && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={loadRoles}
+                    disabled={loadingRoles}
+                    className="w-full"
+                  >
+                    {loadingRoles ? (
+                      <>
+                        <FaSpinner className="h-3 w-3 mr-2 animate-spin" />
+                        Carregando...
+                      </>
+                    ) : (
+                      "Tentar carregar novamente"
+                    )}
+                  </Button>
+                )}
+              </div>
             ) : (
               <Select
                 value={selectedRoleId}
@@ -266,8 +329,10 @@ export function PerfilDialog({ open, onOpenChange }: PerfilDialogProps) {
                 <FaSpinner className="h-4 w-4 mr-2 animate-spin" />
                 Salvando...
               </>
+            ) : currentUserRole ? (
+              "Atualizar Role"
             ) : (
-              "Salvar Role"
+              "Associar Role"
             )}
           </Button>
         </div>

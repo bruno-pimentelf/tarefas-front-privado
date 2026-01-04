@@ -13,11 +13,11 @@ import {
 } from "firebase/auth"
 import { auth } from "@/lib/firebase"
 import { syncUser } from "@/lib/api/users"
-import { getUserRole, UserRole as AssessmentUserRole } from "@/lib/api/roles"
+import { getUserRole, UserSchool } from "@/lib/api/roles"
 
 interface AuthContextType {
   currentUser: User | null
-  userRole: AssessmentUserRole | null
+  userRole: UserSchool | null
   loading: boolean
   signIn: (email: string, password: string) => Promise<void>
   signUp: (email: string, password: string) => Promise<void>
@@ -43,7 +43,7 @@ interface AuthProviderProps {
 
 export function AuthProvider({ children }: AuthProviderProps) {
   const [currentUser, setCurrentUser] = useState<User | null>(null)
-  const [userRole, setUserRole] = useState<AssessmentUserRole | null>(null)
+  const [userRole, setUserRole] = useState<UserSchool | null>(null)
   const [loading, setLoading] = useState(true)
 
   // Função para buscar a role do usuário em uma escola específica

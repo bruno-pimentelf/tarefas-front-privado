@@ -52,4 +52,3 @@ export async function setUserRole(
 ): Promise<UserSchool> {
   return usersApi.post<UserSchool>("/assessments/role/set-assessments-role", data)
 }
-

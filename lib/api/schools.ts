@@ -9,11 +9,11 @@ export interface Address {
   country: string
   state: string
   city: string
-  neighborhood: string
+  neighborhood?: string
   street: string
   number: string
-  zipCode: string
   referencePoint?: string
+  zipCode: string
   createdAt?: string
   updatedAt?: string
 }
@@ -21,7 +21,7 @@ export interface Address {
 export interface School {
   id: number
   name: string
-  timezone: string
+  timezone?: string
   logoUrl?: string
   isActive: boolean
   addressId?: number
@@ -42,17 +42,17 @@ export interface PaginatedSchoolsResponse {
 
 export interface CreateSchoolInput {
   name: string
-  timezone: string
+  timezone?: string
   logoUrl?: string
   address: {
     country: string
     state: string
     city: string
-    neighborhood: string
+    neighborhood?: string
     street: string
     number: string
-    zipCode: string
     referencePoint?: string
+    zipCode: string
   }
 }
 
@@ -68,8 +68,8 @@ export interface UpdateSchoolInput {
     neighborhood?: string
     street?: string
     number?: string
-    zipCode?: string
     referencePoint?: string
+    zipCode?: string
   }
 }
 
@@ -93,7 +93,7 @@ export async function listSchools(params?: {
   if (params?.isActive !== undefined) queryParams.append("isActive", params.isActive.toString())
 
   const queryString = queryParams.toString()
-  const url = `/assessments/school${queryString ? `?${queryString}` : ""}`
+  const url = `/school${queryString ? `?${queryString}` : ""}`
   
   return assessmentsApi.get<PaginatedSchoolsResponse>(url)
 }
@@ -103,7 +103,7 @@ export async function listSchools(params?: {
  * GET /assessments/school/:id
  */
 export async function getSchoolById(id: number): Promise<School> {
-  return assessmentsApi.get<School>(`/assessments/school/${id}`)
+  return assessmentsApi.get<School>(`/school/${id}`)
 }
 
 /**
@@ -111,7 +111,7 @@ export async function getSchoolById(id: number): Promise<School> {
  * POST /assessments/school
  */
 export async function createSchool(data: CreateSchoolInput): Promise<School> {
-  return assessmentsApi.post<School>("/assessments/school", data)
+  return assessmentsApi.post<School>("/school", data)
 }
 
 /**
@@ -119,7 +119,7 @@ export async function createSchool(data: CreateSchoolInput): Promise<School> {
  * PATCH /assessments/school/:id
  */
 export async function updateSchool(id: number, data: UpdateSchoolInput): Promise<School> {
-  return assessmentsApi.patch<School>(`/assessments/school/${id}`, data)
+  return assessmentsApi.patch<School>(`/school/${id}`, data)
 }
 
 /**
@@ -127,5 +127,5 @@ export async function updateSchool(id: number, data: UpdateSchoolInput): Promise
  * DELETE /assessments/school/:id
  */
 export async function deleteSchool(id: number): Promise<{ message: string; id: number }> {
-  return assessmentsApi.delete<{ message: string; id: number }>(`/assessments/school/${id}`)
+  return assessmentsApi.delete<{ message: string; id: number }>(`/school/${id}`)
 }

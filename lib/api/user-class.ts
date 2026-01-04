@@ -115,7 +115,7 @@ export async function listUsersByClass(
   if (params?.limit) queryParams.append("limit", params.limit.toString())
 
   const queryString = queryParams.toString()
-  const url = `/assessments/user-class/by-class/${classId}${queryString ? `?${queryString}` : ""}`
+  const url = `/user-class/by-class/${classId}${queryString ? `?${queryString}` : ""}`
   
   return assessmentsApi.get<PaginatedUsersResponse>(url)
 }
@@ -137,7 +137,7 @@ export async function listClassesByUser(
   if (params?.limit) queryParams.append("limit", params.limit.toString())
 
   const queryString = queryParams.toString()
-  const url = `/assessments/user-class/by-user/${userId}${queryString ? `?${queryString}` : ""}`
+  const url = `/user-class/by-user/${userId}${queryString ? `?${queryString}` : ""}`
   
   return assessmentsApi.get<PaginatedClassesResponse>(url)
 }
@@ -147,7 +147,7 @@ export async function listClassesByUser(
  * POST /assessments/user-class
  */
 export async function addUserToClass(data: AddUserToClassInput): Promise<AddUserToClassResponse> {
-  return assessmentsApi.post<AddUserToClassResponse>("/assessments/user-class", data)
+  return assessmentsApi.post<AddUserToClassResponse>("/user-class", data)
 }
 
 /**
@@ -157,7 +157,7 @@ export async function addUserToClass(data: AddUserToClassInput): Promise<AddUser
 export async function bulkAddUsersToClass(
   data: BulkAddUsersToClassInput
 ): Promise<BulkAddUsersToClassResponse> {
-  return assessmentsApi.post<BulkAddUsersToClassResponse>("/assessments/user-class/bulk", data)
+  return assessmentsApi.post<BulkAddUsersToClassResponse>("/user-class/bulk", data)
 }
 
 /**
@@ -169,6 +169,6 @@ export async function removeUserFromClass(
   classId: number
 ): Promise<RemoveUserFromClassResponse> {
   return assessmentsApi.delete<RemoveUserFromClassResponse>(
-    `/assessments/user-class?userId=${userId}&classId=${classId}`
+    `/user-class?userId=${userId}&classId=${classId}`
   )
 }

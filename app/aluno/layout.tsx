@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/contexts/auth-context"
 import { Sidebar } from "@/components/sidebar"
-import { AlertCircle, Trophy, User } from "lucide-react"
+import { AlertCircle, Trophy, User, ClipboardList } from "lucide-react"
 import { GamificationDialog } from "@/components/gamification-dialog"
 import { DiagnosticoDialog } from "@/components/diagnostico-dialog"
 import { PerfilDialog } from "@/components/perfil-dialog"
@@ -57,6 +57,11 @@ export default function AlunoLayout({
   }
 
   const sidebarItems = [
+    {
+      icon: <ClipboardList className="h-5 w-5" />,
+      label: "Tarefas",
+      onClick: () => router.push("/aluno/tarefas"),
+    },
     {
       icon: <AlertCircle className="h-5 w-5" />,
       label: "Diagnóstico",

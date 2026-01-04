@@ -42,10 +42,10 @@ export function ComponentRangeDistributionChart({
   // Preparar dados para o gráfico empilhado
   const chartData = data.components.map((component) => ({
     componente: component.componentName,
-    range_0_2_5: component.range_0_2_5,
-    range_2_5_5_0: component.range_2_5_5_0,
-    range_5_0_7_5: component.range_5_0_7_5,
-    range_7_5_10: component.range_7_5_10,
+    range_0_2_5: component.range_0_2_5 || 0,
+    range_2_5_5_0: component.range_2_5_5_0 || 0,
+    range_5_0_7_5: component.range_5_0_7_5 || 0,
+    range_7_5_10: component.range_7_5_10 || 0,
   }))
 
   const chartConfig = {
@@ -142,7 +142,7 @@ export function ComponentRangeDistributionChart({
               cursor={false}
               content={<ChartTooltipContent hideLabel />}
             />
-            <ChartLegend content={<ChartLegendContent />} />
+            <ChartLegend />
             <Bar
               dataKey="range_0_2_5"
               stackId="a"

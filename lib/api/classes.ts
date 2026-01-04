@@ -1,16 +1,9 @@
 import { assessmentsApi } from "./client"
+import type { School } from "./schools"
 
 // ==========================================
 // Types para Classes API
 // ==========================================
-
-export interface School {
-  id: number
-  name: string
-  timezone?: string
-  logoUrl?: string
-  isActive?: boolean
-}
 
 export interface Class {
   id: number
@@ -62,7 +55,7 @@ export interface ClassStudentsCountResponse {
  * GET /assessments/class/:classId
  */
 export async function getClassById(classId: number): Promise<Class> {
-  return assessmentsApi.get<Class>(`/assessments/class/${classId}`)
+  return assessmentsApi.get<Class>(`/class/${classId}`)
 }
 
 /**
@@ -85,7 +78,7 @@ export async function listClasses(params?: {
   if (params?.schoolYear) queryParams.append("schoolYear", params.schoolYear)
 
   const queryString = queryParams.toString()
-  const url = `/assessments/class${queryString ? `?${queryString}` : ""}`
+  const url = `/class${queryString ? `?${queryString}` : ""}`
   
   return assessmentsApi.get<PaginatedClassesResponse>(url)
 }
@@ -95,7 +88,7 @@ export async function listClasses(params?: {
  * GET /assessments/class/by-teacher/:userId
  */
 export async function getTeacherClasses(userId: string): Promise<Class[]> {
-  return assessmentsApi.get<Class[]>(`/assessments/class/by-teacher/${userId}`)
+  return assessmentsApi.get<Class[]>(`/class/by-teacher/${userId}`)
 }
 
 /**
@@ -103,7 +96,7 @@ export async function getTeacherClasses(userId: string): Promise<Class[]> {
  * GET /assessments/class/by-student/:userId
  */
 export async function getStudentClassIds(userId: string): Promise<number[]> {
-  return assessmentsApi.get<number[]>(`/assessments/class/by-student/${userId}`)
+  return assessmentsApi.get<number[]>(`/class/by-student/${userId}`)
 }
 
 /**
@@ -111,7 +104,7 @@ export async function getStudentClassIds(userId: string): Promise<number[]> {
  * GET /assessments/class/:classId/students-count
  */
 export async function getClassStudentsCount(classId: number): Promise<ClassStudentsCountResponse> {
-  return assessmentsApi.get<ClassStudentsCountResponse>(`/assessments/class/${classId}/students-count`)
+  return assessmentsApi.get<ClassStudentsCountResponse>(`/class/${classId}/students-count`)
 }
 
 /**
@@ -119,7 +112,7 @@ export async function getClassStudentsCount(classId: number): Promise<ClassStude
  * POST /assessments/class
  */
 export async function createClass(data: CreateClassInput): Promise<Class> {
-  return assessmentsApi.post<Class>("/assessments/class", data)
+  return assessmentsApi.post<Class>("/class", data)
 }
 
 /**
@@ -127,7 +120,7 @@ export async function createClass(data: CreateClassInput): Promise<Class> {
  * PATCH /assessments/class/:id
  */
 export async function updateClass(id: number, data: UpdateClassInput): Promise<Class> {
-  return assessmentsApi.patch<Class>(`/assessments/class/${id}`, data)
+  return assessmentsApi.patch<Class>(`/class/${id}`, data)
 }
 
 /**
@@ -135,5 +128,5 @@ export async function updateClass(id: number, data: UpdateClassInput): Promise<C
  * DELETE /assessments/class/:id
  */
 export async function deleteClass(id: number): Promise<{ message: string; id: number }> {
-  return assessmentsApi.delete<{ message: string; id: number }>(`/assessments/class/${id}`)
+  return assessmentsApi.delete<{ message: string; id: number }>(`/class/${id}`)
 }

@@ -1,62 +1,32 @@
 import { assessmentsApi } from "./client"
 
-// ==========================================
-// Types para Analytics API
-// ==========================================
-
-export interface ItemAnalysisQuestion {
-  id: number
-  order: number
-  name: string
-  correctRate: number
+// Types for analytics filters
+export interface AnalyticsFilters {
+  classIds?: number[]
+  grade?: string
+  schoolYear?: string
 }
 
-export interface ItemAnalysisAnswer {
-  questionId: number
-  isCorrect: boolean
-}
-
-export interface ItemAnalysisStudent {
-  userId: string
-  name: string
-  correctRate: number
-  correctCount: number
-  totalQuestions: number
-  answers: ItemAnalysisAnswer[]
-}
-
-export interface ItemAnalysisSummary {
-  totalStudents: number
-  totalQuestions: number
-  averageCorrectRate: number
+// Item Analysis Types
+export interface ItemAnalysisItem {
+  itemId: number
+  itemNumber: number
+  componentName: string
+  correctAnswers: number
+  totalAnswers: number
+  accuracyRate: number
+  difficulty?: string
 }
 
 export interface ItemAnalysisResponse {
-  questions: ItemAnalysisQuestion[]
-  students: ItemAnalysisStudent[]
-  summary: ItemAnalysisSummary
+  items: ItemAnalysisItem[]
+  totalItems: number
+  averageAccuracy: number
 }
 
-export interface ClassComponentReportItem {
-  year: string
-  grade: string
-  classId: string
-  className: string
-  componentId: string
-  componentName: string
-  averageScore: number
-  percentile_0_2_5: number
-  percentile_2_5_5_0: number
-  percentile_5_0_7_5: number
-  percentile_7_5_10: number
-}
-
-export interface ClassComponentReportResponse {
-  data: ClassComponentReportItem[]
-}
-
-export interface ComponentStatsItem {
-  componentId: string
+// Component Stats Types
+export interface ComponentStat {
+  componentId: number
   componentName: string
   averageScore: number
   correctAnswers: number
@@ -64,256 +34,260 @@ export interface ComponentStatsItem {
 }
 
 export interface ComponentStatsResponse {
+  components: ComponentStat[]
+  totalComponents: number
   overallAverage: number
-  overallCorrectAnswers: number
-  overallTotalQuestions: number
-  components: ComponentStatsItem[]
+  // Campos opcionais que podem estar presentes na resposta
+  overallCorrectAnswers?: number
+  overallTotalQuestions?: number
 }
 
-export interface StudentScoresComponentScores {
-  LC?: number
-  MT?: number
-  CN?: number
-  CH?: number
+// Class Component Report Types
+export interface ClassComponentReportItem {
+  classId: number
+  className: string
+  componentId: number
+  componentName: string
+  year: string
+  grade: string
+  averageScore: number
+  percentile: number
+  totalStudents: number
+  // Percentis por faixa de score (opcionais - podem não estar presentes na API)
+  percentile_0_2_5?: number
+  percentile_2_5_5_0?: number
+  percentile_5_0_7_5?: number
+  percentile_7_5_10?: number
 }
 
+export interface ClassComponentReportResponse {
+  data: ClassComponentReportItem[]
+}
+
+// Student Scores Types
 export interface StudentScore {
-  rankingTrieduc: number
-  rankingSchool: number
+  studentId: number
   studentName: string
   email: string
   className: string
-  componentScores: StudentScoresComponentScores
-  essayScore: number | null
-  averageScore: number
+  averageScore?: number
+  totalCorrect: number
+  totalQuestions: number
+  rankingSchool: number
+  rankingClass: number
+  // Campos opcionais que podem estar presentes na resposta
+  componentScores?: {
+    LC?: number
+    MT?: number
+    CN?: number
+    CH?: number
+  }
+  essayScore?: number | null
 }
 
 export interface StudentScoresResponse {
   students: StudentScore[]
+  totalStudents: number
 }
 
-export interface ScoreDistributionItem {
-  score: number
-  studentCount: number
+// Score Distribution Types
+export interface ScoreDistributionBucket {
+  range: string
+  count: number
+  percentage: number
 }
 
 export interface ScoreDistributionResponse {
-  distribution: ScoreDistributionItem[]
+  buckets: ScoreDistributionBucket[]
+  totalStudents: number
+  averageScore: number
+  medianScore: number
 }
 
-export interface ComponentRangeDistributionItem {
-  componentId: string
+// Component Range Distribution Types
+export interface ComponentRangeDistribution {
+  componentId: number
   componentName: string
-  range_0_2_5: number
-  range_2_5_5_0: number
-  range_5_0_7_5: number
-  range_7_5_10: number
+  ranges: {
+    range: string
+    count: number
+    percentage: number
+  }[]
+  // Campos diretos de range (opcionais - podem não estar presentes na API)
+  range_0_2_5?: number
+  range_2_5_5_0?: number
+  range_5_0_7_5?: number
+  range_7_5_10?: number
 }
 
 export interface ComponentRangeDistributionResponse {
-  components: ComponentRangeDistributionItem[]
+  components: ComponentRangeDistribution[]
 }
-
-export interface AnalyticsFilters {
-  admissionId: number
-  schoolYear?: string
-  grade?: string
-  classIds?: number[]
-  matrixIds?: string[]
-}
-
-// ==========================================
-// API Functions
-// ==========================================
 
 /**
- * Análise de Itens
- * GET /analytics/item-analysis
- * 
- * Retorna análise detalhada de itens (questões) por estudante
+ * Get item analysis for a specific admission
+ * GET /analytics/item-analysis/:admissionId
  */
 export async function getItemAnalysis(
   admissionId: number,
-  filters?: {
-    classIds?: number[]
-    grade?: string
-    matrixIds?: string[]
-  }
+  filters?: AnalyticsFilters
 ): Promise<ItemAnalysisResponse> {
   const params = new URLSearchParams()
-  params.append("admissionId", String(admissionId))
   
   if (filters?.classIds && filters.classIds.length > 0) {
     params.append("classIds", filters.classIds.join(","))
   }
-  
   if (filters?.grade) {
     params.append("grade", filters.grade)
   }
-  
-  if (filters?.matrixIds && filters.matrixIds.length > 0) {
-    params.append("matrixIds", filters.matrixIds.join(","))
-  }
-
-  return assessmentsApi.get<ItemAnalysisResponse>(`/analytics/item-analysis?${params.toString()}`)
-}
-
-/**
- * Relatório Consolidado por Turma e Componente
- * GET /analytics/class-component-report
- */
-export async function getClassComponentReport(
-  admissionId: number,
-  filters?: {
-    schoolYear?: string
-    grade?: string
-    classIds?: number[]
-  }
-): Promise<ClassComponentReportResponse> {
-  const params = new URLSearchParams()
-  params.append("admissionId", String(admissionId))
-  
   if (filters?.schoolYear) {
     params.append("schoolYear", filters.schoolYear)
   }
-  
-  if (filters?.grade) {
-    params.append("grade", filters.grade)
-  }
-  
-  if (filters?.classIds && filters.classIds.length > 0) {
-    params.append("classIds", filters.classIds.join(","))
-  }
 
-  return assessmentsApi.get<ClassComponentReportResponse>(
-    `/analytics/class-component-report?${params.toString()}`
-  )
+  const queryString = params.toString()
+  const url = queryString
+    ? `/analytics/item-analysis/${admissionId}?${queryString}`
+    : `/analytics/item-analysis/${admissionId}`
+
+  return assessmentsApi.get<ItemAnalysisResponse>(url)
 }
 
 /**
- * Estatísticas por Componente
- * GET /analytics/component-stats
+ * Get component statistics for a specific admission
+ * GET /analytics/component-stats/:admissionId
  */
 export async function getComponentStats(
   admissionId: number,
-  filters?: {
-    schoolYear?: string
-    grade?: string
-    classIds?: number[]
-  }
+  filters?: AnalyticsFilters
 ): Promise<ComponentStatsResponse> {
   const params = new URLSearchParams()
-  params.append("admissionId", String(admissionId))
-  
-  if (filters?.schoolYear) {
-    params.append("schoolYear", filters.schoolYear)
-  }
-  
-  if (filters?.grade) {
-    params.append("grade", filters.grade)
-  }
   
   if (filters?.classIds && filters.classIds.length > 0) {
     params.append("classIds", filters.classIds.join(","))
   }
+  if (filters?.grade) {
+    params.append("grade", filters.grade)
+  }
+  if (filters?.schoolYear) {
+    params.append("schoolYear", filters.schoolYear)
+  }
 
-  return assessmentsApi.get<ComponentStatsResponse>(
-    `/analytics/component-stats?${params.toString()}`
-  )
+  const queryString = params.toString()
+  const url = queryString
+    ? `/analytics/component-stats/${admissionId}?${queryString}`
+    : `/analytics/component-stats/${admissionId}`
+
+  return assessmentsApi.get<ComponentStatsResponse>(url)
 }
 
 /**
- * Notas por Estudante
- * GET /analytics/student-scores
+ * Get class component report for a specific admission
+ * GET /analytics/class-component-report/:admissionId
+ */
+export async function getClassComponentReport(
+  admissionId: number,
+  filters?: AnalyticsFilters
+): Promise<ClassComponentReportResponse> {
+  const params = new URLSearchParams()
+  
+  if (filters?.classIds && filters.classIds.length > 0) {
+    params.append("classIds", filters.classIds.join(","))
+  }
+  if (filters?.grade) {
+    params.append("grade", filters.grade)
+  }
+  if (filters?.schoolYear) {
+    params.append("schoolYear", filters.schoolYear)
+  }
+
+  const queryString = params.toString()
+  const url = queryString
+    ? `/analytics/class-component-report/${admissionId}?${queryString}`
+    : `/analytics/class-component-report/${admissionId}`
+
+  return assessmentsApi.get<ClassComponentReportResponse>(url)
+}
+
+/**
+ * Get student scores for a specific admission
+ * GET /analytics/student-scores/:admissionId
  */
 export async function getStudentScores(
   admissionId: number,
-  filters?: {
-    schoolYear?: string
-    grade?: string
-    classIds?: number[]
-  }
+  filters?: AnalyticsFilters
 ): Promise<StudentScoresResponse> {
   const params = new URLSearchParams()
-  params.append("admissionId", String(admissionId))
-  
-  if (filters?.schoolYear) {
-    params.append("schoolYear", filters.schoolYear)
-  }
-  
-  if (filters?.grade) {
-    params.append("grade", filters.grade)
-  }
   
   if (filters?.classIds && filters.classIds.length > 0) {
     params.append("classIds", filters.classIds.join(","))
   }
+  if (filters?.grade) {
+    params.append("grade", filters.grade)
+  }
+  if (filters?.schoolYear) {
+    params.append("schoolYear", filters.schoolYear)
+  }
 
-  return assessmentsApi.get<StudentScoresResponse>(
-    `/analytics/student-scores?${params.toString()}`
-  )
+  const queryString = params.toString()
+  const url = queryString
+    ? `/analytics/student-scores/${admissionId}?${queryString}`
+    : `/analytics/student-scores/${admissionId}`
+
+  return assessmentsApi.get<StudentScoresResponse>(url)
 }
 
 /**
- * Distribuição de Notas
- * GET /analytics/score-distribution
+ * Get score distribution for a specific admission
+ * GET /analytics/score-distribution/:admissionId
  */
 export async function getScoreDistribution(
   admissionId: number,
-  filters?: {
-    schoolYear?: string
-    grade?: string
-    classIds?: number[]
-  }
+  filters?: AnalyticsFilters
 ): Promise<ScoreDistributionResponse> {
   const params = new URLSearchParams()
-  params.append("admissionId", String(admissionId))
-  
-  if (filters?.schoolYear) {
-    params.append("schoolYear", filters.schoolYear)
-  }
-  
-  if (filters?.grade) {
-    params.append("grade", filters.grade)
-  }
   
   if (filters?.classIds && filters.classIds.length > 0) {
     params.append("classIds", filters.classIds.join(","))
   }
+  if (filters?.grade) {
+    params.append("grade", filters.grade)
+  }
+  if (filters?.schoolYear) {
+    params.append("schoolYear", filters.schoolYear)
+  }
 
-  return assessmentsApi.get<ScoreDistributionResponse>(
-    `/analytics/score-distribution?${params.toString()}`
-  )
+  const queryString = params.toString()
+  const url = queryString
+    ? `/analytics/score-distribution/${admissionId}?${queryString}`
+    : `/analytics/score-distribution/${admissionId}`
+
+  return assessmentsApi.get<ScoreDistributionResponse>(url)
 }
 
 /**
- * Distribuição por Faixa de Média
- * GET /analytics/component-range-distribution
+ * Get component range distribution for a specific admission
+ * GET /analytics/component-range-distribution/:admissionId
  */
 export async function getComponentRangeDistribution(
   admissionId: number,
-  filters?: {
-    schoolYear?: string
-    grade?: string
-    classIds?: number[]
-  }
+  filters?: AnalyticsFilters
 ): Promise<ComponentRangeDistributionResponse> {
   const params = new URLSearchParams()
-  params.append("admissionId", String(admissionId))
-  
-  if (filters?.schoolYear) {
-    params.append("schoolYear", filters.schoolYear)
-  }
-  
-  if (filters?.grade) {
-    params.append("grade", filters.grade)
-  }
   
   if (filters?.classIds && filters.classIds.length > 0) {
     params.append("classIds", filters.classIds.join(","))
   }
+  if (filters?.grade) {
+    params.append("grade", filters.grade)
+  }
+  if (filters?.schoolYear) {
+    params.append("schoolYear", filters.schoolYear)
+  }
 
-  return assessmentsApi.get<ComponentRangeDistributionResponse>(
-    `/analytics/component-range-distribution?${params.toString()}`
-  )
+  const queryString = params.toString()
+  const url = queryString
+    ? `/analytics/component-range-distribution/${admissionId}?${queryString}`
+    : `/analytics/component-range-distribution/${admissionId}`
+
+  return assessmentsApi.get<ComponentRangeDistributionResponse>(url)
 }

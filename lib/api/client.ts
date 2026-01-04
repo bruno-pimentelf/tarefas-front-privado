@@ -2,7 +2,6 @@ import axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from "ax
 import { auth } from "@/lib/firebase"
 
 const ASSESSMENTS_API_URL = "https://api.trieduconline.com.br/assessments"
-const USERS_API_URL = "https://api.trieduconline.com.br/users"
 
 export interface ApiError {
   message: string
@@ -58,13 +57,7 @@ export class ApiClient {
         } else if (error.response?.status === 403) {
           apiError.message = "Sem permissão para acessar este recurso."
         } else if (error.response?.status === 404) {
-          // Verificar se é o erro específico de exam não encontrado
-          const errorData = error.response?.data as any
-          if (errorData?.message && errorData.message.includes("Nenhum exam foi encontrado")) {
-            apiError.message = "Nenhuma prova foi associada a esta avaliação."
-          } else {
-            apiError.message = errorData?.message || "Recurso não encontrado."
-          }
+          apiError.message = "Recurso não encontrado."
         }
 
         return Promise.reject(apiError)
@@ -111,4 +104,5 @@ export class ApiClient {
 export const assessmentsApi = new ApiClient(ASSESSMENTS_API_URL)
 
 // Instância do cliente para Users API
+const USERS_API_URL = "https://api.trieduconline.com.br/users"
 export const usersApi = new ApiClient(USERS_API_URL)

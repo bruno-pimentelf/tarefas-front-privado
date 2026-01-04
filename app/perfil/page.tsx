@@ -19,31 +19,10 @@ export default function PerfilPage() {
       return
     }
 
-    // Tentar buscar a role do usuário e redirecionar
-    const checkUserRole = async () => {
-      try {
-        const redirectRoute = await getRedirectRouteByUserRole(
-          currentUser.uid,
-          DEFAULT_SCHOOL_ID
-        )
-        
-        if (redirectRoute) {
-          // Se encontrou role, redireciona
-          router.push(redirectRoute)
-          return
-        }
-        
-        // Se não encontrou role, mostra o diálogo para selecionar
-        setShowDialog(true)
-      } catch (error) {
-        // Em caso de erro, mostra o diálogo
-        setShowDialog(true)
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    checkUserRole()
+    // Sempre mostra o diálogo para permitir trocar de role
+    // Não redireciona automaticamente, permitindo que o usuário escolha
+    setShowDialog(true)
+    setLoading(false)
   }, [currentUser, router])
 
   if (!currentUser || loading) {

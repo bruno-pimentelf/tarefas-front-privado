@@ -42,9 +42,9 @@ export function ScoreDistributionChart({
     return score <= 1 ? score * 10 : score
   }
 
-  const chartData = data.distribution.map((item) => ({
-    nota: convertScore(item.score).toFixed(1),
-    estudantes: item.studentCount,
+  const chartData = (data.buckets || []).map((item) => ({
+    nota: item.range,
+    estudantes: item.count,
   }))
 
   const chartConfig = {
@@ -54,8 +54,8 @@ export function ScoreDistributionChart({
     },
   } satisfies ChartConfig
 
-  const totalStudents = data.distribution.reduce((sum, item) => sum + item.studentCount, 0)
-  const maxCount = Math.max(...data.distribution.map((item) => item.studentCount))
+  const totalStudents = data.totalStudents || data.buckets.reduce((sum, item) => sum + item.count, 0)
+  const maxCount = Math.max(...data.buckets.map((item) => item.count), 0)
 
   return (
     <div className="space-y-6">
@@ -135,7 +135,7 @@ export function ScoreDistributionChart({
                 offset={12}
                 className="fill-foreground"
                 fontSize={12}
-                formatter={(value: number) => value}
+                formatter={(value: any) => String(value || 0)}
               />
             </Bar>
           </BarChart>

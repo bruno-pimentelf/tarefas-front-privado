@@ -115,10 +115,10 @@ export function ClassComponentReportTable({
       item.className,
       item.componentName,
       convertScore(item.averageScore).toFixed(1),
-      `${item.percentile_0_2_5.toFixed(1)}%`,
-      `${item.percentile_2_5_5_0.toFixed(1)}%`,
-      `${item.percentile_5_0_7_5.toFixed(1)}%`,
-      `${item.percentile_7_5_10.toFixed(1)}%`,
+      item.percentile_0_2_5 ? `${item.percentile_0_2_5.toFixed(1)}%` : "0%",
+      item.percentile_2_5_5_0 ? `${item.percentile_2_5_5_0.toFixed(1)}%` : "0%",
+      item.percentile_5_0_7_5 ? `${item.percentile_5_0_7_5.toFixed(1)}%` : "0%",
+      item.percentile_7_5_10 ? `${item.percentile_7_5_10.toFixed(1)}%` : "0%",
     ])
 
     const csvContent = [
@@ -157,10 +157,10 @@ export function ClassComponentReportTable({
       item.className,
       item.componentName,
       parseFloat(convertScore(item.averageScore).toFixed(1)),
-      item.percentile_0_2_5,
-      item.percentile_2_5_5_0,
-      item.percentile_5_0_7_5,
-      item.percentile_7_5_10,
+      item.percentile_0_2_5 || 0,
+      item.percentile_2_5_5_0 || 0,
+      item.percentile_5_0_7_5 || 0,
+      item.percentile_7_5_10 || 0,
     ])
 
     const worksheetData = [headers, ...rows]
@@ -347,23 +347,23 @@ export function ClassComponentReportTable({
                       </div>
                     </td>
                     <td className="p-2 text-center border-l border-border/30 hover:bg-muted/30 transition-colors">
-                      <Badge className={`${getPercentileColor(item.percentile_0_2_5)} border-0`}>
-                        {item.percentile_0_2_5.toFixed(1)}%
+                      <Badge className={`${getPercentileColor(item.percentile_0_2_5 || 0)} border-0`}>
+                        {(item.percentile_0_2_5 || 0).toFixed(1)}%
                       </Badge>
                     </td>
                     <td className="p-2 text-center border-l border-border/30 hover:bg-muted/30 transition-colors">
-                      <Badge className={`${getPercentileColor(item.percentile_2_5_5_0)} border-0`}>
-                        {item.percentile_2_5_5_0.toFixed(1)}%
+                      <Badge className={`${getPercentileColor(item.percentile_2_5_5_0 || 0)} border-0`}>
+                        {(item.percentile_2_5_5_0 || 0).toFixed(1)}%
                       </Badge>
                     </td>
                     <td className="p-2 text-center border-l border-border/30 hover:bg-muted/30 transition-colors">
-                      <Badge className={`${getPercentileColor(item.percentile_5_0_7_5)} border-0`}>
-                        {item.percentile_5_0_7_5.toFixed(1)}%
+                      <Badge className={`${getPercentileColor(item.percentile_5_0_7_5 || 0)} border-0`}>
+                        {(item.percentile_5_0_7_5 || 0).toFixed(1)}%
                       </Badge>
                     </td>
                     <td className="p-2 text-center border-l border-border/30 hover:bg-muted/30 transition-colors">
-                      <Badge className={`${getPercentileColor(item.percentile_7_5_10)} border-0`}>
-                        {item.percentile_7_5_10.toFixed(1)}%
+                      <Badge className={`${getPercentileColor(item.percentile_7_5_10 || 0)} border-0`}>
+                        {(item.percentile_7_5_10 || 0).toFixed(1)}%
                       </Badge>
                     </td>
                   </tr>
