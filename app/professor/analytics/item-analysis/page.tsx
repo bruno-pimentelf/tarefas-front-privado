@@ -9,7 +9,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { Sidebar } from "@/components/sidebar"
-import { FaSpinner, FaExclamationCircle, FaArrowLeft, FaSignOutAlt, FaChartBar, FaTrophy, FaUser, FaFlask } from "react-icons/fa"
+import { FaSpinner, FaExclamationCircle, FaArrowLeft, FaSignOutAlt } from "react-icons/fa"
+import { Trophy, BarChart3, BookOpen, FileText, User } from "lucide-react"
 import { getStudentBookings, getTeacherClasses, type Booking, type TeacherClass } from "@/lib/api/bookings"
 import { getAdmissionsByBookingAndUser, type Admission } from "@/lib/api/admissions"
 import { getItemAnalysis, type ItemAnalysisResponse } from "@/lib/api/analytics"
@@ -124,24 +125,29 @@ export default function ItemAnalysisPage() {
 
   const sidebarItems = [
     {
-      icon: <FaChartBar className="h-5 w-5" />,
+      icon: <BarChart3 className="h-5 w-5" />,
       label: "Estatísticas",
-      onClick: () => {},
+      onClick: () => router.push("/professor"),
     },
     {
-      icon: <FaTrophy className="h-5 w-5" />,
+      icon: <Trophy className="h-5 w-5" />,
       label: "Níveis",
-      onClick: () => {},
+      onClick: () => router.push("/professor"),
     },
     {
-      icon: <FaFlask className="h-5 w-5" />,
-      label: "Teste Analytics",
+      icon: <BookOpen className="h-5 w-5" />,
+      label: "Tarefas",
+      onClick: () => router.push("/professor/tarefas"),
+    },
+    {
+      icon: <FileText className="h-5 w-5" />,
+      label: "Relatórios",
       onClick: () => router.push("/professor/analytics"),
     },
     {
-      icon: <FaUser className="h-5 w-5" />,
-      label: "Meu Perfil",
-      onClick: () => setShowPerfil(true),
+      icon: <User className="h-5 w-5" />,
+      label: "Trocar Perfil",
+      onClick: () => router.push("/perfil"),
     },
   ]
 
@@ -163,7 +169,7 @@ export default function ItemAnalysisPage() {
       
       <header className="fixed top-0 z-50 left-16 right-0 border-b bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container mx-auto px-4 max-w-7xl">
-          <div className="flex h-14 items-center justify-between gap-4">
+          <div className="flex h-12 items-center justify-between gap-4">
             <div className="flex items-center gap-3">
               <Button 
                 variant="ghost" 
@@ -187,7 +193,7 @@ export default function ItemAnalysisPage() {
         </div>
       </header>
 
-      <main className="ml-16 relative pt-14">
+      <main className="ml-16 relative pt-16">
         <div className="container mx-auto px-4 py-4 max-w-7xl">
           <div className="mb-6">
             <p className="text-sm text-foreground/60 mt-1">

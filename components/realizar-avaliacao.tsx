@@ -127,12 +127,40 @@ export function RealizarAvaliacao({
       // Agora que o GET admissions retorna elapsedTime, sempre usar a admission atualizada
       let currentRecord = admissionAtualizada.record as Record | null
 
+      // Se o record já está finalizado, não deve continuar respondendo
+      if (currentRecord?.finishedAt) {
+        throw new Error('Esta avaliação já foi finalizada')
+      }
+
       if (!currentRecord) {
         // 3. Criar novo record apenas se realmente não existir
-        currentRecord = await createRecord({
-          userId,
-          admissionId: admissionAtualizada.id,
-        })
+        try {
+          currentRecord = await createRecord({
+            userId,
+            admissionId: admissionAtualizada.id,
+          })
+        } catch (err: any) {
+          // Se der erro 409 (Conflict), significa que o record já existe
+          // Buscar novamente as admissions para pegar o record criado
+          if (err?.status === 409) {
+            const admissionsRetry = await getAdmissionsByBookingAndUser(
+              admission.bookingId,
+              userId
+            )
+            const admissionRetry = admissionsRetry.find(a => a.id === admission.id)
+            if (admissionRetry?.record) {
+              currentRecord = admissionRetry.record
+              // Se o record retornado já está finalizado, não deve continuar
+              if (currentRecord.finishedAt) {
+                throw new Error('Esta avaliação já foi finalizada')
+              }
+            } else {
+              throw new Error('Erro ao criar ou buscar record da avaliação')
+            }
+          } else {
+            throw err
+          }
+        }
       }
 
       setRecord(currentRecord)
@@ -1045,7 +1073,7 @@ export function RealizarAvaliacao({
                         ${isAtual 
                           ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20 scale-110 ring-2 ring-primary ring-offset-2" 
                           : respondida
-                          ? "bg-green-500/15 text-green-700 dark:text-green-400 border-2 border-green-500/30 hover:border-green-500/50 hover:scale-105"
+                          ? "bg-blue-500/10 text-blue-700 dark:text-blue-400 border-2 border-blue-500/30 hover:border-blue-500/50 hover:scale-105"
                           : "bg-muted/50 hover:bg-muted border border-border/50 hover:border-primary/30 hover:scale-105"
                         }
                       `}
@@ -1055,10 +1083,10 @@ export function RealizarAvaliacao({
                       {isAtual && (
                         <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-accent/20 animate-pulse" />
                       )}
-                      {/* Check mark quando respondida */}
+                      {/* Indicador de respondida - círculo preenchido */}
                       {respondida && !isAtual && (
                         <div className="absolute top-0.5 right-0.5">
-                          <FaCheckCircle className="h-2.5 w-2.5 text-green-600 dark:text-green-400" />
+                          <div className="h-2.5 w-2.5 rounded-full bg-blue-600 dark:bg-blue-400 border border-blue-700 dark:border-blue-300" />
                         </div>
                       )}
                       <span className="relative z-10">{index + 1}</span>
@@ -1073,7 +1101,7 @@ export function RealizarAvaliacao({
                       ${naRedacao 
                         ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20 scale-110 ring-2 ring-primary ring-offset-2" 
                         : redacaoSalva
-                        ? "bg-green-500/15 text-green-700 dark:text-green-400 border-2 border-green-500/30 hover:border-green-500/50 hover:scale-105"
+                        ? "bg-blue-500/10 text-blue-700 dark:text-blue-400 border-2 border-blue-500/30 hover:border-blue-500/50 hover:scale-105"
                         : "bg-muted/50 hover:bg-muted border border-border/50 hover:border-primary/30 hover:scale-105"
                       }
                     `}
@@ -1084,7 +1112,7 @@ export function RealizarAvaliacao({
                     )}
                     {redacaoSalva && !naRedacao && (
                       <div className="absolute top-0.5 right-0.5">
-                        <FaCheckCircle className="h-2.5 w-2.5 text-green-600 dark:text-green-400" />
+                        <div className="h-2.5 w-2.5 rounded-full bg-blue-600 dark:bg-blue-400 border border-blue-700 dark:border-blue-300" />
                       </div>
                     )}
                     <span className="relative z-10">R</span>

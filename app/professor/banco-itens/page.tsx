@@ -7,7 +7,8 @@ import { BancoItens } from "@/components/banco-itens"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { FaSignOutAlt, FaArrowLeft, FaPlus, FaTimes, FaFilter, FaChevronDown, FaChevronUp, FaFolderOpen, FaSpinner, FaCheck, FaChartBar, FaTrophy, FaUser, FaFlask } from "react-icons/fa"
+import { FaSignOutAlt, FaArrowLeft, FaPlus, FaTimes, FaFilter, FaChevronDown, FaChevronUp, FaFolderOpen, FaSpinner, FaCheck } from "react-icons/fa"
+import { Trophy, BarChart3, BookOpen, FileText, User } from "lucide-react"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { Sidebar } from "@/components/sidebar"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -118,24 +119,29 @@ export default function BancoItensPage() {
 
   const sidebarItems = [
     {
-      icon: <FaChartBar className="h-5 w-5" />,
+      icon: <BarChart3 className="h-5 w-5" />,
       label: "Estatísticas",
-      onClick: () => {},
+      onClick: () => router.push("/professor"),
     },
     {
-      icon: <FaTrophy className="h-5 w-5" />,
+      icon: <Trophy className="h-5 w-5" />,
       label: "Níveis",
-      onClick: () => {},
+      onClick: () => router.push("/professor"),
     },
     {
-      icon: <FaFlask className="h-5 w-5" />,
-      label: "Analytics",
+      icon: <BookOpen className="h-5 w-5" />,
+      label: "Tarefas",
+      onClick: () => router.push("/professor/tarefas"),
+    },
+    {
+      icon: <FileText className="h-5 w-5" />,
+      label: "Relatórios",
       onClick: () => router.push("/professor/analytics"),
     },
     {
-      icon: <FaUser className="h-5 w-5" />,
-      label: "Meu Perfil",
-      onClick: () => setShowPerfil(true),
+      icon: <User className="h-5 w-5" />,
+      label: "Trocar Perfil",
+      onClick: () => router.push("/perfil"),
     },
   ]
 
@@ -156,7 +162,7 @@ export default function BancoItensPage() {
       <Sidebar items={sidebarItems} />
       
       <header className="fixed top-0 z-50 left-16 right-0 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/90">
-        <div className="mx-auto px-4 max-w-7xl w-full h-14 flex items-center">
+        <div className="mx-auto px-4 max-w-7xl w-full h-12 flex items-center">
           <div className="flex items-center justify-between gap-3 w-full">
             <div className="flex items-center gap-3 flex-1 min-w-0">
               <Button
@@ -267,7 +273,7 @@ export default function BancoItensPage() {
         </div>
       </header>
 
-      <main className="ml-16 relative pt-[4.5rem]">
+      <main className="ml-16 relative pt-16">
         <BancoItens 
           onDataUpdate={handleDataUpdate}
           refreshTrigger={refreshTrigger}

@@ -85,7 +85,7 @@ export function AlunoDashboard({ activeTab = "ativas", onTabChange, onCountsChan
     setError(null)
 
     try {
-      // Carregar primeira página para obter o total
+      // Buscar apenas bookings (sem admissions)
       const firstPage = await getStudentBookings(currentUser.uid, 1, 100)
       
       let allBookings = [...(firstPage.items || [])]
@@ -105,8 +105,7 @@ export function AlunoDashboard({ activeTab = "ativas", onTabChange, onCountsChan
         })
       }
       
-      // Agora os bookings já vêm com totalQuestions e status da API
-      // Não precisamos mais fazer chamadas adicionais
+      // Os bookings já vêm com totalQuestions e status da API
       setBookings(allBookings)
     } catch (err: any) {
       const errorMessage = err?.data?.message || err?.message || "Erro ao carregar tarefas"

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 import { useAuth } from "@/contexts/auth-context"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { LogOut, Trophy, BarChart3, User, BookOpen, Users, CheckCircle2, TrendingUp, Loader2 } from "lucide-react"
+import { LogOut, Trophy, BarChart3, User, BookOpen, Users, CheckCircle2, TrendingUp, Loader2, FileText } from "lucide-react"
 import { GamificationDialog } from "@/components/gamification-dialog"
 import { EstatisticasDialog } from "@/components/estatisticas-dialog"
 import { Gamification } from "@/components/gamification"
@@ -13,7 +13,6 @@ import { mockGamificacao } from "@/lib/mock-data"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { Sidebar } from "@/components/sidebar"
 import { getStudentBookings, Booking, getTeacherClasses, TeacherClass } from "@/lib/api/bookings"
-import { getAdmissionsByBookingAndUser, Admission } from "@/lib/api/admissions"
 import { Fredoka } from "next/font/google"
 
 const fredoka = Fredoka({
@@ -31,7 +30,6 @@ export default function ProfessorPage() {
   const [loading, setLoading] = useState(true)
   const [bookings, setBookings] = useState<Booking[]>([])
   const [classes, setClasses] = useState<TeacherClass[]>([])
-  const [admissions, setAdmissions] = useState<Admission[]>([])
 
   // Carregar dados do professor
   useEffect(() => {
@@ -49,19 +47,6 @@ export default function ProfessorPage() {
         
         setBookings(bookingsResponse.items || [])
         setClasses(classesData)
-
-        // Buscar admissions para cada booking
-        const allAdmissions: Admission[] = []
-        for (const booking of bookingsResponse.items || []) {
-          try {
-            const bookingAdmissions = await getAdmissionsByBookingAndUser(booking.id, currentUser.uid)
-            allAdmissions.push(...bookingAdmissions)
-          } catch (err) {
-            console.error(`Erro ao buscar admissions do booking ${booking.id}:`, err)
-          }
-        }
-
-        setAdmissions(allAdmissions)
       } catch (err: any) {
         console.error("Erro ao carregar dados:", err)
       } finally {
@@ -88,12 +73,8 @@ export default function ProfessorPage() {
 
     const totalAlunos = classes.reduce((acc, cls) => acc + (cls as any).studentsCount || 0, 0)
 
-    // Calcular taxa de conclusão baseada em admissions finalizadas
-    const admissionsFinalizadas = admissions.filter(a => a.record?.finishedAt).length
-    const totalAdmissions = admissions.length
-    const taxaConclusao = totalAdmissions > 0 
-      ? Math.round((admissionsFinalizadas / totalAdmissions) * 100)
-      : 0
+    // Taxa de conclusão não disponível sem admissions
+    const taxaConclusao = 0
 
     return {
       tarefasAtivas,
@@ -103,7 +84,7 @@ export default function ProfessorPage() {
       taxaConclusao,
       totalTurmas: classes.length,
     }
-  }, [bookings, classes, admissions])
+  }, [bookings, classes])
 
   useEffect(() => {
     if (!currentUser) {
@@ -135,6 +116,16 @@ export default function ProfessorPage() {
       icon: <Trophy className="h-5 w-5" />,
       label: "Níveis",
       onClick: () => setShowGamificacao(true),
+    },
+    {
+      icon: <BookOpen className="h-5 w-5" />,
+      label: "Tarefas",
+      onClick: () => router.push("/professor/tarefas"),
+    },
+    {
+      icon: <FileText className="h-5 w-5" />,
+      label: "Relatórios",
+      onClick: () => router.push("/professor/analytics"),
     },
     {
       icon: <User className="h-5 w-5" />,
@@ -177,7 +168,7 @@ export default function ProfessorPage() {
       <Sidebar items={sidebarItems} />
       <header className="fixed top-0 z-50 left-16 right-0 border-b bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container mx-auto px-4 max-w-7xl">
-          <div className="flex h-14 items-center justify-between gap-4">
+          <div className="flex h-12 items-center justify-between gap-4">
             <h1 
               className={`text-xl font-semibold ${fredoka.variable}`}
               style={{ 
@@ -206,7 +197,7 @@ export default function ProfessorPage() {
         </div>
       </header>
 
-      <main className="ml-16 relative pt-14">
+      <main className="ml-16 relative pt-16">
         <div className="container mx-auto px-4 py-6 max-w-7xl">
             {/* Estatísticas Gerais */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">

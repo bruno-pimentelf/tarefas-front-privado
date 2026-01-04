@@ -1,4 +1,4 @@
-import { assessmentsApi } from "./client"
+import { assessmentsApi, usersApi } from "./client"
 
 // ==========================================
 // Types para Schools API
@@ -79,7 +79,7 @@ export interface UpdateSchoolInput {
 
 /**
  * List schools (paginated)
- * GET /assessments/school
+ * GET /users/assessments/school
  */
 export async function listSchools(params?: {
   page?: number
@@ -93,39 +93,39 @@ export async function listSchools(params?: {
   if (params?.isActive !== undefined) queryParams.append("isActive", params.isActive.toString())
 
   const queryString = queryParams.toString()
-  const url = `/school${queryString ? `?${queryString}` : ""}`
+  const url = `/assessments/school${queryString ? `?${queryString}` : ""}`
   
-  return assessmentsApi.get<PaginatedSchoolsResponse>(url)
+  return usersApi.get<PaginatedSchoolsResponse>(url)
 }
 
 /**
  * Get school by ID
- * GET /assessments/school/:id
+ * GET /users/assessments/school/:id
  */
 export async function getSchoolById(id: number): Promise<School> {
-  return assessmentsApi.get<School>(`/school/${id}`)
+  return usersApi.get<School>(`/assessments/school/${id}`)
 }
 
 /**
  * Create school
- * POST /assessments/school
+ * POST /users/assessments/school
  */
 export async function createSchool(data: CreateSchoolInput): Promise<School> {
-  return assessmentsApi.post<School>("/school", data)
+  return usersApi.post<School>("/assessments/school", data)
 }
 
 /**
  * Update school
- * PATCH /assessments/school/:id
+ * PATCH /users/assessments/school/:id
  */
 export async function updateSchool(id: number, data: UpdateSchoolInput): Promise<School> {
-  return assessmentsApi.patch<School>(`/school/${id}`, data)
+  return usersApi.patch<School>(`/assessments/school/${id}`, data)
 }
 
 /**
  * Delete school (soft delete)
- * DELETE /assessments/school/:id
+ * DELETE /users/assessments/school/:id
  */
 export async function deleteSchool(id: number): Promise<{ message: string; id: number }> {
-  return assessmentsApi.delete<{ message: string; id: number }>(`/school/${id}`)
+  return usersApi.delete<{ message: string; id: number }>(`/assessments/school/${id}`)
 }

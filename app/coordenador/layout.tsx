@@ -29,7 +29,6 @@ export default function CoordenadorLayout({
     if (pathname?.includes("/escolas")) return "Gerenciamento de Escolas"
     if (pathname?.includes("/turmas")) return "Gerenciamento de Turmas"
     if (pathname?.includes("/usuarios")) return "Criação de Usuários"
-    if (pathname?.includes("/relacoes")) return "Gerenciamento de Relações"
     return "Coordenador" // página principal
   }, [pathname])
 
@@ -72,11 +71,6 @@ export default function CoordenadorLayout({
       onClick: () => router.push("/coordenador/usuarios"),
     },
     {
-      icon: <TrendingUp className="h-5 w-5" />,
-      label: "Relações",
-      onClick: () => router.push("/coordenador/relacoes"),
-    },
-    {
       icon: <User className="h-5 w-5" />,
       label: "Trocar Perfil",
       onClick: handleVoltar,
@@ -106,7 +100,7 @@ export default function CoordenadorLayout({
       <Sidebar items={sidebarItems} />
       <header className="fixed top-0 z-50 left-16 right-0 border-b bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container mx-auto px-4 max-w-7xl">
-          <div className="flex h-14 items-center justify-between gap-4">
+          <div className="flex h-12 items-center justify-between gap-4">
             {isHomePage ? (
               <h1 
                 className={`text-xl font-semibold ${fredoka.variable}`}
@@ -141,7 +135,7 @@ export default function CoordenadorLayout({
         </div>
       </header>
 
-      <main className="ml-16 relative pt-14">
+      <main className="ml-16 relative pt-16">
         {children}
       </main>
     </div>

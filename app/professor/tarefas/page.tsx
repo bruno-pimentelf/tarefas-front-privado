@@ -6,7 +6,8 @@ import { ProfessorDashboard } from "@/components/professor-dashboard"
 import { useAuth } from "@/contexts/auth-context"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { FaSignOutAlt, FaTrophy, FaChartBar, FaUser, FaFlask, FaSync, FaDatabase, FaPlus } from "react-icons/fa"
+import { FaSignOutAlt, FaSync, FaDatabase, FaPlus } from "react-icons/fa"
+import { Trophy, BarChart3, BookOpen, FileText, User } from "lucide-react"
 import { GamificationDialog } from "@/components/gamification-dialog"
 import { EstatisticasDialog } from "@/components/estatisticas-dialog"
 import { CriarTarefaDialog } from "@/components/criar-tarefa-dialog"
@@ -26,6 +27,7 @@ export default function ProfessorTarefasPage() {
   const [activeTab, setActiveTab] = useState("ativas")
   const [showCriarTarefa, setShowCriarTarefa] = useState(false)
   const [checkingRole, setCheckingRole] = useState(true)
+  const [refreshTrigger, setRefreshTrigger] = useState(0)
 
   useEffect(() => {
     if (!currentUser) {
@@ -68,27 +70,32 @@ export default function ProfessorTarefasPage() {
     )
   }
 
-  // Sidebar items com ícones do react-icons
+  // Sidebar items padronizados
   const sidebarItems = [
     {
-      icon: <FaChartBar className="h-5 w-5" />,
+      icon: <BarChart3 className="h-5 w-5" />,
       label: "Estatísticas",
-      onClick: () => setShowEstatisticas(true),
+      onClick: () => router.push("/professor"),
     },
     {
-      icon: <FaTrophy className="h-5 w-5" />,
+      icon: <Trophy className="h-5 w-5" />,
       label: "Níveis",
-      onClick: () => setShowGamificacao(true),
+      onClick: () => router.push("/professor"),
     },
     {
-      icon: <FaFlask className="h-5 w-5" />,
-      label: "Analytics",
+      icon: <BookOpen className="h-5 w-5" />,
+      label: "Tarefas",
+      onClick: () => router.push("/professor/tarefas"),
+    },
+    {
+      icon: <FileText className="h-5 w-5" />,
+      label: "Relatórios",
       onClick: () => router.push("/professor/analytics"),
     },
     {
-      icon: <FaUser className="h-5 w-5" />,
-      label: "Meu Perfil",
-      onClick: () => setShowPerfil(true),
+      icon: <User className="h-5 w-5" />,
+      label: "Trocar Perfil",
+      onClick: () => router.push("/perfil"),
     },
   ]
 
@@ -110,16 +117,24 @@ export default function ProfessorTarefasPage() {
       
       <header className="fixed top-0 z-50 left-16 right-0 border-b bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container mx-auto px-4 max-w-7xl">
-          <div className="flex h-14 items-center justify-between gap-4">
+          <div className="flex h-12 items-center justify-between gap-4">
             <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1">
               <TabsList variant="line" className="h-auto bg-transparent p-0">
                 <TabsTrigger value="ativas">Ativas</TabsTrigger>
                 <TabsTrigger value="agendadas">Agendadas</TabsTrigger>
                 <TabsTrigger value="finalizadas">Finalizadas</TabsTrigger>
-                <TabsTrigger value="relatorios">Relatórios</TabsTrigger>
               </TabsList>
             </Tabs>
             <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setRefreshTrigger(prev => prev + 1)}
+                className="h-8 w-8 p-0 hover:bg-accent/10 transition-all duration-200"
+                title="Atualizar"
+              >
+                <FaSync className="h-3.5 w-3.5" />
+              </Button>
               <Button
                 variant="outline"
                 size="sm"
@@ -147,10 +162,11 @@ export default function ProfessorTarefasPage() {
         </div>
       </header>
 
-      <main className="ml-16 relative pt-14">
+      <main className="ml-16 relative pt-16">
         <ProfessorDashboard 
           activeTab={activeTab}
           onTabChange={setActiveTab}
+          refreshTrigger={refreshTrigger}
         />
       </main>
 

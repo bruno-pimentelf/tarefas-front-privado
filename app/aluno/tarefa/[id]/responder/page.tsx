@@ -48,10 +48,16 @@ export default function ResponderTarefaPage() {
           return
         }
 
-        // Pegar a primeira admission que não está finalizada, ou a primeira disponível
-        const admissionAtiva = admissionsResponse.find(a => !a.record?.finishedAt) || admissionsResponse[0]
+        // Pegar a primeira admission que não está finalizada
+        const admissionAtiva = admissionsResponse.find(a => !a.record?.finishedAt)
         
+        // Se todas as admissions estão finalizadas, redirecionar para resultados
         if (!admissionAtiva) {
+          const admissionFinalizada = admissionsResponse.find(a => a.record?.finishedAt)
+          if (admissionFinalizada) {
+            router.push(`/aluno/tarefa/${tarefaId}/resultados`)
+            return
+          }
           setError("Nenhuma avaliação disponível")
           return
         }

@@ -29,10 +29,15 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Plus, Pencil, Trash2, Loader2, AlertCircle } from "lucide-react"
-import { listClasses, createClass, updateClass, deleteClass, listSchools, type Class, type CreateClassInput, type UpdateClassInput } from "@/lib/api"
+import { createClass, updateClass, deleteClass, listSchools, listClasses, type Class, type CreateClassInput, type UpdateClassInput } from "@/lib/api"
 import { type School } from "@/lib/api/schools"
+import { useAuth } from "@/contexts/auth-context"
+import { formatGrade } from "@/lib/utils"
+import { useRouter } from "next/navigation"
 
 export function TurmasManagement() {
+  const { currentUser } = useAuth()
+  const router = useRouter()
   const [classes, setClasses] = useState<Class[]>([])
   const [schools, setSchools] = useState<School[]>([])
   const [loading, setLoading] = useState(true)
@@ -48,21 +53,28 @@ export function TurmasManagement() {
   const [schoolYear, setSchoolYear] = useState(new Date().getFullYear().toString())
 
   useEffect(() => {
-    loadData()
-  }, [])
+    if (currentUser) {
+      loadData()
+    }
+  }, [currentUser])
 
   const loadData = async () => {
+    if (!currentUser) return
+    
     try {
       setLoading(true)
       setError(null)
-      const [classesResponse, schoolsResponse] = await Promise.all([
-        listClasses({ page: 1, limit: 100 }).catch(() => ({ data: [], meta: { page: 1, limit: 100, total: 0, totalPages: 0 } })),
-        listSchools({ page: 1, limit: 100 }).catch(() => ({ data: [], meta: { page: 1, limit: 100, total: 0, totalPages: 0 } }))
+      const [schoolsResponse, classesResponse] = await Promise.all([
+        listSchools({ page: 1, limit: 100 }).catch(() => ({ data: [], meta: { page: 1, limit: 100, total: 0, totalPages: 0 } })),
+        listClasses({ page: 1, limit: 100 }).catch(() => ({ data: [], meta: { page: 1, limit: 100, total: 0, totalPages: 0 } }))
       ])
-      setClasses(classesResponse.data || [])
+      // Extrair array de classes da resposta paginada
+      const classesArray = Array.isArray(classesResponse.data) ? classesResponse.data : []
+      setClasses(classesArray)
       setSchools(schoolsResponse.data || [])
     } catch (err: any) {
       setError(err?.message || "Erro ao carregar dados")
+      setClasses([]) // Garantir que seja um array vazio em caso de erro
     } finally {
       setLoading(false)
     }
@@ -139,6 +151,10 @@ export function TurmasManagement() {
     }
   }
 
+  const handleOpenClassDetails = (cls: Class) => {
+    router.push(`/coordenador/turmas/${cls.id}`)
+  }
+
   if (loading) {
     return (
       <Card>
@@ -176,15 +192,15 @@ export function TurmasManagement() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Nome</TableHead>
-                <TableHead>Série</TableHead>
-                <TableHead>Ano Letivo</TableHead>
-                <TableHead>Escola</TableHead>
-                <TableHead className="text-right">Ações</TableHead>
+                <TableHead className="font-medium align-middle">Turma</TableHead>
+                <TableHead className="align-middle">Série</TableHead>
+                <TableHead className="align-middle">Ano Letivo</TableHead>
+                <TableHead className="align-middle">Escola</TableHead>
+                <TableHead className="text-right align-middle">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {classes.length === 0 ? (
+              {!Array.isArray(classes) || classes.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={5} className="text-center text-muted-foreground">
                     Nenhuma turma cadastrada
@@ -194,9 +210,16 @@ export function TurmasManagement() {
                 classes.map((cls) => (
                   <TableRow key={cls.id}>
                     <TableCell className="font-medium">{cls.name}</TableCell>
-                    <TableCell>{cls.grade}</TableCell>
-                    <TableCell>{cls.schoolYear}</TableCell>
-                    <TableCell>{cls.school?.name || cls.schoolName || "-"}</TableCell>
+                    <TableCell>{formatGrade(cls.grade)}</TableCell>
+                    <TableCell>{cls.schoolYear || "-"}</TableCell>
+                    <TableCell>
+                      <button
+                        onClick={() => handleOpenClassDetails(cls)}
+                        className="text-primary hover:underline cursor-pointer text-left"
+                      >
+                        {cls.school?.name || cls.schoolName || "-"}
+                      </button>
+                    </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-2">
                         <Button

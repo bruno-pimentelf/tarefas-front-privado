@@ -31,7 +31,7 @@ export function Sidebar({ items, className }: SidebarProps) {
     >
       <div className="flex flex-col h-full overflow-hidden">
         {/* Espaço para o header - alinhado com altura do header */}
-        <div className="h-14 border-b border-border"></div>
+        <div className="h-12 border-b border-border"></div>
         
         {/* Menu Items */}
         <div className="flex flex-col gap-1 px-2 py-4 flex-1 overflow-y-auto">

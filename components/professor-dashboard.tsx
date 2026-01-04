@@ -11,7 +11,7 @@ import { ColecoesPage } from "@/components/colecoes-page"
 import { BookingDetalhes } from "@/components/booking-detalhes"
 import { mockRelatorios } from "@/lib/mock-data"
 import { Tarefa, RelatorioPedagogico as RelatorioType } from "@/lib/types"
-import { Plus, Database, Loader2, AlertCircle, RefreshCw } from "lucide-react"
+import { Loader2, AlertCircle } from "lucide-react"
 import { useAuth } from "@/contexts/auth-context"
 import { getStudentBookings, Booking, getTeacherClasses, TeacherClass } from "@/lib/api/bookings"
 import { bookingToTarefa } from "@/lib/api/utils"
@@ -20,9 +20,10 @@ interface ProfessorDashboardProps {
   activeTab?: string
   onTabChange?: (tab: string) => void
   onCountsChange?: (counts: { ativas: number; agendadas: number; finalizadas: number }) => void
+  refreshTrigger?: number
 }
 
-export function ProfessorDashboard({ activeTab = "ativas", onTabChange, onCountsChange }: ProfessorDashboardProps) {
+export function ProfessorDashboard({ activeTab = "ativas", onTabChange, onCountsChange, refreshTrigger }: ProfessorDashboardProps) {
   const { currentUser } = useAuth()
   
   // Estado dos bookings/tarefas da API
@@ -135,12 +136,12 @@ export function ProfessorDashboard({ activeTab = "ativas", onTabChange, onCounts
     }
   }, [currentUser])
 
-  // Carregar bookings ao montar
+  // Carregar bookings ao montar ou quando refreshTrigger mudar
   useEffect(() => {
     if (currentUser) {
       carregarBookings()
     }
-  }, [carregarBookings, currentUser])
+  }, [carregarBookings, currentUser, refreshTrigger])
 
   // Callback quando uma tarefa é criada com sucesso
   const handleTarefaCriada = () => {
@@ -345,35 +346,7 @@ export function ProfessorDashboard({ activeTab = "ativas", onTabChange, onCounts
       )}
 
       {/* Content */}
-      {!loading && !error && (
-        <>
-          <div className="flex items-center justify-end gap-2 mb-4">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={carregarBookings}
-              disabled={loading}
-              className="h-8 w-8 p-0"
-            >
-              <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
-            </Button>
-            <Button
-              variant="outline"
-              size="default"
-              className="gap-1.5"
-              onClick={() => setShowBancoItens(true)}
-            >
-              <Database className="h-4 w-4" />
-              Banco de Itens
-            </Button>
-            <Button onClick={() => setShowCriarTarefa(true)} size="default" className="gap-1.5">
-              <Plus className="h-4 w-4" />
-              Nova Tarefa
-            </Button>
-          </div>
-          {getCurrentContent()}
-        </>
-      )}
+      {!loading && !error && getCurrentContent()}
 
       <CriarTarefaDialog
         open={showCriarTarefa}

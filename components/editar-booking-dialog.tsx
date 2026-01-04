@@ -30,6 +30,7 @@ import {
   UpdateBookingInput,
   Booking,
 } from "@/lib/api/bookings"
+import { formatGrade } from "@/lib/utils"
 
 interface EditarBookingDialogProps {
   open: boolean
@@ -395,7 +396,7 @@ export function EditarBookingDialog({
                         <SelectContent>
                           {turmasDisponiveis.map((turma) => (
                             <SelectItem key={turma.id} value={turma.id.toString()}>
-                              {turma.name} - {turma.grade}
+                              {turma.name} - {formatGrade(turma.grade)}
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -426,7 +427,7 @@ export function EditarBookingDialog({
                               className="gap-1.5 pr-1.5"
                             >
                               {turma?.name || `Turma ${turmaId}`}
-                              {turma?.grade && ` - ${turma.grade}`}
+                              {turma?.grade && ` - ${formatGrade(turma.grade)}`}
                               <button
                                 type="button"
                                 onClick={() => handleRemoveTurma(turmaId)}

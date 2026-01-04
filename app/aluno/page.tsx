@@ -9,7 +9,7 @@ import { ThemeToggle } from "@/components/theme-toggle"
 import { Gamification } from "@/components/gamification"
 import { mockGamificacao, mockDiagnosticoAluno } from "@/lib/mock-data"
 import { getStudentBookings, type Booking } from "@/lib/api/bookings"
-import { getAdmissionsByBookingAndUser, type Admission } from "@/lib/api/admissions"
+import { bookingToTarefa } from "@/lib/api/utils"
 import { Trophy, TrendingUp, BookOpen, CheckCircle2, Clock, AlertCircle, Loader2 } from "lucide-react"
 import { FaSignOutAlt } from "react-icons/fa"
 import { Fredoka } from "next/font/google"
@@ -25,7 +25,6 @@ export default function AlunoPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(true)
   const [bookings, setBookings] = useState<Booking[]>([])
-  const [admissions, setAdmissions] = useState<Admission[]>([])
 
   // Carregar dados do aluno
   useEffect(() => {
@@ -35,22 +34,9 @@ export default function AlunoPage() {
       try {
         setLoading(true)
         
-        // Carregar bookings do aluno
+        // Buscar apenas bookings (sem admissions)
         const bookingsResponse = await getStudentBookings(currentUser.uid, 1, 100)
         setBookings(bookingsResponse.items || [])
-        
-        // Buscar admissions para cada booking individualmente (sem otimização - múltiplas chamadas)
-        const allAdmissions: Admission[] = []
-        for (const booking of bookingsResponse.items || []) {
-          try {
-            const admissions = await getAdmissionsByBookingAndUser(booking.id, currentUser.uid)
-            allAdmissions.push(...admissions)
-          } catch (err) {
-            console.error(`Erro ao buscar admissions do booking ${booking.id}:`, err)
-          }
-        }
-
-        setAdmissions(allAdmissions.filter((a) => a.record?.finishedAt))
       } catch (err: any) {
         console.error("Erro ao carregar dados:", err)
       } finally {
@@ -61,47 +47,29 @@ export default function AlunoPage() {
     carregarDados()
   }, [currentUser])
 
-  // Calcular estatísticas
+  // Calcular estatísticas usando bookingToTarefa para consistência
   const estatisticas = useMemo(() => {
-    const tarefasCompletas = admissions.length
-    const tarefasAtivas = bookings.filter(
-      (b) => b.status === "in_progress" && new Date(b.endTime || 0) > new Date()
-    ).length
-    const tarefasAgendadas = bookings.filter(
-      (b) => b.status === "not_started" && new Date(b.startTime || 0) > new Date()
-    ).length
+    // Converter bookings para tarefas usando a mesma lógica do dashboard
+    const tarefas = bookings.map(booking => bookingToTarefa(booking, false))
+    
+    const tarefasCompletas = tarefas.filter((t) => t.status === "finalizada").length
+    const tarefasAtivas = tarefas.filter((t) => t.status === "ativa").length
+    const tarefasAgendadas = tarefas.filter((t) => t.status === "agendada").length
 
-    // Calcular questões respondidas e acertadas
-    let questoesRespondidas = 0
-    let questoesAcertadas = 0
-
-    admissions.forEach((admission) => {
-      if (admission.record?.examRecords) {
-        admission.record.examRecords.forEach((examRecord) => {
-          if (examRecord.recordQuestions) {
-            questoesRespondidas += examRecord.recordQuestions.length
-            questoesAcertadas += examRecord.recordQuestions.filter(
-              (q) => q.score !== null && q.score > 0
-            ).length
-          }
-        })
-      }
-    })
-
-    const taxaAcerto =
-      questoesRespondidas > 0
-        ? Math.round((questoesAcertadas / questoesRespondidas) * 100)
-        : 0
+    // Calcular questões respondidas baseado no totalQuestions dos bookings finalizados
+    const questoesRespondidas = tarefas
+      .filter((t) => t.status === "finalizada")
+      .reduce((acc, t) => acc + (t.totalQuestoes || 0), 0)
 
     return {
       tarefasCompletas,
       tarefasAtivas,
       tarefasAgendadas,
       questoesRespondidas,
-      questoesAcertadas,
-      taxaAcerto,
+      questoesAcertadas: 0, // Não disponível sem admissions
+      taxaAcerto: 0, // Não disponível sem admissions
     }
-  }, [bookings, admissions])
+  }, [bookings])
 
   const handleLogout = async () => {
     await logout()
@@ -141,7 +109,7 @@ export default function AlunoPage() {
 
       <header className="fixed top-0 z-50 left-16 right-0 border-b bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container mx-auto px-4 max-w-7xl">
-          <div className="flex h-14 items-center justify-between gap-4">
+          <div className="flex h-12 items-center justify-between gap-4">
             <h1 
               className={`text-xl font-semibold ${fredoka.variable}`}
               style={{ 
@@ -175,7 +143,7 @@ export default function AlunoPage() {
         </div>
       </header>
 
-      <main className="ml-16 relative pt-14">
+      <main className="ml-16 relative pt-16">
         <div className="container mx-auto px-4 py-6 max-w-7xl">
             {/* Estatísticas Gerais */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
@@ -225,7 +193,9 @@ export default function AlunoPage() {
                   {estatisticas.questoesRespondidas}
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
-                  {estatisticas.questoesAcertadas} acertos
+                  {estatisticas.questoesRespondidas === 1
+                    ? "questão resolvida"
+                    : "questões resolvidas"}
                 </p>
               </CardContent>
             </Card>

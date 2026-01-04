@@ -47,13 +47,29 @@ export default function ProcessandoTarefaPage() {
           return
         }
 
+        // Verificar se o record já está finalizado antes de tentar finalizar
+        if (admissionAtiva.record.finishedAt) {
+          // Se já está finalizado, redirecionar direto para resultados
+          router.push(`/aluno/tarefa/${tarefaId}/resultados`)
+          return
+        }
+
         setAdmission(admissionAtiva)
 
         // Aguardar um pouco para mostrar o processamento
         await new Promise(resolve => setTimeout(resolve, 1500))
 
-        // Finalizar o record
-        await finishRecord({ recordId: admissionAtiva.record.id })
+        // Finalizar o record apenas se ainda não estiver finalizado
+        try {
+          await finishRecord({ recordId: admissionAtiva.record.id })
+        } catch (err: any) {
+          // Se o record já foi finalizado (erro 400), apenas redirecionar para resultados
+          if (err?.status === 400 && err?.data?.message?.includes('já foi finalizado')) {
+            router.push(`/aluno/tarefa/${tarefaId}/resultados`)
+            return
+          }
+          throw err
+        }
         
         // Redirecionar para resultados
         router.push(`/aluno/tarefa/${tarefaId}/resultados`)

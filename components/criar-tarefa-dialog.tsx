@@ -25,10 +25,12 @@ import { Loader2, X, AlertCircle, CheckCircle2, BookOpen } from "lucide-react"
 import { useAuth } from "@/contexts/auth-context"
 import {
   TeacherClass,
-  getTeacherClasses,
   createBooking,
   CreateBookingInput,
+  getTeacherClasses,
 } from "@/lib/api/bookings"
+import type { School } from "@/lib/api/schools"
+import { formatGrade } from "@/lib/utils"
 import { Collection, listCollections } from "@/lib/api"
 import { createAdmission } from "@/lib/api/admissions"
 import { createExams } from "@/lib/api/exams"
@@ -103,8 +105,8 @@ export function CriarTarefaDialog({ open, onOpenChange, onSuccess }: CriarTarefa
     setTurmasError(null)
 
     try {
-      const classes = await getTeacherClasses(currentUser.uid)
-      setTurmas(classes)
+      const turmasData = await getTeacherClasses(currentUser.uid)
+      setTurmas(turmasData || [])
     } catch (error: any) {
       setTurmasError(error?.data?.message || error?.message || "Erro ao carregar turmas")
     } finally {
@@ -388,7 +390,7 @@ export function CriarTarefaDialog({ open, onOpenChange, onSuccess }: CriarTarefa
                           <SelectItem key={turma.id} value={String(turma.id)}>
                             <div className="flex items-center gap-2">
                               <span>{turma.name}</span>
-                              <span className="text-muted-foreground">- {turma.grade}</span>
+                              <span className="text-muted-foreground">- {formatGrade(turma.grade)}</span>
                               <span className="text-xs text-muted-foreground">
                                 ({turma.school.name})
                               </span>
@@ -409,7 +411,7 @@ export function CriarTarefaDialog({ open, onOpenChange, onSuccess }: CriarTarefa
                               variant="secondary"
                               className="pl-2 pr-1 py-1 flex items-center gap-1"
                             >
-                              <span>{turma.name} - {turma.grade}</span>
+                              <span>{turma.name} - {formatGrade(turma.grade)}</span>
                               <Button
                                 type="button"
                                 variant="ghost"

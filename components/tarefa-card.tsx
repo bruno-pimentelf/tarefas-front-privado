@@ -3,7 +3,8 @@
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Tarefa } from "@/lib/types"
-import { FaCalendar, FaBook, FaPlay, FaChartBar, FaClock, FaRocket } from "react-icons/fa"
+import { FaCalendar, FaBook, FaChartBar, FaClock, FaRocket } from "react-icons/fa"
+import { Eye } from "lucide-react"
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale/pt-BR"
 
@@ -168,7 +169,7 @@ export function TarefaCard({
             className="w-full gap-1.5 border border-border/50 hover:border-accent/40 hover:bg-accent/5 transition-all duration-300 h-8 group/btn" 
             size="sm"
           >
-            <FaPlay className="h-3.5 w-3.5 text-foreground/60 group-hover/btn:text-accent transition-colors duration-300" />
+            <Eye className="h-3.5 w-3.5 text-foreground/60 group-hover/btn:text-accent transition-colors duration-300" />
             <span className="text-sm font-medium text-foreground/70 group-hover/btn:text-accent-foreground transition-colors duration-300">
               {tarefa.status === "finalizada" ? "Ver Detalhes e Relatório" : "Ver Detalhes"}
             </span>

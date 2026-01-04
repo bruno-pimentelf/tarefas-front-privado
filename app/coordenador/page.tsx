@@ -4,7 +4,8 @@ import { useState, useEffect, useMemo } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { School as SchoolIcon, GraduationCap, Users, User, Trophy, Medal, Award, Loader2 } from "lucide-react"
-import { listSchools, listClasses, listUsersByClass, type School, type Class, type UserClassUser } from "@/lib/api"
+import { listSchools, listUsersByClass, getCoordinatorClasses, type School, type Class, type UserClassUser } from "@/lib/api"
+import { useAuth } from "@/contexts/auth-context"
 
 // Mock data para ranking - TODO: Integrar com API de gamificação
 const mockRankingStudents = [
@@ -45,6 +46,7 @@ function RankingItem({ user, position }: { user: { name: string; nivel: number; 
 }
 
 export default function CoordenadorPage() {
+  const { currentUser } = useAuth()
   const [loading, setLoading] = useState(true)
   const [schools, setSchools] = useState<School[]>([])
   const [classes, setClasses] = useState<Class[]>([])
@@ -52,20 +54,24 @@ export default function CoordenadorPage() {
 
   useEffect(() => {
     const carregarDados = async () => {
+      if (!currentUser) return
+      
       try {
         setLoading(true)
         
-        // Carregar escolas e turmas em paralelo
-        const [schoolsResponse, classesResponse] = await Promise.all([
+        // Carregar escolas e turmas
+        const [schoolsResponse, classesData] = await Promise.all([
           listSchools({ page: 1, limit: 100 }).catch(() => ({ data: [], meta: { page: 1, limit: 100, total: 0, totalPages: 0 } })),
-          listClasses({ page: 1, limit: 100 }).catch(() => ({ data: [], meta: { page: 1, limit: 100, total: 0, totalPages: 0 } }))
+          getCoordinatorClasses(currentUser.uid).catch(() => [])
         ])
         
         setSchools(schoolsResponse.data || [])
-        setClasses(classesResponse.data || [])
+        // Garantir que classesData seja sempre um array
+        const classesArray = Array.isArray(classesData) ? classesData : []
+        setClasses(classesArray)
         
         // Carregar usuários de todas as turmas
-        const usersPromises = (classesResponse.data || []).map(async (cls) => {
+        const usersPromises = classesArray.map(async (cls) => {
           try {
             const usersResponse = await listUsersByClass(cls.id, { page: 1, limit: 100 })
             return usersResponse.data || []
@@ -91,12 +97,12 @@ export default function CoordenadorPage() {
     }
 
     carregarDados()
-  }, [])
+  }, [currentUser])
 
   // Calcular estatísticas
   const estatisticas = useMemo(() => {
     const totalSchools = schools.length
-    const totalClasses = classes.length
+    const totalClasses = Array.isArray(classes) ? classes.length : 0
     const totalUsers = allUsers.length
     
     // Contar usuários por role

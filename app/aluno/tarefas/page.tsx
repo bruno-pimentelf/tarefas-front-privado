@@ -4,10 +4,16 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/contexts/auth-context"
 import { AlunoDashboard } from "@/components/aluno-dashboard"
+import { Sidebar } from "@/components/sidebar"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { FaSignOutAlt } from "react-icons/fa"
+import { ClipboardList, AlertCircle, Trophy, User } from "lucide-react"
+import { GamificationDialog } from "@/components/gamification-dialog"
+import { DiagnosticoDialog } from "@/components/diagnostico-dialog"
+import { PerfilDialog } from "@/components/perfil-dialog"
+import { mockGamificacao, mockDiagnosticoAluno } from "@/lib/mock-data"
 
 interface TabCounts {
   ativas: number
@@ -26,11 +32,37 @@ export default function AlunoTarefasPage() {
     concluidas: 0,
     atrasadas: 0,
   })
+  const [showGamificacao, setShowGamificacao] = useState(false)
+  const [showDiagnostico, setShowDiagnostico] = useState(false)
+  const [showPerfil, setShowPerfil] = useState(false)
 
   const handleLogout = async () => {
     await logout()
     router.push("/auth")
   }
+
+  const sidebarItems = [
+    {
+      icon: <ClipboardList className="h-5 w-5" />,
+      label: "Tarefas",
+      onClick: () => router.push("/aluno/tarefas"),
+    },
+    {
+      icon: <AlertCircle className="h-5 w-5" />,
+      label: "Diagnóstico",
+      onClick: () => setShowDiagnostico(true),
+    },
+    {
+      icon: <Trophy className="h-5 w-5" />,
+      label: "Gamificação",
+      onClick: () => setShowGamificacao(true),
+    },
+    {
+      icon: <User className="h-5 w-5" />,
+      label: "Meu Perfil",
+      onClick: () => setShowPerfil(true),
+    },
+  ]
 
   return (
     <div className="min-h-screen bg-background relative overflow-hidden">
@@ -46,9 +78,11 @@ export default function AlunoTarefasPage() {
       <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-primary/3 rounded-full blur-3xl animate-pulse" />
       <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-accent/3 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1.5s' }} />
       
+      <Sidebar items={sidebarItems} />
+      
       <header className="fixed top-0 z-50 left-16 right-0 border-b bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container mx-auto px-4 max-w-7xl">
-          <div className="flex h-14 items-center justify-between gap-4">
+          <div className="flex h-12 items-center justify-between gap-4">
             <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1">
               <TabsList variant="line" className="h-auto bg-transparent p-0">
                 <TabsTrigger value="ativas">
@@ -75,9 +109,24 @@ export default function AlunoTarefasPage() {
           </div>
         </div>
       </header>
-      <main className="ml-16 relative pt-14">
+      <main className="ml-16 relative pt-16">
         <AlunoDashboard activeTab={activeTab} onCountsChange={setTabCounts} />
       </main>
+
+      <GamificationDialog
+        open={showGamificacao}
+        onOpenChange={setShowGamificacao}
+        gamificacao={mockGamificacao}
+      />
+      <DiagnosticoDialog
+        open={showDiagnostico}
+        onOpenChange={setShowDiagnostico}
+        diagnostico={mockDiagnosticoAluno}
+      />
+      <PerfilDialog
+        open={showPerfil}
+        onOpenChange={setShowPerfil}
+      />
     </div>
   )
 }

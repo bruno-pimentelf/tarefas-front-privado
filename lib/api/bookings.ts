@@ -1,4 +1,4 @@
-import { assessmentsApi } from "./client"
+import { assessmentsApi, usersApi } from "./client"
 
 // ==========================================
 // Types para Bookings API
@@ -69,42 +69,20 @@ export interface UpdateBookingInput {
 
 /**
  * Lista as classes (turmas) do professor
- * GET /assessments/class/by-teacher/:userId
- * Migrated from /classes/by-teacher/:userId
- * 
- * This function is kept for backward compatibility.
- * The actual implementation is now in classes.ts
+ * GET /users/assessments/class/by-teacher/:userId
  */
 export async function getTeacherClasses(userId: string): Promise<TeacherClass[]> {
   try {
-    // Try /classes/by-teacher first (plural), fallback to /class/by-teacher
-    let classes
-    try {
-      classes = await assessmentsApi.get<Array<{
-        id: number
-        name: string
-        grade: string
-        schoolYear: string
-        schoolId: number
-        schoolName?: string
-        school?: { id: number; name: string }
-      }>>(`/classes/by-teacher/${userId}`)
-    } catch (error: any) {
-      // If 404, try the singular version
-      if (error?.status === 404) {
-        classes = await assessmentsApi.get<Array<{
-          id: number
-          name: string
-          grade: string
-          schoolYear: string
-          schoolId: number
-          schoolName?: string
-          school?: { id: number; name: string }
-        }>>(`/class/by-teacher/${userId}`)
-      } else {
-        throw error
-      }
-    }
+    // GET /users/assessments/class/by-teacher/:userId
+    const classes = await usersApi.get<Array<{
+      id: number
+      name: string
+      grade: string
+      schoolYear: string
+      schoolId: number
+      schoolName?: string
+      school?: { id: number; name: string }
+    }>>(`/assessments/class/by-teacher/${userId}`)
     
     // Convert to TeacherClass[] format for backward compatibility
     return (classes || []).map((cls) => ({
@@ -141,26 +119,19 @@ export async function updateBooking(id: number, data: UpdateBookingInput): Promi
 
 /**
  * Lista os bookings do aluno (paginado)
- * GET /bookings/student/:userId?page=1&limit=10&include=admissions
+ * GET /bookings/student/:userId?page=1&limit=10
  * 
  * @param userId - ID do usuário (Firebase UID)
  * @param page - Número da página (padrão: 1)
  * @param limit - Limite de itens por página (padrão: 10)
- * @param includeAdmissions - Se true, tenta incluir admissions na resposta (padrão: false)
  */
 export async function getStudentBookings(
   userId: string,
   page: number = 1,
-  limit: number = 10,
-  includeAdmissions: boolean = false
+  limit: number = 10
 ): Promise<BookingsResponse> {
   try {
-    let url = `/bookings/student/${userId}?page=${page}&limit=${limit}`
-    
-    // Tenta incluir admissions se solicitado
-    if (includeAdmissions) {
-      url += "&include=admissions"
-    }
+    const url = `/bookings/student/${userId}?page=${page}&limit=${limit}`
     
     const response = await assessmentsApi.get<BookingsResponse>(url)
     
@@ -210,8 +181,7 @@ export async function getStudentBookings(
 
 /**
  * Lista os bookings do aluno com admissions já incluídas
- * Esta função tenta usar a rota otimizada, mas se não funcionar,
- * busca admissions em paralelo para todos os bookings
+ * Busca admissions em paralelo para todos os bookings (otimização)
  * 
  * @param userId - ID do usuário (Firebase UID)
  * @param page - Número da página (padrão: 1)
@@ -223,26 +193,10 @@ export async function getStudentBookingsWithAdmissions(
   limit: number = 10
 ): Promise<BookingsResponse & { admissionsMap: Map<number, import("./admissions").Admission[]> }> {
   try {
-    // Primeiro, tenta buscar com include=admissions
-    const response = await getStudentBookings(userId, page, limit, true)
+    // Busca bookings primeiro
+    const response = await getStudentBookings(userId, page, limit)
     
-    // Verifica se as admissions já vêm na resposta
-    const hasAdmissionsInResponse = response.items.some(
-      (booking) => (booking as any).admissions && Array.isArray((booking as any).admissions)
-    )
-    
-    if (hasAdmissionsInResponse) {
-      // Se já vieram, extrai e mapeia
-      const admissionsMap = new Map<number, import("./admissions").Admission[]>()
-      response.items.forEach((booking) => {
-        if ((booking as any).admissions) {
-          admissionsMap.set(booking.id, (booking as any).admissions)
-        }
-      })
-      return { ...response, admissionsMap }
-    }
-    
-    // Se não vieram, busca em paralelo (otimização já implementada)
+    // Busca admissions em paralelo para todos os bookings (otimização)
     const { getAdmissionsByBookingAndUser } = await import("./admissions")
     const admissionsPromises = response.items.map((booking) =>
       getAdmissionsByBookingAndUser(booking.id, userId).catch((err) => {

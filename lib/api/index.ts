@@ -137,6 +137,7 @@ export {
 export {
   getClassById,
   listClasses,
+  getCoordinatorClasses,
   createClass,
   updateClass,
   deleteClass,
@@ -165,6 +166,8 @@ export {
 // Re-export User-Class API functions and types
 export {
   listUsersByClass,
+  listUsersBySchool,
+  listAllUsers,
   listClassesByUser,
   addUserToClass,
   bulkAddUsersToClass,

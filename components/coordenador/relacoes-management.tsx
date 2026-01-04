@@ -20,12 +20,15 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Plus, Trash2, Loader2, AlertCircle, Users, GraduationCap } from "lucide-react"
-import { listClasses, listUsersByClass, addUserToClass, removeUserFromClass, listClassesByUser, type Class } from "@/lib/api"
-import { type UserClassUser } from "@/lib/api/user-class"
+import { listUsersByClass, addUserToClass, removeUserFromClass, listClassesByUser, getCoordinatorClasses, type Class } from "@/lib/api"
+import { type User } from "@/lib/api/user-class"
+import { useAuth } from "@/contexts/auth-context"
+import { formatGrade } from "@/lib/utils"
 
 export function RelacoesManagement() {
+  const { currentUser } = useAuth()
   const [classes, setClasses] = useState<Class[]>([])
-  const [users, setUsers] = useState<UserClassUser[]>([])
+  const [users, setUsers] = useState<User[]>([])
   const [selectedClassId, setSelectedClassId] = useState<string>("")
   const [selectedUserId, setSelectedUserId] = useState<string>("")
   const [viewMode, setViewMode] = useState<"by-class" | "by-user">("by-class")
@@ -34,8 +37,10 @@ export function RelacoesManagement() {
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
-    loadData()
-  }, [])
+    if (currentUser) {
+      loadData()
+    }
+  }, [currentUser])
 
   useEffect(() => {
     if (viewMode === "by-class" && selectedClassId) {
@@ -46,11 +51,15 @@ export function RelacoesManagement() {
   }, [viewMode, selectedClassId, selectedUserId])
 
   const loadData = async () => {
+    if (!currentUser) return
+    
     try {
       setLoading(true)
       setError(null)
-      const classesResponse = await listClasses({ page: 1, limit: 100 }).catch(() => ({ data: [], meta: { page: 1, limit: 100, total: 0, totalPages: 0 } }))
-      setClasses(classesResponse.data || [])
+      const classesData = await getCoordinatorClasses(currentUser.uid)
+      // Garantir que classesData seja sempre um array
+      const classesArray = Array.isArray(classesData) ? classesData : []
+      setClasses(classesArray)
     } catch (err: any) {
       setError(err?.message || "Erro ao carregar dados")
     } finally {
@@ -195,9 +204,9 @@ export function RelacoesManagement() {
                     <SelectValue placeholder="Selecione uma turma" />
                   </SelectTrigger>
                   <SelectContent>
-                    {classes.map((cls) => (
+                    {Array.isArray(classes) && classes.map((cls) => (
                       <SelectItem key={cls.id} value={cls.id.toString()}>
-                        {cls.name} - {cls.school?.name || cls.schoolName}
+                        {cls.name} - {formatGrade(cls.grade)} - {cls.school?.name || cls.schoolName}
                       </SelectItem>
                     ))}
                   </SelectContent>

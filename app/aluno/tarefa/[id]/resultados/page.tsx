@@ -61,8 +61,8 @@ export default function ResultadosTarefaPage() {
     carregarResultados()
   }, [currentUser, router, tarefaId])
 
-  const handleVoltar = () => {
-    router.push(`/aluno/tarefa/${tarefaId}`)
+  const handleVoltarTarefas = () => {
+    router.push(`/aluno/tarefas`)
   }
 
   if (!currentUser) {
@@ -81,8 +81,8 @@ export default function ResultadosTarefaPage() {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen gap-4">
         <p className="text-muted-foreground">{error || "Erro ao carregar resultados"}</p>
-        <Button onClick={handleVoltar} variant="outline">
-          Voltar para tarefa
+        <Button onClick={handleVoltarTarefas} variant="outline">
+          Voltar para Tarefas
         </Button>
       </div>
     )
@@ -114,9 +114,9 @@ export default function ResultadosTarefaPage() {
               </p>
             </div>
           </div>
-          <Button onClick={handleVoltar} variant="outline" className="w-full">
+          <Button onClick={handleVoltarTarefas} variant="default" className="w-full">
             <ArrowLeft className="h-4 w-4 mr-2" />
-            Voltar para Tarefa
+            Voltar para Tarefas
           </Button>
         </CardContent>
       </Card>
