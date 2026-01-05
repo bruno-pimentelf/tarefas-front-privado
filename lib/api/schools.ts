@@ -1,4 +1,4 @@
-import { assessmentsApi, usersApi } from "./client"
+import { usersApi } from "./client"
 
 // ==========================================
 // Types para Schools API
@@ -80,6 +80,13 @@ export interface UpdateSchoolInput {
 /**
  * List schools (paginated)
  * GET /users/assessments/school
+ * 
+ * Query Parameters:
+ * - page (optional, default: 1)
+ * - limit (optional, default: 10, max: 100)
+ * - isActive (optional, boolean): Filter by active status
+ * 
+ * Public endpoint (Admin Only restrictions ignored)
  */
 export async function listSchools(params?: {
   page?: number
@@ -101,6 +108,7 @@ export async function listSchools(params?: {
 /**
  * Get school by ID
  * GET /users/assessments/school/:id
+ * Public endpoint (Admin Only restrictions ignored)
  */
 export async function getSchoolById(id: number): Promise<School> {
   return usersApi.get<School>(`/assessments/school/${id}`)
@@ -109,6 +117,25 @@ export async function getSchoolById(id: number): Promise<School> {
 /**
  * Create school
  * POST /users/assessments/school
+ * 
+ * Request Body:
+ * {
+ *   "name": string,
+ *   "timezone": string (optional),
+ *   "logoUrl": string (optional),
+ *   "address": {
+ *     "country": string,
+ *     "state": string,
+ *     "city": string,
+ *     "neighborhood": string (optional),
+ *     "street": string,
+ *     "number": string,
+ *     "referencePoint": string (optional),
+ *     "zipCode": string
+ *   }
+ * }
+ * 
+ * Public endpoint (Admin Only restrictions ignored)
  */
 export async function createSchool(data: CreateSchoolInput): Promise<School> {
   return usersApi.post<School>("/assessments/school", data)
@@ -117,6 +144,17 @@ export async function createSchool(data: CreateSchoolInput): Promise<School> {
 /**
  * Update school
  * PATCH /users/assessments/school/:id
+ * 
+ * Request Body: (all fields optional)
+ * {
+ *   "name": string,
+ *   "timezone": string,
+ *   "logoUrl": string,
+ *   "isActive": boolean,
+ *   "address": { ... }
+ * }
+ * 
+ * Public endpoint (Admin Only restrictions ignored)
  */
 export async function updateSchool(id: number, data: UpdateSchoolInput): Promise<School> {
   return usersApi.patch<School>(`/assessments/school/${id}`, data)
@@ -125,6 +163,15 @@ export async function updateSchool(id: number, data: UpdateSchoolInput): Promise
 /**
  * Delete school (soft delete)
  * DELETE /users/assessments/school/:id
+ * 
+ * Response:
+ * {
+ *   "message": "School deactivated successfully",
+ *   "id": number
+ * }
+ * 
+ * Note: This is a soft delete that sets isActive to false
+ * Public endpoint (Admin Only restrictions ignored)
  */
 export async function deleteSchool(id: number): Promise<{ message: string; id: number }> {
   return usersApi.delete<{ message: string; id: number }>(`/assessments/school/${id}`)

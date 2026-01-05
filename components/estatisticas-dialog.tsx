@@ -7,14 +7,14 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { BookOpen, BarChart3, Users } from "lucide-react"
+import { BookOpen, BarChart3, Users, TrendingUp } from "lucide-react"
 
 interface EstatisticasDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   tarefasAtivas: number
   totalAlunos: number
-  taxaConclusao: number
+  taxaConclusao: number // Mantido para compatibilidade, mas agora representa desempenho dos alunos
   turma?: string
 }
 
@@ -61,13 +61,13 @@ export function EstatisticasDialog({
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Taxa de Conclusão</CardTitle>
-              <BarChart3 className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-sm font-medium">Desempenho dos Alunos</CardTitle>
+              <TrendingUp className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{taxaConclusao}%</div>
+              <div className="text-2xl font-bold">{taxaConclusao}</div>
               <p className="text-xs text-muted-foreground">
-                Média geral
+                média de alunos por turma
               </p>
             </CardContent>
           </Card>

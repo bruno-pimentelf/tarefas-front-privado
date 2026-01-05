@@ -1,4 +1,4 @@
-import { assessmentsApi, usersApi } from "./client"
+import { usersApi } from "./client"
 import type { School } from "./schools"
 
 // ==========================================
@@ -53,6 +53,7 @@ export interface ClassStudentsCountResponse {
 /**
  * Get class by ID
  * GET /users/assessments/class/:classId
+ * Public endpoint (Admin Only restrictions ignored)
  */
 export async function getClassById(classId: number): Promise<Class> {
   return usersApi.get<Class>(`/assessments/class/${classId}`)
@@ -61,6 +62,15 @@ export async function getClassById(classId: number): Promise<Class> {
 /**
  * List classes (paginated)
  * GET /users/assessments/class
+ * 
+ * Query Parameters:
+ * - page (optional, default: 1): Page number
+ * - limit (optional, default: 10, max: 100): Items per page
+ * - schoolId (optional): Filter by school ID
+ * - grade (optional): Filter by grade
+ * - schoolYear (optional): Filter by school year
+ * 
+ * Permissions: Public (Admin Only restrictions ignored)
  */
 export async function listClasses(params?: {
   page?: number
@@ -85,16 +95,18 @@ export async function listClasses(params?: {
 
 /**
  * Get teacher's classes
- * GET /assessments/class/by-teacher/:userId
+ * GET /users/assessments/class/by-teacher/:userId
+ * Public endpoint (Admin Only restrictions ignored)
  */
 export async function getTeacherClasses(userId: string): Promise<Class[]> {
-  return assessmentsApi.get<Class[]>(`/class/by-teacher/${userId}`)
+  return usersApi.get<Class[]>(`/assessments/class/by-teacher/${userId}`)
 }
 
 /**
  * Get coordinator's classes
  * GET /users/assessments/class/by-coordinator/:userId
  * Returns paginated response, extracts data array
+ * Public endpoint (Admin Only restrictions ignored)
  */
 export async function getCoordinatorClasses(userId: string): Promise<Class[]> {
   const response = await usersApi.get<PaginatedClassesResponse>(`/assessments/class/by-coordinator/${userId}`)
@@ -103,15 +115,18 @@ export async function getCoordinatorClasses(userId: string): Promise<Class[]> {
 
 /**
  * Get student's class IDs
- * GET /assessments/class/by-student/:userId
+ * GET /users/assessments/class/by-student/:userId
+ * Public endpoint (Admin Only restrictions ignored)
  */
 export async function getStudentClassIds(userId: string): Promise<number[]> {
-  return assessmentsApi.get<number[]>(`/class/by-student/${userId}`)
+  return usersApi.get<number[]>(`/assessments/class/by-student/${userId}`)
 }
 
 /**
  * Count students in class
  * GET /users/assessments/class/:classId/students-count
+ * Returns: { classId: number, studentsCount: number }
+ * Public endpoint (Admin Only restrictions ignored)
  */
 export async function getClassStudentsCount(classId: number): Promise<ClassStudentsCountResponse> {
   return usersApi.get<ClassStudentsCountResponse>(`/assessments/class/${classId}/students-count`)
@@ -120,6 +135,16 @@ export async function getClassStudentsCount(classId: number): Promise<ClassStude
 /**
  * Create class
  * POST /users/assessments/class
+ * 
+ * Request Body:
+ * {
+ *   "schoolId": number,
+ *   "name": string,
+ *   "grade": string,
+ *   "schoolYear": string
+ * }
+ * 
+ * Permissions: Public (Admin Only restrictions ignored)
  */
 export async function createClass(data: CreateClassInput): Promise<Class> {
   return usersApi.post<Class>("/assessments/class", data)
@@ -128,6 +153,16 @@ export async function createClass(data: CreateClassInput): Promise<Class> {
 /**
  * Update class
  * PATCH /users/assessments/class/:id
+ * 
+ * Request Body: (all fields optional)
+ * {
+ *   "schoolId": number,
+ *   "name": string,
+ *   "grade": string,
+ *   "schoolYear": string
+ * }
+ * 
+ * Permissions: Public (Admin Only restrictions ignored)
  */
 export async function updateClass(id: number, data: UpdateClassInput): Promise<Class> {
   return usersApi.patch<Class>(`/assessments/class/${id}`, data)
@@ -136,6 +171,14 @@ export async function updateClass(id: number, data: UpdateClassInput): Promise<C
 /**
  * Delete class
  * DELETE /users/assessments/class/:id
+ * 
+ * Response:
+ * {
+ *   "message": "Class deleted successfully",
+ *   "id": number
+ * }
+ * 
+ * Permissions: Public (Admin Only restrictions ignored)
  */
 export async function deleteClass(id: number): Promise<{ message: string; id: number }> {
   return usersApi.delete<{ message: string; id: number }>(`/assessments/class/${id}`)

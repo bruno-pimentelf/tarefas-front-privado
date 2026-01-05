@@ -101,6 +101,7 @@ export interface RemoveUserFromClassResponse {
 /**
  * List users by class (paginated)
  * GET /users/assessments/user-class/by-class/:classId
+ * Public endpoint (Admin Only restrictions ignored)
  */
 export async function listUsersByClass(
   classId: number,
@@ -123,6 +124,7 @@ export async function listUsersByClass(
 /**
  * List classes by user (paginated)
  * GET /users/assessments/user-class/by-user/:userId
+ * Public endpoint (Admin Only restrictions ignored)
  */
 export async function listClassesByUser(
   userId: string,
@@ -145,6 +147,10 @@ export async function listClassesByUser(
 /**
  * Add user to class
  * POST /users/assessments/user-class
+ * Public endpoint (Admin Only restrictions ignored)
+ * 
+ * Request Body: { userId: string, classId: number }
+ * Response: { id: number, userId: string, classId: number, createdAt: string, message: string }
  */
 export async function addUserToClass(data: AddUserToClassInput): Promise<AddUserToClassResponse> {
   return usersApi.post<AddUserToClassResponse>("/assessments/user-class", data)
@@ -153,6 +159,11 @@ export async function addUserToClass(data: AddUserToClassInput): Promise<AddUser
 /**
  * Add multiple users to class (bulk)
  * POST /users/assessments/user-class/bulk
+ * Public endpoint (Admin Only restrictions ignored)
+ * 
+ * Request Body: { userIds: string[], classId: number }
+ * Response: { message: string, added: number, skipped: number, total: number }
+ * Note: Skipped count indicates users already enrolled
  */
 export async function bulkAddUsersToClass(
   data: BulkAddUsersToClassInput
@@ -163,6 +174,13 @@ export async function bulkAddUsersToClass(
 /**
  * Remove user from class
  * DELETE /users/assessments/user-class?userId=:userId&classId=:classId
+ * Public endpoint (Admin Only restrictions ignored)
+ * 
+ * Query Parameters:
+ * - userId (required): Firebase UID of the user
+ * - classId (required): ID of the class
+ * 
+ * Response: { message: string, userId: string, classId: number }
  */
 export async function removeUserFromClass(
   userId: string,
@@ -174,19 +192,65 @@ export async function removeUserFromClass(
 }
 
 /**
+ * List students without class (paginated)
+ * GET /assessments/user-class/students-without-class?schoolId={schoolId}&page={page}&limit={limit}
+ * 
+ * Query Parameters:
+ * - schoolId (required): ID da escola
+ * - page (optional, default: 1): Page number
+ * - limit (optional, default: 10, max: 100): Items per page
+ * 
+ * Returns paginated list of students (roleId = 1) from a specific school
+ * that are NOT enrolled in any class.
+ * 
+ * Public endpoint (Admin Only restrictions ignored)
+ * 
+ * Note: A rota não inclui /users/ antes de /assessments conforme a documentação
+ */
+export async function listStudentsWithoutClass(
+  schoolId: number,
+  params?: {
+    page?: number
+    limit?: number
+  }
+): Promise<PaginatedUsersResponse> {
+  const queryParams = new URLSearchParams()
+  queryParams.append("schoolId", schoolId.toString())
+  
+  if (params?.page) queryParams.append("page", params.page.toString())
+  if (params?.limit) queryParams.append("limit", params.limit.toString())
+
+  const queryString = queryParams.toString()
+  // A documentação mostra que a rota é /assessments/user-class/students-without-class
+  // sem /users/ antes, mas vamos tentar ambas as versões
+  const url = `/assessments/user-class/students-without-class?${queryString}`
+  
+  try {
+    return await usersApi.get<PaginatedUsersResponse>(url)
+  } catch (err: any) {
+    // Se falhar, tentar com /users/ antes
+    if (err?.status === 404) {
+      const urlWithUsers = `/users/assessments/user-class/students-without-class?${queryString}`
+      return usersApi.get<PaginatedUsersResponse>(urlWithUsers)
+    }
+    throw err
+  }
+}
+
+/**
  * List all users (paginated)
- * Busca todos os usuários do banco, começando por tentar uma rota direta,
- * e fazendo fallback para buscar de todas as escolas se necessário
+ * Busca todos os usuários do banco buscando de todas as escolas
+ * e também estudantes sem turma de todas as escolas
  */
 export async function listAllUsers(params?: {
   page?: number
   limit?: number
   roleName?: string
 }): Promise<User[]> {
+  const { listSchools } = await import("./schools")
+  const { listUsersBySchoolFromAPI } = await import("./user-school")
+  
   try {
-    // Primeiro, tentar buscar de todas as escolas (abordagem mais confiável)
-    const { listSchools } = await import("./schools")
-    
     // Buscar todas as escolas com paginação
     const allSchools: Array<{ id: number }> = []
     let schoolPage = 1
@@ -194,36 +258,162 @@ export async function listAllUsers(params?: {
     let hasMoreSchoolPages = true
 
     while (hasMoreSchoolPages) {
-      const schoolsResponse = await listSchools({ 
-        page: schoolPage, 
-        limit: schoolLimit 
-      })
-      
-      if (schoolsResponse.data && schoolsResponse.data.length > 0) {
-        allSchools.push(...schoolsResponse.data)
-      }
+      try {
+        const schoolsResponse = await listSchools({ 
+          page: schoolPage, 
+          limit: schoolLimit 
+        })
+        
+        if (schoolsResponse.data && schoolsResponse.data.length > 0) {
+          allSchools.push(...schoolsResponse.data)
+        }
 
-      hasMoreSchoolPages = schoolPage < (schoolsResponse.meta?.totalPages || 0)
-      schoolPage++
+        hasMoreSchoolPages = schoolPage < (schoolsResponse.meta?.totalPages || 0)
+        schoolPage++
+      } catch (schoolErr) {
+        console.error("Erro ao buscar escolas:", schoolErr)
+        hasMoreSchoolPages = false
+      }
     }
 
     if (allSchools.length === 0) {
+      console.warn("Nenhuma escola encontrada. Retornando array vazio.")
       return []
     }
 
-    // Buscar usuários de todas as escolas em paralelo
-    const userPromises = allSchools.map(school => 
-      listUsersBySchool(school.id).catch(() => [])
-    )
+    // Buscar usuários de todas as escolas usando listUsersBySchoolFromAPI
+    const userPromises = allSchools.map(async (school) => {
+      try {
+        const allUsersFromSchool: User[] = []
+        let currentPage = 1
+        const limit = 100
+        let hasMorePages = true
 
-    const userArrays = await Promise.all(userPromises)
+        while (hasMorePages) {
+          try {
+            const response = await listUsersBySchoolFromAPI(school.id, {
+              page: currentPage,
+              limit,
+            })
+
+            if (response.data && response.data.length > 0) {
+              // Converter UserSchool para User
+              const users = response.data.map((userSchool) => ({
+                userId: userSchool.userId,
+                firstName: userSchool.user.firstName,
+                lastName: userSchool.user.lastName,
+                email: userSchool.user.email,
+                phone: userSchool.user.phone,
+                dateOfBirth: userSchool.user.dateOfBirth,
+                profilePictureUrl: userSchool.user.profilePictureUrl,
+                isActive: userSchool.user.isActive || true,
+                createdAt: userSchool.createdAt || new Date().toISOString(),
+                updatedAt: userSchool.updatedAt || new Date().toISOString(),
+                roles: userSchool.role ? [{
+                  roleId: userSchool.roleId,
+                  roleName: userSchool.role.name,
+                  schoolId: userSchool.schoolId,
+                  schoolName: userSchool.school?.name || "",
+                  grade: userSchool.grade,
+                }] : [],
+              }))
+              allUsersFromSchool.push(...users)
+            }
+
+            hasMorePages = currentPage < (response.meta?.totalPages || 0)
+            currentPage++
+          } catch (err) {
+            console.debug(`Erro ao buscar usuários da escola ${school.id}, página ${currentPage}:`, err)
+            hasMorePages = false
+          }
+        }
+
+        return allUsersFromSchool
+      } catch (err) {
+        console.debug(`Erro ao buscar usuários da escola ${school.id}:`, err)
+        return []
+      }
+    })
+
+    // Buscar também estudantes sem turma de todas as escolas
+    const studentsWithoutClassPromises = allSchools.map(async (school) => {
+      try {
+        const allStudents: User[] = []
+        let currentPage = 1
+        const limit = 100
+        let hasMorePages = true
+
+        while (hasMorePages) {
+          try {
+            const response = await listStudentsWithoutClass(school.id, {
+              page: currentPage,
+              limit,
+            })
+
+            if (response.data && response.data.length > 0) {
+              allStudents.push(...response.data)
+            }
+
+            hasMorePages = currentPage < (response.meta?.totalPages || 0)
+            currentPage++
+          } catch (err) {
+            console.debug(`Erro ao buscar estudantes sem turma da escola ${school.id}, página ${currentPage}:`, err)
+            hasMorePages = false
+          }
+        }
+
+        return allStudents
+      } catch (err) {
+        console.debug(`Erro ao buscar estudantes sem turma da escola ${school.id}:`, err)
+        return []
+      }
+    })
+
+    // Aguardar todas as buscas
+    const [userArrays, studentsArrays] = await Promise.all([
+      Promise.all(userPromises),
+      Promise.all(studentsWithoutClassPromises),
+    ])
 
     // Consolidar usuários, removendo duplicatas por userId
     const usersMap = new Map<string, User>()
+    
+    // Adicionar usuários das escolas
     userArrays.forEach((users) => {
       users.forEach((user) => {
         if (!usersMap.has(user.userId)) {
           usersMap.set(user.userId, user)
+        } else {
+          // Se o usuário já existe, mesclar roles
+          const existingUser = usersMap.get(user.userId)!
+          const existingRoleIds = new Set(existingUser.roles.map(r => `${r.roleId}-${r.schoolId}`))
+          user.roles.forEach(role => {
+            const roleKey = `${role.roleId}-${role.schoolId}`
+            if (!existingRoleIds.has(roleKey)) {
+              existingUser.roles.push(role)
+              existingRoleIds.add(roleKey)
+            }
+          })
+        }
+      })
+    })
+
+    // Adicionar estudantes sem turma (podem já estar no map, mas vamos garantir)
+    studentsArrays.forEach((students) => {
+      students.forEach((student) => {
+        if (!usersMap.has(student.userId)) {
+          usersMap.set(student.userId, student)
+        } else {
+          // Mesclar roles se necessário
+          const existingUser = usersMap.get(student.userId)!
+          const existingRoleIds = new Set(existingUser.roles.map(r => `${r.roleId}-${r.schoolId}`))
+          student.roles.forEach(role => {
+            const roleKey = `${role.roleId}-${role.schoolId}`
+            if (!existingRoleIds.has(roleKey)) {
+              existingUser.roles.push(role)
+              existingRoleIds.add(roleKey)
+            }
+          })
         }
       })
     })
@@ -233,10 +423,11 @@ export async function listAllUsers(params?: {
     // Filtrar por roleName se especificado
     if (params?.roleName) {
       allUsers = allUsers.filter(user => 
-        user.roles.some(role => role.roleName === params.roleName)
+        user.roles.some(role => role.roleName.toLowerCase() === params?.roleName?.toLowerCase())
       )
     }
 
+    console.log(`Encontrados ${allUsers.length} usuários únicos de ${allSchools.length} escolas`)
     return allUsers
   } catch (err: any) {
     console.error("Erro ao buscar todos os usuários:", err)

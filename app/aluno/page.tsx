@@ -10,6 +10,7 @@ import { Gamification } from "@/components/gamification"
 import { mockGamificacao, mockDiagnosticoAluno } from "@/lib/mock-data"
 import { getStudentBookings, type Booking } from "@/lib/api/bookings"
 import { bookingToTarefa } from "@/lib/api/utils"
+import { getStudentStats, type StudentStats } from "@/lib/api"
 import { Trophy, TrendingUp, BookOpen, CheckCircle2, Clock, AlertCircle, Loader2 } from "lucide-react"
 import { FaSignOutAlt } from "react-icons/fa"
 import { Fredoka } from "next/font/google"
@@ -25,6 +26,7 @@ export default function AlunoPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(true)
   const [bookings, setBookings] = useState<Booking[]>([])
+  const [studentStats, setStudentStats] = useState<StudentStats | null>(null)
 
   // Carregar dados do aluno
   useEffect(() => {
@@ -34,9 +36,14 @@ export default function AlunoPage() {
       try {
         setLoading(true)
         
-        // Buscar apenas bookings (sem admissions)
-        const bookingsResponse = await getStudentBookings(currentUser.uid, 1, 100)
+        // Buscar bookings e estatísticas em paralelo
+        const [bookingsResponse, statsResponse] = await Promise.all([
+          getStudentBookings(currentUser.uid, 1, 100).catch(() => ({ items: [] })),
+          getStudentStats(currentUser.uid).catch(() => null)
+        ])
+        
         setBookings(bookingsResponse.items || [])
+        setStudentStats(statsResponse)
       } catch (err: any) {
         console.error("Erro ao carregar dados:", err)
       } finally {
@@ -47,7 +54,7 @@ export default function AlunoPage() {
     carregarDados()
   }, [currentUser])
 
-  // Calcular estatísticas usando bookingToTarefa para consistência
+  // Calcular estatísticas usando bookingToTarefa e dados da API
   const estatisticas = useMemo(() => {
     // Converter bookings para tarefas usando a mesma lógica do dashboard
     const tarefas = bookings.map(booking => bookingToTarefa(booking, false))
@@ -56,20 +63,25 @@ export default function AlunoPage() {
     const tarefasAtivas = tarefas.filter((t) => t.status === "ativa").length
     const tarefasAgendadas = tarefas.filter((t) => t.status === "agendada").length
 
-    // Calcular questões respondidas baseado no totalQuestions dos bookings finalizados
-    const questoesRespondidas = tarefas
-      .filter((t) => t.status === "finalizada")
-      .reduce((acc, t) => acc + (t.totalQuestoes || 0), 0)
+    // Usar estatísticas da API se disponíveis, senão calcular dos bookings
+    const questoesRespondidas = studentStats?.totalQuestionsAnswered || 
+      bookings
+        .filter((b) => b.status === "finished")
+        .reduce((acc, b) => acc + (b.totalQuestions || 0), 0)
+
+    // Taxa de acerto da API (já vem como número decimal, ex: 0.8033 = 80.33%)
+    const taxaAcerto = studentStats?.accuracyRate 
+      ? Math.round(studentStats.accuracyRate * 100 * 100) / 100 // Arredondar para 2 casas decimais
+      : 0
 
     return {
-      tarefasCompletas,
+      tarefasCompletas: studentStats?.finishedRecordsCount || tarefasCompletas,
       tarefasAtivas,
       tarefasAgendadas,
       questoesRespondidas,
-      questoesAcertadas: 0, // Não disponível sem admissions
-      taxaAcerto: 0, // Não disponível sem admissions
+      taxaAcerto,
     }
-  }, [bookings])
+  }, [bookings, studentStats])
 
   const handleLogout = async () => {
     await logout()

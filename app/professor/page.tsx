@@ -63,9 +63,8 @@ export default function ProfessorPage() {
       (b) => b.status === "in_progress" || (b.status === "not_started" && new Date(b.endTime || 0) > new Date())
     ).length
     
-    const tarefasFinalizadas = bookings.filter(
-      (b) => b.status === "finished" || (b.endTime && new Date(b.endTime) < new Date())
-    ).length
+    // Tarefas criadas = total de bookings do professor
+    const tarefasCriadas = bookings.length
 
     const tarefasAgendadas = bookings.filter(
       (b) => b.status === "not_started" && new Date(b.startTime || 0) > new Date()
@@ -73,15 +72,17 @@ export default function ProfessorPage() {
 
     const totalAlunos = classes.reduce((acc, cls) => acc + (cls as any).studentsCount || 0, 0)
 
-    // Taxa de conclusão não disponível sem admissions
-    const taxaConclusao = 0
+    // Desempenho dos alunos = média de alunos por turma (métrica simples sem precisar de admissions)
+    const desempenhoAlunos = classes.length > 0 
+      ? Math.round(totalAlunos / classes.length) 
+      : 0
 
     return {
       tarefasAtivas,
-      tarefasFinalizadas,
+      tarefasCriadas,
       tarefasAgendadas,
       totalAlunos,
-      taxaConclusao,
+      desempenhoAlunos,
       totalTurmas: classes.length,
     }
   }, [bookings, classes])
@@ -220,13 +221,13 @@ export default function ProfessorPage() {
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-semibold flex items-center gap-1.5">
                     <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" />
-                    Tarefas Finalizadas
+                    Tarefas Criadas
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{estatisticas.tarefasFinalizadas}</div>
+                  <div className="text-2xl font-bold">{estatisticas.tarefasCriadas}</div>
                   <p className="text-xs text-muted-foreground mt-1">
-                    {estatisticas.tarefasFinalizadas === 1 ? "tarefa concluída" : "tarefas concluídas"}
+                    {estatisticas.tarefasCriadas === 1 ? "tarefa criada" : "tarefas criadas"}
                   </p>
                 </CardContent>
               </Card>
@@ -250,13 +251,13 @@ export default function ProfessorPage() {
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-semibold flex items-center gap-1.5">
                     <TrendingUp className="h-4 w-4 text-orange-600 dark:text-orange-400" />
-                    Taxa de Conclusão
+                    Desempenho dos Alunos
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{estatisticas.taxaConclusao}%</div>
+                  <div className="text-2xl font-bold">{estatisticas.desempenhoAlunos}</div>
                   <p className="text-xs text-muted-foreground mt-1">
-                    média geral
+                    média de alunos por turma
                   </p>
                 </CardContent>
               </Card>
@@ -283,7 +284,7 @@ export default function ProfessorPage() {
         onOpenChange={setShowEstatisticas}
         tarefasAtivas={estatisticas.tarefasAtivas}
         totalAlunos={estatisticas.totalAlunos}
-        taxaConclusao={estatisticas.taxaConclusao}
+        taxaConclusao={estatisticas.desempenhoAlunos}
       />
     </div>
   )

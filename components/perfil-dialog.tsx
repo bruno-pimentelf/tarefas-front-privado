@@ -31,7 +31,7 @@ interface PerfilDialogProps {
 }
 
 export function PerfilDialog({ open, onOpenChange }: PerfilDialogProps) {
-  const { currentUser } = useAuth()
+  const { currentUser, logout } = useAuth()
   const router = useRouter()
   const [roles, setRoles] = useState<Role[]>([])
   const [loadingRoles, setLoadingRoles] = useState(false)
@@ -129,6 +129,12 @@ export function PerfilDialog({ open, onOpenChange }: PerfilDialogProps) {
         router.push(redirectRoute)
       }, 1000)
     } catch (err: any) {
+      // Se for erro 404 (recurso não encontrado), fazer logout e redirecionar para login
+      if (err?.status === 404 || err?.response?.status === 404) {
+        await logout()
+        router.push("/auth")
+        return
+      }
       setError(err.message || "Erro ao salvar role")
     } finally {
       setSaving(false)

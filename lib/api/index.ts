@@ -106,7 +106,7 @@ export {
   getUserRole,
   setUserRole,
   type Role,
-  type UserSchool,
+  type UserSchool as UserRoleSchool,
   type SetRoleRequest,
 } from "./roles"
 
@@ -118,6 +118,7 @@ export {
   getStudentScores,
   getScoreDistribution,
   getComponentRangeDistribution,
+  getStudentStats,
   type ItemAnalysisResponse,
   type ItemAnalysisItem,
   type ComponentStatsResponse,
@@ -130,6 +131,7 @@ export {
   type ScoreDistributionBucket,
   type ComponentRangeDistributionResponse,
   type ComponentRangeDistribution,
+  type StudentStats,
   type AnalyticsFilters,
 } from "./analytics"
 
@@ -168,6 +170,7 @@ export {
   listUsersByClass,
   listUsersBySchool,
   listAllUsers,
+  listStudentsWithoutClass,
   listClassesByUser,
   addUserToClass,
   bulkAddUsersToClass,
@@ -175,9 +178,19 @@ export {
   type User as UserClassUser,
   type PaginatedUsersResponse,
   type PaginatedClassesResponse as UserClassPaginatedClassesResponse,
-  type AddUserToClassInput,
-  type AddUserToClassResponse,
-  type BulkAddUsersToClassInput,
-  type BulkAddUsersToClassResponse,
-  type RemoveUserFromClassResponse,
 } from "./user-class"
+
+// Re-export User-School API functions and types
+export {
+  listUsersBySchool as listUsersBySchoolFromAPI,
+  addUserToSchool,
+  removeUserFromSchool,
+  transferStudent,
+  type UserSchool,
+  type PaginatedUserSchoolResponse,
+  type AddUserToSchoolInput,
+  type AddUserToSchoolResponse,
+  type RemoveUserFromSchoolResponse,
+  type TransferStudentInput,
+  type TransferStudentResponse,
+} from "./user-school"

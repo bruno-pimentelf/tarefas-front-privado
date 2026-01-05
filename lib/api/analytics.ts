@@ -124,6 +124,15 @@ export interface ComponentRangeDistributionResponse {
   components: ComponentRangeDistribution[]
 }
 
+// Student Stats Types
+export interface StudentStats {
+  userId: string
+  totalQuestionsAnswered: number
+  totalScore: number
+  accuracyRate: number
+  finishedRecordsCount: number
+}
+
 /**
  * Get item analysis for a specific admission
  * GET /analytics/item-analysis/:admissionId
@@ -290,4 +299,13 @@ export async function getComponentRangeDistribution(
     : `/analytics/component-range-distribution/${admissionId}`
 
   return assessmentsApi.get<ComponentRangeDistributionResponse>(url)
+}
+
+/**
+ * Get student statistics
+ * GET /analytics/student-stats?userId={userId}
+ */
+export async function getStudentStats(userId: string): Promise<StudentStats> {
+  const url = `/analytics/student-stats?userId=${userId}`
+  return assessmentsApi.get<StudentStats>(url)
 }

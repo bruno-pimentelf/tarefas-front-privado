@@ -28,7 +28,6 @@ export default function CoordenadorLayout({
   const pageTitle = useMemo(() => {
     if (pathname?.includes("/escolas")) return "Gerenciamento de Escolas"
     if (pathname?.includes("/turmas")) return "Gerenciamento de Turmas"
-    if (pathname?.includes("/usuarios")) return "Criação de Usuários"
     return "Coordenador" // página principal
   }, [pathname])
 
@@ -59,16 +58,6 @@ export default function CoordenadorLayout({
       icon: <School className="h-5 w-5" />,
       label: "Escolas",
       onClick: () => router.push("/coordenador/escolas"),
-    },
-    {
-      icon: <GraduationCap className="h-5 w-5" />,
-      label: "Turmas",
-      onClick: () => router.push("/coordenador/turmas"),
-    },
-    {
-      icon: <Users className="h-5 w-5" />,
-      label: "Usuários",
-      onClick: () => router.push("/coordenador/usuarios"),
     },
     {
       icon: <User className="h-5 w-5" />,
