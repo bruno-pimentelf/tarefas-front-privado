@@ -6,7 +6,7 @@ import { useAuth } from "@/contexts/auth-context"
 import { Sidebar } from "@/components/sidebar"
 import { Button } from "@/components/ui/button"
 import { ThemeToggle } from "@/components/theme-toggle"
-import { LogOut, Users, School, GraduationCap, TrendingUp, User } from "lucide-react"
+import { LogOut, Users, School, GraduationCap, TrendingUp, UserCircle } from "lucide-react"
 import { Fredoka } from "next/font/google"
 
 const fredoka = Fredoka({
@@ -28,6 +28,7 @@ export default function CoordenadorLayout({
   const pageTitle = useMemo(() => {
     if (pathname?.includes("/escolas")) return "Gerenciamento de Escolas"
     if (pathname?.includes("/turmas")) return "Gerenciamento de Turmas"
+    if (pathname?.includes("/ranking")) return "Ranking"
     return "Coordenador" // página principal
   }, [pathname])
 
@@ -60,7 +61,12 @@ export default function CoordenadorLayout({
       onClick: () => router.push("/coordenador/escolas"),
     },
     {
-      icon: <User className="h-5 w-5" />,
+      icon: <TrendingUp className="h-5 w-5" />,
+      label: "Ranking",
+      onClick: () => router.push("/coordenador/ranking"),
+    },
+    {
+      icon: <UserCircle className="h-5 w-5" />,
       label: "Trocar Perfil",
       onClick: handleVoltar,
     },

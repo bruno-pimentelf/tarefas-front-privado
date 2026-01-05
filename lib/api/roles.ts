@@ -20,6 +20,7 @@ export interface SetRoleRequest {
   userId: string
   schoolId: number
   roleId: number
+  // Nota: grade não é aceito pela API set-assessments-role
 }
 
 /**

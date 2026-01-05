@@ -28,8 +28,30 @@ export function ItemAnalysisTable({
   const [searchTerm, setSearchTerm] = useState("")
   const [sortBy, setSortBy] = useState<"itemNumber" | "accuracy" | "component">("itemNumber")
 
+  // Adaptar dados da nova estrutura para a estrutura esperada pela UI
+  // A nova API retorna questions, mas a UI espera items com mais informações
+  // Vamos calcular as informações necessárias a partir das questions e students
+  const adaptedItems = data.questions.map((question) => {
+    // Calcular acertos e total a partir das respostas dos estudantes
+    const correctCount = data.students.reduce((sum, student) => {
+      const answer = student.answers.find((a) => a.questionId === question.id)
+      return sum + (answer?.isCorrect ? 1 : 0)
+    }, 0)
+    const totalCount = data.students.length
+
+    return {
+      itemId: question.id,
+      itemNumber: question.order,
+      componentName: question.name, // A API não retorna componentName separado, usando name
+      correctAnswers: correctCount,
+      totalAnswers: totalCount,
+      accuracyRate: question.correctRate,
+      difficulty: question.correctRate >= 0.75 ? "Fácil" : question.correctRate >= 0.5 ? "Médio" : question.correctRate >= 0.25 ? "Difícil" : "Muito Difícil",
+    }
+  })
+
   // Filtrar e ordenar dados
-  const filteredData = data.items.filter((item) => {
+  const filteredData = adaptedItems.filter((item) => {
     const searchLower = searchTerm.toLowerCase()
     return (
       item.itemNumber.toString().includes(searchLower) ||
@@ -138,7 +160,7 @@ export function ItemAnalysisTable({
           <div>
             <CardTitle className="text-lg">Análise de Itens</CardTitle>
             <p className="text-sm text-muted-foreground mt-1">
-              {data.totalItems} itens • Taxa média de acerto: {(data.averageAccuracy * 100).toFixed(2)}%
+              {data.summary.totalQuestions} itens • Taxa média de acerto: {(data.summary.averageCorrectRate * 100).toFixed(2)}% • {data.summary.totalStudents} estudantes
             </p>
           </div>
           <div className="flex gap-2">
@@ -281,8 +303,8 @@ export function ItemAnalysisTable({
                 <div className="text-2xl font-bold mt-1">
                   {sortedData.length > 0
                     ? (
-                        sortedData.reduce((sum, item) => sum + item.accuracyRate, 0) /
-                        sortedData.length
+                        (sortedData.reduce((sum, item) => sum + item.accuracyRate, 0) /
+                        sortedData.length) * 100
                       ).toFixed(1)
                     : "0.0"}
                   %

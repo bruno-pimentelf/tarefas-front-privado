@@ -33,7 +33,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { ArrowLeft, Users, Loader2, AlertCircle, Plus, Trash2, Search, GraduationCap, UserCog, User } from "lucide-react"
-import { getSchoolById, listUsersBySchoolFromAPI, addUserToSchool, removeUserFromSchool, getRoles, listAllUsers, listClasses, removeUserFromClass, setUserRole, type School, type UserSchool, type Role, type UserClassUser } from "@/lib/api"
+import { getSchoolById, listUsersBySchoolFromAPI, addUserToSchool, removeUserFromSchool, getRoles, listAllUsers, listClasses, removeUserFromClass, setUserRole, listClassesByUser, getUserRole, type School, type UserSchool, type Role, type UserClassUser } from "@/lib/api"
 import { useAuth } from "@/contexts/auth-context"
 import { Label } from "@/components/ui/label"
 import { formatGrade, formatRoleName } from "@/lib/utils"
@@ -98,10 +98,28 @@ export default function EscolaMembrosPage() {
     }
   }, [schoolId])
 
-  const loadMembers = useCallback(async () => {
+  // Função para validar se os membros ainda estão na escola
+  const validateMembersInSchool = useCallback(async (members: UserSchool[], targetSchoolId: number): Promise<UserSchool[]> => {
+    const validatedMembers = await Promise.all(
+      members.map(async (member) => {
+        try {
+          // Verificar se o usuário ainda está na escola usando getUserRole
+          await getUserRole(member.userId, targetSchoolId)
+          return member
+        } catch (err: any) {
+          // Se retornar 404 ou outro erro, o usuário não está mais na escola
+          console.debug(`Usuário ${member.userId} não está mais na escola ${targetSchoolId}:`, err)
+          return null
+        }
+      })
+    )
+    return validatedMembers.filter((member): member is UserSchool => member !== null)
+  }, [])
+
+  const loadMembers = useCallback(async (forceReload = false) => {
     if (!schoolId || isNaN(schoolId) || loadingMembersRef.current) return
 
-    if (loadedMembersSchoolIdRef.current === schoolId) {
+    if (!forceReload && loadedMembersSchoolIdRef.current === schoolId) {
       return
     }
 
@@ -131,7 +149,10 @@ export default function EscolaMembrosPage() {
         currentPage++
       }
 
-      setMembers(allMembers)
+      // Validar que cada membro ainda está na escola
+      const validMembers = await validateMembersInSchool(allMembers, schoolId)
+      
+      setMembers(validMembers)
     } catch (err: any) {
       setError(err?.message || "Erro ao carregar membros")
       setMembers([])
@@ -140,7 +161,7 @@ export default function EscolaMembrosPage() {
       setLoadingMembers(false)
       loadingMembersRef.current = false
     }
-  }, [schoolId, searchTerm])
+  }, [schoolId, searchTerm, validateMembersInSchool])
 
   const loadRoles = useCallback(async () => {
     try {
@@ -158,6 +179,8 @@ export default function EscolaMembrosPage() {
       loadingUsersRef.current = true
       setLoadingUsers(true)
       
+      console.log("🔍 Carregando todos os usuários do sistema...")
+      
       // Buscar todos os usuários, incluindo os sem escola
       // A função listAllUsers deve retornar todos os usuários do sistema
       const users = await listAllUsers({ page: 1, limit: 100 })
@@ -165,10 +188,23 @@ export default function EscolaMembrosPage() {
       // Garantir que temos um array válido
       const usersArray = Array.isArray(users) ? users : []
       
+      console.log(`📊 Total de usuários carregados: ${usersArray.length}`)
+      console.log("👥 Usuários por categoria:")
+      
+      const usersWithoutSchool = usersArray.filter(u => !u.roles || u.roles.length === 0)
+      const usersWithSchool = usersArray.filter(u => u.roles && u.roles.length > 0)
+      
+      console.log(`  - Sem escola: ${usersWithoutSchool.length}`)
+      console.log(`  - Com escola: ${usersWithSchool.length}`)
+      
+      if (usersWithoutSchool.length > 0) {
+        console.log("🆓 Usuários sem escola:", usersWithoutSchool.map(u => `${u.firstName} ${u.lastName} (${u.email})`))
+      }
+      
       setAllUsers(usersArray)
       loadedUsersRef.current = true
     } catch (err: any) {
-      console.error("Erro ao carregar usuários:", err)
+      console.error("❌ Erro ao carregar usuários:", err)
       setAllUsers([])
       // Resetar o flag para permitir nova tentativa
       loadedUsersRef.current = false
@@ -216,31 +252,61 @@ export default function EscolaMembrosPage() {
   }, [activeTab, organizedMembers, members])
 
   const availableUsers = useMemo(() => {
+    console.log(`🔍 Filtrando usuários disponíveis para escola ${schoolId}`)
+    console.log(`📊 Total de usuários: ${allUsers.length}`)
+    console.log(`👥 Membros atuais da escola: ${members.length}`)
+    
     // Filtrar usuários que não estão na escola atual
     // Isso inclui:
-    // - Usuários sem escola (não têm nenhuma role com schoolId)
-    // - Usuários de outras escolas (têm role com schoolId diferente)
+    // - Usuários sem escola (não têm nenhuma role ou roles vazias)
+    // - Usuários de outras escolas (têm role com schoolId diferente do atual)
     const membersInSchoolIds = new Set(members.map(m => m.userId))
     
     const filtered = allUsers.filter(user => {
-      // Excluir apenas usuários que já estão na escola atual
+      // Excluir usuários que já estão na escola atual
       const isInCurrentSchool = membersInSchoolIds.has(user.userId)
+      if (isInCurrentSchool) {
+        console.log(`❌ Usuário ${user.firstName} ${user.lastName} já está na escola`)
+        return false
+      }
       
-      // Incluir todos os outros usuários (sem escola ou de outras escolas)
-      return !isInCurrentSchool
+      // Incluir usuários sem escola (sem roles ou roles vazias)
+      if (!user.roles || user.roles.length === 0) {
+        console.log(`✅ Usuário ${user.firstName} ${user.lastName} sem escola - DISPONÍVEL`)
+        return true
+      }
+      
+      // Incluir usuários que têm roles apenas em outras escolas (não na atual)
+      const hasRoleInCurrentSchool = user.roles.some(role => role.schoolId === schoolId)
+      if (!hasRoleInCurrentSchool) {
+        console.log(`✅ Usuário ${user.firstName} ${user.lastName} de outra escola - DISPONÍVEL`)
+        return true
+      }
+      
+      console.log(`❌ Usuário ${user.firstName} ${user.lastName} já tem role na escola atual`)
+      return false
     })
+    
+    console.log(`📋 Usuários disponíveis após filtro: ${filtered.length}`)
     
     if (!userSearchQuery.trim()) {
       return filtered
     }
 
     const term = userSearchQuery.toLowerCase().trim()
-    return filtered.filter((user) => {
+    const searchFiltered = filtered.filter((user) => {
       const fullName = `${user.firstName || ""} ${user.lastName || ""}`.toLowerCase()
       const email = (user.email || "").toLowerCase()
-      return fullName.includes(term) || email.includes(term)
+      const matches = fullName.includes(term) || email.includes(term)
+      if (matches) {
+        console.log(`🔍 Usuário ${user.firstName} ${user.lastName} corresponde à busca "${term}"`)
+      }
+      return matches
     })
-  }, [allUsers, members, userSearchQuery])
+    
+    console.log(`🔍 Usuários após busca "${term}": ${searchFiltered.length}`)
+    return searchFiltered
+  }, [allUsers, members, userSearchQuery, schoolId])
 
   useEffect(() => {
     if (currentUser && schoolId && !isNaN(schoolId) && schoolId > 0) {
@@ -329,67 +395,62 @@ export default function EscolaMembrosPage() {
     setError(null)
 
     try {
-      // 1. Remover o usuário de todas as turmas da escola
+      // 1. Verificar em quais turmas o usuário está realmente matriculado
       try {
-        const classesResponse = await listClasses({ 
-          schoolId: schoolId, 
-          page: 1, 
-          limit: 100 
+        // Primeiro, buscar todas as turmas do usuário
+        const userClassesResponse = await listClassesByUser(selectedMember.userId, {
+          page: 1,
+          limit: 100,
         })
         
-        const classes = classesResponse.data || []
+        const userClasses = userClassesResponse.data || []
         
-        const removeFromClassPromises = classes.map((cls) =>
-          removeUserFromClass(selectedMember.userId, cls.id).catch((err) => {
-            if (err?.status !== 404) {
-              console.warn(`Erro ao remover usuário da turma ${cls.id}:`, err)
-            }
-            return null
-          })
-        )
+        // Filtrar apenas as turmas que pertencem à escola atual
+        const classesInSchool = userClasses.filter((cls) => cls.schoolId === schoolId)
         
-        await Promise.allSettled(removeFromClassPromises)
+        // Remover o usuário apenas das turmas onde ele está realmente matriculado
+        if (classesInSchool.length > 0) {
+          const removeFromClassPromises = classesInSchool.map((cls) =>
+            removeUserFromClass(selectedMember.userId, cls.id).catch((err) => {
+              // Ignorar erros 404 silenciosamente (usuário já não está na turma)
+              if (err?.status !== 404) {
+                console.warn(`Erro ao remover usuário da turma ${cls.id}:`, err)
+              }
+              return null
+            })
+          )
+          
+          await Promise.allSettled(removeFromClassPromises)
+        }
       } catch (classErr: any) {
-        console.warn("Erro ao remover usuário das turmas:", classErr)
+        // Se houver erro ao buscar turmas do usuário, apenas loga mas continua
+        // Pode ser que o usuário não esteja em nenhuma turma
+        console.warn("Erro ao buscar turmas do usuário:", classErr)
       }
       
       // 2. Remover o usuário da escola
-      await removeUserFromSchool(selectedMember.userId, schoolId)
+      console.log(`Removendo usuário ${selectedMember.userId} da escola ${schoolId}`)
+      const removeResponse = await removeUserFromSchool(selectedMember.userId, schoolId)
+      console.log("Resposta da remoção:", removeResponse)
       
-      // 3. Mudar a role do usuário para "student" (roleId = 1)
-      try {
-        // Encontrar a role de "student" ou "Estudante"
-        const studentRole = roles.find(
-          (r) =>
-            r.name.toLowerCase() === "student" ||
-            r.name.toLowerCase() === "estudante" ||
-            r.name.toLowerCase() === "aluno"
-        )
-        
-        if (studentRole) {
-          // Definir a role como student na mesma escola (ou escola padrão)
-          // Nota: Se o usuário não está mais na escola, podemos usar schoolId = 1 como padrão
-          // ou manter o schoolId atual para manter a referência
-          await setUserRole({
-            userId: selectedMember.userId,
-            schoolId: schoolId, // Manter a referência à escola original
-            roleId: studentRole.id,
-          })
-        } else {
-          console.warn("Role de 'student' não encontrada. Usuário removido mas role não alterada.")
-        }
-      } catch (roleErr: any) {
-        // Se houver erro ao definir a role, apenas loga mas não bloqueia a remoção
-        console.warn("Erro ao alterar role do usuário para student:", roleErr)
-      }
+      // Nota: Não tentamos setar a role após remover da escola, pois isso poderia
+      // recriar o vínculo do usuário com a escola, anulando a remoção.
       
       setShowRemoveDialog(false)
       setSelectedMember(null)
       
+      // Forçar recarregamento dos membros (ignorar cache)
       loadedMembersSchoolIdRef.current = null
-      await loadMembers()
+      await loadMembers(true)
     } catch (err: any) {
-      setError(err?.message || "Erro ao remover membro da escola")
+      console.error("Erro ao remover membro da escola:", err)
+      console.error("Detalhes do erro:", {
+        status: err?.status || err?.response?.status,
+        message: err?.message || err?.response?.data?.message,
+        userId: selectedMember?.userId,
+        schoolId: schoolId,
+      })
+      setError(err?.message || err?.response?.data?.message || "Erro ao remover membro da escola")
     } finally {
       setSaving(false)
     }

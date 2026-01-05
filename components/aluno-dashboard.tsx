@@ -234,90 +234,90 @@ export function AlunoDashboard({ activeTab = "ativas", onTabChange, onCountsChan
   const getCurrentContent = () => {
     switch (activeTab) {
       case "agendadas":
-        return (
+  return (
           <>
-            {loading && (
-              <div className="flex items-center justify-center py-4">
-                <Loader2 className="h-4 w-4 animate-spin text-primary" />
-              </div>
-            )}
-            {!loading && tarefasAgendadas.length === 0 ? (
-              <Card>
-                <CardContent className="py-8 text-center text-muted-foreground text-sm">
-                  Nenhuma tarefa agendada
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                {tarefasAgendadas.map((tarefa) => (
-                  <TarefaCard
-                    key={tarefa.id}
-                    tarefa={tarefa}
-                    role="aluno"
-                    onIniciar={() => handleAbrirBooking(tarefa.id)}
-                  />
-                ))}
-              </div>
-            )}
+          {loading && (
+            <div className="flex items-center justify-center py-4">
+              <Loader2 className="h-4 w-4 animate-spin text-primary" />
+            </div>
+          )}
+          {!loading && tarefasAgendadas.length === 0 ? (
+            <Card>
+              <CardContent className="py-8 text-center text-muted-foreground text-sm">
+                Nenhuma tarefa agendada
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {tarefasAgendadas.map((tarefa) => (
+                <TarefaCard
+                  key={tarefa.id}
+                  tarefa={tarefa}
+                  role="aluno"
+                  onIniciar={() => handleAbrirBooking(tarefa.id)}
+                />
+              ))}
+            </div>
+          )}
           </>
         )
       case "concluidas":
         return (
           <>
-            {loading && (
-              <div className="flex items-center justify-center py-4">
-                <Loader2 className="h-4 w-4 animate-spin text-primary" />
-              </div>
-            )}
-            {!loading && tarefasConcluidas.length === 0 ? (
-              <Card>
-                <CardContent className="py-8 text-center text-muted-foreground text-sm">
-                  Nenhuma tarefa concluída ainda
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                {tarefasConcluidas.map((tarefa) => (
-                  <TarefaCard
-                    key={tarefa.id}
-                    tarefa={tarefa}
-                    role="aluno"
-                    concluida={true}
-                    onIniciar={() => handleVerEstatisticas(tarefa)}
-                  />
-                ))}
-              </div>
-            )}
+          {loading && (
+            <div className="flex items-center justify-center py-4">
+              <Loader2 className="h-4 w-4 animate-spin text-primary" />
+            </div>
+          )}
+          {!loading && tarefasConcluidas.length === 0 ? (
+            <Card>
+              <CardContent className="py-8 text-center text-muted-foreground text-sm">
+                Nenhuma tarefa concluída ainda
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {tarefasConcluidas.map((tarefa) => (
+                <TarefaCard
+                  key={tarefa.id}
+                  tarefa={tarefa}
+                  role="aluno"
+                  concluida={true}
+                  onIniciar={() => handleVerEstatisticas(tarefa)}
+                />
+              ))}
+            </div>
+          )}
           </>
         )
       case "atrasadas":
         return (
           <>
-            {loading && (
-              <div className="flex items-center justify-center py-4">
-                <Loader2 className="h-4 w-4 animate-spin text-primary" />
-              </div>
-            )}
-            {!loading && tarefasAtrasadas.length === 0 ? (
-              <Card>
-                <CardContent className="py-8 text-center text-muted-foreground text-sm">
-                  Nenhuma tarefa atrasada. Parabéns! 🎉
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                {tarefasAtrasadas.map((tarefa) => (
-                  <TarefaCard
-                    key={tarefa.id}
-                    tarefa={tarefa}
-                    role="aluno"
-                    concluida={false}
-                    atrasada={false}
-                    onIniciar={() => handleAbrirBooking(tarefa.id)}
-                  />
-                ))}
-              </div>
-            )}
+          {loading && (
+            <div className="flex items-center justify-center py-4">
+              <Loader2 className="h-4 w-4 animate-spin text-primary" />
+            </div>
+          )}
+          {!loading && tarefasAtrasadas.length === 0 ? (
+            <Card>
+              <CardContent className="py-8 text-center text-muted-foreground text-sm">
+                Nenhuma tarefa atrasada. Parabéns! 🎉
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {tarefasAtrasadas.map((tarefa) => (
+                <TarefaCard
+                  key={tarefa.id}
+                  tarefa={tarefa}
+                  role="aluno"
+                  concluida={false}
+                  atrasada={false}
+                  onIniciar={() => handleAbrirBooking(tarefa.id)}
+                />
+              ))}
+            </div>
+          )}
           </>
         )
       default: // "ativas"

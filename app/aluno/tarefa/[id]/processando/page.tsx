@@ -61,7 +61,7 @@ export default function ProcessandoTarefaPage() {
 
         // Finalizar o record apenas se ainda não estiver finalizado
         try {
-          await finishRecord({ recordId: admissionAtiva.record.id })
+        await finishRecord({ recordId: admissionAtiva.record.id })
         } catch (err: any) {
           // Se o record já foi finalizado (erro 400), apenas redirecionar para resultados
           if (err?.status === 400 && err?.data?.message?.includes('já foi finalizado')) {

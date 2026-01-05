@@ -15,6 +15,16 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import {
   Table,
   TableBody,
   TableCell,
@@ -33,6 +43,9 @@ export function EscolasManagement() {
   const [showDialog, setShowDialog] = useState(false)
   const [editingSchool, setEditingSchool] = useState<School | null>(null)
   const [saving, setSaving] = useState(false)
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [schoolToDelete, setSchoolToDelete] = useState<School | null>(null)
+  const [deleting, setDeleting] = useState(false)
 
   // Form state
   const [name, setName] = useState("")
@@ -57,7 +70,8 @@ export function EscolasManagement() {
     try {
       setLoading(true)
       setError(null)
-      const response = await listSchools({ page: 1, limit: 100 })
+      // Filtrar apenas escolas ativas (isActive: true)
+      const response = await listSchools({ page: 1, limit: 100, isActive: true })
       setSchools(response.data || [])
     } catch (err: any) {
       setError(err?.message || "Erro ao carregar escolas")
@@ -164,16 +178,40 @@ export function EscolasManagement() {
     }
   }
 
-  const handleDelete = async (school: School) => {
-    if (!confirm(`Tem certeza que deseja desativar a escola "${school.name}"?`)) {
-      return
-    }
+  const handleDeleteClick = (school: School) => {
+    setSchoolToDelete(school)
+    setShowDeleteDialog(true)
+  }
+
+  const handleDelete = async () => {
+    if (!schoolToDelete) return
+
+    setDeleting(true)
+    setError(null)
 
     try {
-      await deleteSchool(school.id)
-      loadSchools()
+      // 1. Deletar a escola na API
+      await deleteSchool(schoolToDelete.id)
+      
+      // 2. Atualização otimista: remover a escola da lista imediatamente
+      setSchools((prevSchools) => prevSchools.filter((school) => school.id !== schoolToDelete.id))
+      
+      // 3. Fechar o dialog
+      setShowDeleteDialog(false)
+      setSchoolToDelete(null)
+      
+      // 4. Refresh do router para atualizar cache do Next.js
+      router.refresh()
+      
+      // 5. Recarregar dados em background para garantir sincronização
+      await loadSchools()
     } catch (err: any) {
+      // Se houver erro, reverter a atualização otimista
       setError(err?.message || "Erro ao deletar escola")
+      // Recarregar dados para restaurar o estado correto
+      await loadSchools()
+    } finally {
+      setDeleting(false)
     }
   }
 
@@ -274,7 +312,7 @@ export function EscolasManagement() {
                         className="h-8 text-destructive hover:text-destructive"
                         onClick={(e) => {
                           e.stopPropagation()
-                          handleDelete(school)
+                          handleDeleteClick(school)
                         }}
                       >
                         <Trash2 className="h-4 w-4 mr-1" />
@@ -409,6 +447,47 @@ export function EscolasManagement() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* AlertDialog para deletar escola */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertCircle className="h-5 w-5 text-destructive" />
+              Deletar Escola
+            </AlertDialogTitle>
+            <AlertDialogDescription className="pt-2">
+              Tem certeza que deseja deletar a escola <strong>"{schoolToDelete?.name}"</strong>?
+            </AlertDialogDescription>
+            <div className="pt-2 space-y-2">
+              <p className="text-sm text-muted-foreground">Esta ação irá:</p>
+              <ul className="list-disc list-inside mt-2 space-y-1 text-sm text-muted-foreground">
+                <li>Remover todos os membros (alunos, professores e coordenadores) da escola</li>
+                <li>Remover todas as turmas associadas à escola</li>
+                <li>Deletar permanentemente a escola</li>
+              </ul>
+              <p className="text-sm font-semibold text-destructive mt-2">Esta ação não pode ser desfeita.</p>
+            </div>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={deleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleting ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Deletando...
+                </>
+              ) : (
+                "Deletar Escola"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

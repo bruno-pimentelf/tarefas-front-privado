@@ -5,9 +5,8 @@ import { useRouter } from "next/navigation"
 import { useAuth } from "@/contexts/auth-context"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { LogOut, Trophy, BarChart3, User, BookOpen, Users, CheckCircle2, TrendingUp, Loader2, FileText } from "lucide-react"
+import { LogOut, Trophy, User, BookOpen, Users, CheckCircle2, TrendingUp, Loader2, ClipboardList, BarChart3, UserCircle } from "lucide-react"
 import { GamificationDialog } from "@/components/gamification-dialog"
-import { EstatisticasDialog } from "@/components/estatisticas-dialog"
 import { Gamification } from "@/components/gamification"
 import { mockGamificacao } from "@/lib/mock-data"
 import { ThemeToggle } from "@/components/theme-toggle"
@@ -25,7 +24,6 @@ export default function ProfessorPage() {
   const { currentUser, logout } = useAuth()
   const router = useRouter()
   const [showGamificacao, setShowGamificacao] = useState(false)
-  const [showEstatisticas, setShowEstatisticas] = useState(false)
   const [showDashboard, setShowDashboard] = useState(false)
   const [loading, setLoading] = useState(true)
   const [bookings, setBookings] = useState<Booking[]>([])
@@ -109,9 +107,19 @@ export default function ProfessorPage() {
 
   const sidebarItems = [
     {
+      icon: <User className="h-5 w-5" />,
+      label: "Dados",
+      onClick: () => router.push("/professor/dados"),
+    },
+    {
+      icon: <ClipboardList className="h-5 w-5" />,
+      label: "Tarefas",
+      onClick: () => router.push("/professor/tarefas"),
+    },
+    {
       icon: <BarChart3 className="h-5 w-5" />,
-      label: "Estatísticas",
-      onClick: () => setShowEstatisticas(true),
+      label: "Relatórios",
+      onClick: () => router.push("/professor/analytics"),
     },
     {
       icon: <Trophy className="h-5 w-5" />,
@@ -119,17 +127,7 @@ export default function ProfessorPage() {
       onClick: () => setShowGamificacao(true),
     },
     {
-      icon: <BookOpen className="h-5 w-5" />,
-      label: "Tarefas",
-      onClick: () => router.push("/professor/tarefas"),
-    },
-    {
-      icon: <FileText className="h-5 w-5" />,
-      label: "Relatórios",
-      onClick: () => router.push("/professor/analytics"),
-    },
-    {
-      icon: <User className="h-5 w-5" />,
+      icon: <UserCircle className="h-5 w-5" />,
       label: "Trocar Perfil",
       onClick: handleVoltar,
     },
@@ -278,13 +276,6 @@ export default function ProfessorPage() {
         open={showGamificacao}
         onOpenChange={setShowGamificacao}
         gamificacao={mockGamificacao}
-      />
-      <EstatisticasDialog
-        open={showEstatisticas}
-        onOpenChange={setShowEstatisticas}
-        tarefasAtivas={estatisticas.tarefasAtivas}
-        totalAlunos={estatisticas.totalAlunos}
-        taxaConclusao={estatisticas.desempenhoAlunos}
       />
     </div>
   )

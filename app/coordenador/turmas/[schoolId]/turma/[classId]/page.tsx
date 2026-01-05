@@ -15,7 +15,17 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Plus, Trash2, Loader2, AlertCircle, ArrowLeft, Search, UserPlus, Users, UserCog, GraduationCap } from "lucide-react"
-import { listUsersByClass, listStudentsWithoutClass, addUserToClass, removeUserFromClass, getClassById, listClassesByUser, listUsersBySchoolFromAPI, getTeacherClasses, setUserRole, getRoles, type Class, type UserSchool, type Role } from "@/lib/api"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import { listUsersByClass, listStudentsWithoutClass, addUserToClass, removeUserFromClass, getClassById, listClassesByUser, listUsersBySchoolFromAPI, getTeacherClasses, setUserRole, getRoles, addUserToSchool, getUserRole, type Class, type UserSchool, type Role } from "@/lib/api"
 import { type User } from "@/lib/api/user-class"
 import { useAuth } from "@/contexts/auth-context"
 import { formatGrade } from "@/lib/utils"
@@ -51,6 +61,10 @@ export default function TurmaDetailsPage() {
   const [savingTeacher, setSavingTeacher] = useState(false)
   const [searchTerm, setSearchTerm] = useState("")
   const [showStudentDropdown, setShowStudentDropdown] = useState(false)
+  const [showRemoveStudentDialog, setShowRemoveStudentDialog] = useState(false)
+  const [showRemoveTeacherDialog, setShowRemoveTeacherDialog] = useState(false)
+  const [studentToRemove, setStudentToRemove] = useState<User | null>(null)
+  const [teacherToRemove, setTeacherToRemove] = useState<UserSchool | null>(null)
 
   const loadingRef = useRef(false)
   const loadedClassIdRef = useRef<number | null>(null)
@@ -75,17 +89,28 @@ export default function TurmaDetailsPage() {
       let hasMorePages = true
 
       while (hasMorePages) {
-        const response = await listStudentsWithoutClass(schoolId, {
-          page: currentPage,
-          limit,
-        })
+        try {
+          const response = await listStudentsWithoutClass(schoolId, {
+            page: currentPage,
+            limit,
+          })
 
-        if (response.data && response.data.length > 0) {
-          allStudentsList.push(...response.data)
+          if (response.data && response.data.length > 0) {
+            allStudentsList.push(...response.data)
+          }
+
+          hasMorePages = currentPage < (response.meta?.totalPages || 0)
+          currentPage++
+        } catch (pageErr: any) {
+          // Se houver erro em uma página específica, parar a paginação
+          // Mas não tratar como erro fatal se já tivermos alguns resultados
+          if (allStudentsList.length === 0) {
+            // Se não temos nenhum resultado e há erro, relançar
+            throw pageErr
+          }
+          // Se já temos resultados, apenas parar a paginação
+          hasMorePages = false
         }
-
-        hasMorePages = currentPage < (response.meta?.totalPages || 0)
-        currentPage++
       }
 
       setAllStudents(allStudentsList)
@@ -319,34 +344,38 @@ export default function TurmaDetailsPage() {
           )
           
           if (studentRole) {
-            // Tentar adicionar/atualizar o usuário na escola com o grade
-            // Se o usuário já estiver na escola, a API pode retornar erro 409 ou atualizar
-            // Por enquanto, tentamos adicionar e ignoramos erros de conflito
+            // Verificar se o usuário já está na escola antes de tentar adicionar
+            let userAlreadyInSchool = false
             try {
-              await addUserToSchool({
-                userId: userId.trim(),
-                schoolId: classData.schoolId,
-                roleId: studentRole.id,
-                grade: classData.grade, // Atualizar o grade com o grade da turma
-              })
-            } catch (schoolErr: any) {
-              // Se o usuário já está na escola (erro 409), isso é esperado
-              // A API pode ou não atualizar o grade automaticamente
-              // Por enquanto, apenas logamos mas não bloqueamos
-              if (schoolErr?.status === 409 || schoolErr?.response?.status === 409) {
-                console.debug("Usuário já está na escola. Grade pode não ter sido atualizado.")
-              } else {
-                // Para outros erros, tentar apenas atualizar a role (sem grade)
-                try {
-                  await setUserRole({
-                    userId: userId.trim(),
-                    schoolId: classData.schoolId,
-                    roleId: studentRole.id,
-                  })
-                } catch (roleErr: any) {
-                  console.warn("Erro ao atualizar role do estudante:", roleErr)
+              await getUserRole(userId.trim(), classData.schoolId)
+              userAlreadyInSchool = true
+            } catch (checkErr: any) {
+              // Se retornar 404, o usuário não está na escola
+              userAlreadyInSchool = false
+            }
+            
+            // Se o usuário não está na escola, tentar adicionar com o grade
+            if (!userAlreadyInSchool) {
+              try {
+                await addUserToSchool({
+                  userId: userId.trim(),
+                  schoolId: classData.schoolId,
+                  roleId: studentRole.id,
+                  grade: classData.grade, // Atualizar o grade com o grade da turma
+                })
+              } catch (schoolErr: any) {
+                // Se ainda assim retornar 409, apenas ignora (usuário foi adicionado entre a verificação e a adição)
+                if (schoolErr?.status === 409 || schoolErr?.response?.status === 409) {
+                  // Silenciosamente ignorar - usuário já está na escola
+                } else {
+                  // Para outros erros, apenas loga mas não bloqueia a adição
+                  console.warn("Erro ao adicionar estudante à escola:", schoolErr)
                 }
               }
+            } else {
+              // Usuário já está na escola - não podemos atualizar o grade via addUserToSchool ou setUserRole
+              // A API não fornece uma rota específica para atualizar apenas o grade
+              console.debug("Usuário já está na escola. O grade não será atualizado automaticamente.")
             }
           }
         } catch (roleErr: any) {
@@ -382,32 +411,37 @@ export default function TurmaDetailsPage() {
     }
   }
 
-  const handleRemoveStudent = async (userId: string) => {
-    if (!confirm("Tem certeza que deseja remover este aluno da turma?")) {
-      return
+  const handleRemoveStudentClick = (userId: string) => {
+    const student = students.find(s => s.userId === userId)
+    if (student) {
+      setStudentToRemove(student)
+      setShowRemoveStudentDialog(true)
     }
+  }
+
+  const handleRemoveStudent = async () => {
+    if (!studentToRemove) return
 
     setSavingStudent(true)
     setError(null)
 
     // Otimista: remover o aluno do estado imediatamente
-    const studentToRemove = students.find(s => s.userId === userId)
-    setStudents((prevStudents) => prevStudents.filter((student) => student.userId !== userId))
+    setStudents((prevStudents) => prevStudents.filter((student) => student.userId !== studentToRemove.userId))
 
     try {
-      await removeUserFromClass(userId, classId)
+      await removeUserFromClass(studentToRemove.userId, classId)
       
       // Recarregar todos os dados após remoção bem-sucedida
       await Promise.all([
         loadData(), // Recarregar dados da turma
         loadAllStudents(), // Recarregar lista de alunos sem turma
       ])
+      setShowRemoveStudentDialog(false)
+      setStudentToRemove(null)
     } catch (err: any) {
       // Se der erro na remoção, reverter a atualização otimista
       setError(err?.message || "Erro ao remover aluno")
-      if (studentToRemove) {
-        setStudents((prevStudents) => [...prevStudents, studentToRemove])
-      }
+      setStudents((prevStudents) => [...prevStudents, studentToRemove])
       // Recarregar dados para restaurar o estado correto
       await loadData()
     } finally {
@@ -531,16 +565,19 @@ export default function TurmaDetailsPage() {
     }
   }
 
-  const handleRemoveTeacher = async (teacher: UserSchool) => {
-    if (!confirm(`Tem certeza que deseja remover o professor ${teacher.user.firstName} ${teacher.user.lastName} desta turma?`)) {
-      return
-    }
+  const handleRemoveTeacherClick = (teacher: UserSchool) => {
+    setTeacherToRemove(teacher)
+    setShowRemoveTeacherDialog(true)
+  }
+
+  const handleRemoveTeacher = async () => {
+    if (!teacherToRemove) return
 
     setSavingTeacher(true)
     setError(null)
 
     try {
-      await removeUserFromClass(teacher.userId, classId)
+      await removeUserFromClass(teacherToRemove.userId, classId)
       
       // Recarregar dados
       const [updatedClassResponse, updatedUsersResponse] = await Promise.all([
@@ -570,6 +607,8 @@ export default function TurmaDetailsPage() {
       if (updatedClassResponse?.schoolId) {
         await loadTeachers(updatedClassResponse.schoolId, validUpdatedUsers)
       }
+      setShowRemoveTeacherDialog(false)
+      setTeacherToRemove(null)
     } catch (err: any) {
       setError(err?.message || "Erro ao remover professor da turma")
     } finally {
@@ -686,7 +725,7 @@ export default function TurmaDetailsPage() {
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => handleRemoveTeacher(teacher)}
+                      onClick={() => handleRemoveTeacherClick(teacher)}
                       disabled={savingTeacher}
                     >
                       <Trash2 className="h-4 w-4 text-destructive" />
@@ -698,7 +737,7 @@ export default function TurmaDetailsPage() {
           )}
 
           {/* Adicionar Novo Professor */}
-          <div className="flex gap-2 items-end">
+          <div className="flex gap-3 items-end">
             <div className="flex-1">
               <Label htmlFor="teacher-select" className="text-xs font-medium text-muted-foreground mb-1.5 block">
                 Adicionar Professor
@@ -708,22 +747,38 @@ export default function TurmaDetailsPage() {
                 onValueChange={setSelectedTeacherId}
                 disabled={savingTeacher || loadingTeachers}
               >
-                <SelectTrigger id="teacher-select">
+                <SelectTrigger id="teacher-select" className="w-full">
                   <SelectValue placeholder={loadingTeachers ? "Carregando professores..." : availableTeachers.length === 0 ? "Todos os professores já estão na turma" : "Selecione um professor"} />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="max-h-[300px]">
                   {loadingTeachers ? (
-                    <div className="px-2 py-1.5 text-sm text-muted-foreground">
-                      Carregando...
+                    <div className="flex items-center justify-center px-3 py-6">
+                      <Loader2 className="h-4 w-4 animate-spin text-primary mr-2" />
+                      <span className="text-sm text-muted-foreground">Carregando professores...</span>
                     </div>
                   ) : availableTeachers.length === 0 ? (
-                    <div className="px-2 py-1.5 text-sm text-muted-foreground">
-                      Todos os professores já estão na turma
+                    <div className="px-3 py-6 text-center">
+                      <p className="text-sm text-muted-foreground">
+                        Todos os professores já estão na turma
+                      </p>
                     </div>
                   ) : (
                     availableTeachers.map((teacher) => (
-                      <SelectItem key={teacher.userId} value={teacher.userId}>
-                        {teacher.user.firstName} {teacher.user.lastName}
+                      <SelectItem 
+                        key={teacher.userId} 
+                        value={teacher.userId}
+                        className="cursor-pointer"
+                      >
+                        <div className="flex flex-col py-0.5">
+                          <span className="font-medium">
+                            {teacher.user.firstName} {teacher.user.lastName}
+                          </span>
+                          {teacher.user.email && (
+                            <span className="text-xs text-muted-foreground">
+                              {teacher.user.email}
+                            </span>
+                          )}
+                        </div>
                       </SelectItem>
                     ))
                   )}
@@ -733,6 +788,7 @@ export default function TurmaDetailsPage() {
             <Button
               onClick={handleAssignTeacher}
               disabled={savingTeacher || !selectedTeacherId || availableTeachers.length === 0}
+              className="min-w-[140px]"
             >
               {savingTeacher ? (
                 <>
@@ -768,7 +824,7 @@ export default function TurmaDetailsPage() {
                     </Label>
                   </div>
               <div className="relative">
-                <UserPlus className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-primary z-10" />
+                <UserPlus className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-primary z-10 pointer-events-none" />
                 <Input
                   id="add-student-search"
                   placeholder="Digite o nome do aluno para buscar..."
@@ -877,14 +933,16 @@ export default function TurmaDetailsPage() {
               <Label htmlFor="filter-students-search" className="text-xs font-medium text-muted-foreground mb-1.5 block">
                 Filtrar alunos da turma
               </Label>
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                id="filter-students-search"
-                placeholder="Buscar na lista de alunos da turma..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                <Input
+                  id="filter-students-search"
+                  placeholder="Buscar na lista de alunos da turma..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
             </div>
           </div>
 
@@ -912,7 +970,7 @@ export default function TurmaDetailsPage() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => handleRemoveStudent(student.userId)}
+                        onClick={() => handleRemoveStudentClick(student.userId)}
                         disabled={savingStudent}
                       >
                         <Trash2 className="h-4 w-4 text-destructive" />
@@ -925,6 +983,76 @@ export default function TurmaDetailsPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* AlertDialog para remover aluno */}
+      <AlertDialog open={showRemoveStudentDialog} onOpenChange={setShowRemoveStudentDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertCircle className="h-5 w-5 text-destructive" />
+              Remover Aluno da Turma
+            </AlertDialogTitle>
+            <AlertDialogDescription className="pt-2">
+              Tem certeza que deseja remover o aluno <strong>"{studentToRemove?.firstName} {studentToRemove?.lastName}"</strong> desta turma?
+              <br />
+              <br />
+              O aluno será removido da turma, mas continuará vinculado à escola.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={savingStudent}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleRemoveStudent}
+              disabled={savingStudent}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {savingStudent ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Removendo...
+                </>
+              ) : (
+                "Remover Aluno"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* AlertDialog para remover professor */}
+      <AlertDialog open={showRemoveTeacherDialog} onOpenChange={setShowRemoveTeacherDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertCircle className="h-5 w-5 text-destructive" />
+              Remover Professor da Turma
+            </AlertDialogTitle>
+            <AlertDialogDescription className="pt-2">
+              Tem certeza que deseja remover o professor <strong>"{teacherToRemove?.user.firstName} {teacherToRemove?.user.lastName}"</strong> desta turma?
+              <br />
+              <br />
+              O professor será removido da turma, mas continuará vinculado à escola.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={savingTeacher}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleRemoveTeacher}
+              disabled={savingTeacher}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {savingTeacher ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Removendo...
+                </>
+              ) : (
+                "Remover Professor"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

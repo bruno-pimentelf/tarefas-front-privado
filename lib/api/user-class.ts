@@ -1,5 +1,8 @@
 import { assessmentsApi, usersApi } from "./client"
 
+// Nota: A rota students-without-class está em /assessments, não em /users
+// Por isso usamos assessmentsApi em vez de usersApi
+
 // ==========================================
 // Types para User-Class API
 // ==========================================
@@ -204,8 +207,6 @@ export async function removeUserFromClass(
  * that are NOT enrolled in any class.
  * 
  * Public endpoint (Admin Only restrictions ignored)
- * 
- * Note: A rota não inclui /users/ antes de /assessments conforme a documentação
  */
 export async function listStudentsWithoutClass(
   schoolId: number,
@@ -221,28 +222,43 @@ export async function listStudentsWithoutClass(
   if (params?.limit) queryParams.append("limit", params.limit.toString())
 
   const queryString = queryParams.toString()
-  // A documentação mostra que a rota é /assessments/user-class/students-without-class
-  // sem /users/ antes, mas vamos tentar ambas as versões
+  // A rota deve ser /users/assessments/user-class/students-without-class
+  // A baseURL do usersApi é https://api.trieduconline.com.br/users
+  // URL relativa: /assessments/user-class/students-without-class
+  // URL completa: https://api.trieduconline.com.br/users/assessments/user-class/students-without-class
   const url = `/assessments/user-class/students-without-class?${queryString}`
   
-  try {
-    return await usersApi.get<PaginatedUsersResponse>(url)
-  } catch (err: any) {
-    // Se falhar, tentar com /users/ antes
-    if (err?.status === 404) {
-      const urlWithUsers = `/users/assessments/user-class/students-without-class?${queryString}`
-      return usersApi.get<PaginatedUsersResponse>(urlWithUsers)
-    }
-    throw err
-  }
+  return usersApi.get<PaginatedUsersResponse>(url)
 }
 
 /**
- * List all users (paginated)
- * Busca todos os usuários do banco buscando de todas as escolas
- * e também estudantes sem turma de todas as escolas
+ * List users without schools (not associated with any school)
+ * 
+ * NOTA: Não há endpoint disponível para buscar usuários sem escola diretamente.
+ * Esta função filtra usuários que foram retornados por listAllUsersFromSchools
+ * mas que não têm roles associadas (indicando que foram removidos de todas as escolas
+ * ou nunca foram vinculados).
+ * 
+ * LIMITAÇÃO: Esta função só retorna usuários que já foram vinculados a escolas
+ * e depois removidos. Usuários que nunca foram vinculados não aparecerão aqui.
  */
-export async function listAllUsers(params?: {
+export async function listUsersWithoutSchools(params?: {
+  page?: number
+  limit?: number
+}): Promise<User[]> {
+  // Como não há endpoint para buscar usuários sem escola, retornamos vazio
+  // A identificação será feita na camada de apresentação
+  console.warn("⚠️ Não há endpoint disponível para buscar usuários sem escola diretamente")
+  return []
+}
+
+/**
+ * List all users (paginated) - FALLBACK METHOD
+ * Busca todos os usuários do banco buscando de todas as escolas
+ * Nota: Esta função retorna apenas usuários que estão associados a pelo menos uma escola.
+ * Para buscar usuários sem escola, use listUsersWithoutSchools.
+ */
+export async function listAllUsersFromSchools(params?: {
   page?: number
   limit?: number
   roleName?: string
@@ -335,45 +351,8 @@ export async function listAllUsers(params?: {
       }
     })
 
-    // Buscar também estudantes sem turma de todas as escolas
-    const studentsWithoutClassPromises = allSchools.map(async (school) => {
-      try {
-        const allStudents: User[] = []
-        let currentPage = 1
-        const limit = 100
-        let hasMorePages = true
-
-        while (hasMorePages) {
-          try {
-            const response = await listStudentsWithoutClass(school.id, {
-              page: currentPage,
-              limit,
-            })
-
-            if (response.data && response.data.length > 0) {
-              allStudents.push(...response.data)
-            }
-
-            hasMorePages = currentPage < (response.meta?.totalPages || 0)
-            currentPage++
-          } catch (err) {
-            console.debug(`Erro ao buscar estudantes sem turma da escola ${school.id}, página ${currentPage}:`, err)
-            hasMorePages = false
-          }
-        }
-
-        return allStudents
-      } catch (err) {
-        console.debug(`Erro ao buscar estudantes sem turma da escola ${school.id}:`, err)
-        return []
-      }
-    })
-
     // Aguardar todas as buscas
-    const [userArrays, studentsArrays] = await Promise.all([
-      Promise.all(userPromises),
-      Promise.all(studentsWithoutClassPromises),
-    ])
+    const userArrays = await Promise.all(userPromises)
 
     // Consolidar usuários, removendo duplicatas por userId
     const usersMap = new Map<string, User>()
@@ -398,26 +377,6 @@ export async function listAllUsers(params?: {
       })
     })
 
-    // Adicionar estudantes sem turma (podem já estar no map, mas vamos garantir)
-    studentsArrays.forEach((students) => {
-      students.forEach((student) => {
-        if (!usersMap.has(student.userId)) {
-          usersMap.set(student.userId, student)
-        } else {
-          // Mesclar roles se necessário
-          const existingUser = usersMap.get(student.userId)!
-          const existingRoleIds = new Set(existingUser.roles.map(r => `${r.roleId}-${r.schoolId}`))
-          student.roles.forEach(role => {
-            const roleKey = `${role.roleId}-${role.schoolId}`
-            if (!existingRoleIds.has(roleKey)) {
-              existingUser.roles.push(role)
-              existingRoleIds.add(roleKey)
-            }
-          })
-        }
-      })
-    })
-
     let allUsers = Array.from(usersMap.values())
 
     // Filtrar por roleName se especificado
@@ -430,9 +389,36 @@ export async function listAllUsers(params?: {
     console.log(`Encontrados ${allUsers.length} usuários únicos de ${allSchools.length} escolas`)
     return allUsers
   } catch (err: any) {
-    console.error("Erro ao buscar todos os usuários:", err)
+    console.error("Erro ao buscar todos os usuários das escolas:", err)
     throw err
   }
+}
+
+/**
+ * List all users (paginated) - MAIN FUNCTION
+ * Busca todos os usuários do sistema que estão ou estiveram associados a escolas
+ * 
+ * IMPORTANTE: Esta função retorna apenas usuários que estão ou estiveram vinculados
+ * a pelo menos uma escola. Usuários que nunca foram vinculados a escolas não aparecerão
+ * aqui porque não há endpoint disponível para buscá-los diretamente.
+ * 
+ * LIMITAÇÃO: Usuários que nunca foram vinculados a nenhuma escola não aparecerão
+ * nesta lista. Para buscar esses usuários, seria necessário um endpoint específico
+ * que retorne todos os usuários do Firebase/sistema.
+ * 
+ * Para identificar usuários sem escola na camada de apresentação:
+ * - Verificar se user.roles é undefined, null ou array vazio
+ * - Usuários sem escola terão roles.length === 0
+ */
+export async function listAllUsers(params?: {
+  page?: number
+  limit?: number
+  roleName?: string
+}): Promise<User[]> {
+  // Como não há endpoint para buscar usuários sem escola, retornamos apenas
+  // os usuários que estão ou estiveram vinculados a escolas
+  // Usuários que foram removidos de todas as escolas aparecerão com roles vazias
+  return listAllUsersFromSchools(params)
 }
 
 /**

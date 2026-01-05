@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { Sidebar } from "@/components/sidebar"
 import { FaSpinner, FaExclamationCircle, FaArrowLeft, FaSignOutAlt } from "react-icons/fa"
-import { Trophy, BarChart3, BookOpen, FileText, User } from "lucide-react"
+import { Trophy, BarChart3, ClipboardList, User, UserCircle } from "lucide-react"
 import { getStudentBookings, getTeacherClasses, type Booking, type TeacherClass } from "@/lib/api/bookings"
 import { getAdmissionsByBookingAndUser, type Admission } from "@/lib/api/admissions"
 import { getItemAnalysis, type ItemAnalysisResponse } from "@/lib/api/analytics"
@@ -62,17 +62,20 @@ export default function ItemAnalysisPage() {
         setBookings(bookingsResponse.items || [])
         setAvailableClasses(classes)
 
-        // Buscar admissions para cada booking individualmente (sem otimização - múltiplas chamadas)
-        const allAdmissions: Admission[] = []
-        for (const booking of bookingsResponse.items || []) {
+        // Buscar admissions para cada booking em paralelo (otimização)
+        const admissionsPromises = (bookingsResponse.items || []).map(async (booking) => {
           try {
-            const admissions = await getAdmissionsByBookingAndUser(booking.id, currentUser.uid)
-            allAdmissions.push(...admissions)
+            return await getAdmissionsByBookingAndUser(booking.id, currentUser.uid, { useCache: true })
           } catch (err) {
             console.error(`Erro ao buscar admissions do booking ${booking.id}:`, err)
+            return []
           }
-        }
-        setAdmissions(allAdmissions.filter((a) => a.record?.finishedAt)) // Apenas finalizadas
+        })
+        
+        const allAdmissionsArrays = await Promise.all(admissionsPromises)
+        const allAdmissions = allAdmissionsArrays.flat()
+        // Incluir todas as admissions (ativas e finalizadas)
+        setAdmissions(allAdmissions)
       } catch (err: any) {
         setError(err?.message || "Erro ao carregar dados")
       } finally {
@@ -125,9 +128,19 @@ export default function ItemAnalysisPage() {
 
   const sidebarItems = [
     {
+      icon: <User className="h-5 w-5" />,
+      label: "Dados",
+      onClick: () => router.push("/professor/dados"),
+    },
+    {
+      icon: <ClipboardList className="h-5 w-5" />,
+      label: "Tarefas",
+      onClick: () => router.push("/professor/tarefas"),
+    },
+    {
       icon: <BarChart3 className="h-5 w-5" />,
-      label: "Estatísticas",
-      onClick: () => router.push("/professor"),
+      label: "Relatórios",
+      onClick: () => router.push("/professor/analytics"),
     },
     {
       icon: <Trophy className="h-5 w-5" />,
@@ -135,17 +148,7 @@ export default function ItemAnalysisPage() {
       onClick: () => router.push("/professor"),
     },
     {
-      icon: <BookOpen className="h-5 w-5" />,
-      label: "Tarefas",
-      onClick: () => router.push("/professor/tarefas"),
-    },
-    {
-      icon: <FileText className="h-5 w-5" />,
-      label: "Relatórios",
-      onClick: () => router.push("/professor/analytics"),
-    },
-    {
-      icon: <User className="h-5 w-5" />,
+      icon: <UserCircle className="h-5 w-5" />,
       label: "Trocar Perfil",
       onClick: () => router.push("/perfil"),
     },

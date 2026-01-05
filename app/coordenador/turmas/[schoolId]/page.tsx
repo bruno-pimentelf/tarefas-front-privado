@@ -15,6 +15,16 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import {
   Table,
   TableBody,
   TableCell,
@@ -23,7 +33,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Plus, Pencil, Trash2, Loader2, AlertCircle, ArrowLeft, GraduationCap, Users } from "lucide-react"
-import { createClass, updateClass, deleteClass, listClasses, getSchoolById, type Class, type CreateClassInput, type UpdateClassInput } from "@/lib/api"
+import { createClass, updateClass, deleteClass, listClasses, getSchoolById, listUsersByClass, removeUserFromClass, type Class, type CreateClassInput, type UpdateClassInput } from "@/lib/api"
 import { type School } from "@/lib/api/schools"
 import { useAuth } from "@/contexts/auth-context"
 import { formatGrade } from "@/lib/utils"
@@ -48,6 +58,9 @@ export default function SchoolClassesPage() {
   const [error, setError] = useState<string | null>(null)
   const [showDialog, setShowDialog] = useState(false)
   const [editingClass, setEditingClass] = useState<Class | null>(null)
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [classToDelete, setClassToDelete] = useState<Class | null>(null)
+  const [deleting, setDeleting] = useState(false)
   const [saving, setSaving] = useState(false)
 
   // Form state
@@ -164,17 +177,96 @@ export default function SchoolClassesPage() {
     }
   }
 
-  const handleDelete = async (cls: Class) => {
-    if (!confirm(`Tem certeza que deseja deletar a turma "${cls.name}"?`)) {
-      return
-    }
+  const handleDeleteClick = (cls: Class) => {
+    setClassToDelete(cls)
+    setShowDeleteDialog(true)
+  }
+
+  const handleDelete = async () => {
+    if (!classToDelete) return
+
+    setDeleting(true)
+    setError(null)
 
     try {
-      await deleteClass(cls.id)
-      router.refresh() // Refresh da página após deletar turma
-      loadData()
+      // 1. Buscar todos os membros da turma (alunos e professores) com paginação
+      let allMembers: Array<{ userId: string }> = []
+      try {
+        let currentPage = 1
+        const limit = 100
+        let hasMorePages = true
+
+        while (hasMorePages) {
+          const membersResponse = await listUsersByClass(classToDelete.id, {
+            page: currentPage,
+            limit,
+          })
+          
+          if (membersResponse.data && membersResponse.data.length > 0) {
+            const pageMembers = membersResponse.data.map(user => ({ userId: user.userId }))
+            allMembers.push(...pageMembers)
+          }
+
+          hasMorePages = currentPage < (membersResponse.meta?.totalPages || 0)
+          currentPage++
+        }
+      } catch (membersErr: any) {
+        // Se houver erro ao buscar membros, apenas loga mas continua
+        console.warn("Erro ao buscar membros da turma:", membersErr)
+      }
+
+      // 2. Remover todos os membros da turma antes de deletar
+      // Nota: Não há uma rota de bulk delete, então removemos em paralelo usando Promise.allSettled
+      if (allMembers.length > 0) {
+        try {
+          // Remover todos os membros em paralelo usando Promise.allSettled
+          // para garantir que todos sejam removidos mesmo se algum falhar
+          const removePromises = allMembers.map((member) =>
+            removeUserFromClass(member.userId, classToDelete.id).catch((err) => {
+              // Ignorar erros 404 (usuário já não está na turma)
+              if (err?.status !== 404 && err?.response?.status !== 404) {
+                console.warn(`Erro ao remover membro ${member.userId} da turma:`, err)
+              }
+              return null
+            })
+          )
+          
+          const results = await Promise.allSettled(removePromises)
+          const successful = results.filter(r => r.status === 'fulfilled').length
+          console.log(`Removidos ${successful} de ${allMembers.length} membros da turma antes de deletar`)
+        } catch (removeErr: any) {
+          // Se houver erro ao remover membros, apenas loga mas continua
+          console.warn("Erro ao remover membros da turma:", removeErr)
+        }
+      }
+
+      // 3. Deletar a turma
+      await deleteClass(classToDelete.id)
+      
+      // 4. Atualização otimista: remover a turma da lista imediatamente
+      setClasses((prevClasses) => prevClasses.filter((cls) => cls.id !== classToDelete.id))
+      
+      // 5. Sempre dar refresh após deletar turma
+      // Resetar a referência para forçar recarregamento
+      loadedSchoolIdRef.current = null
+      router.refresh()
+      
+      // 6. Recarregar dados em background para garantir sincronização
+      loadData().catch(() => {
+        // Se houver erro, apenas loga mas não bloqueia
+        console.warn("Erro ao recarregar dados após deletar turma")
+      })
+      
+      setShowDeleteDialog(false)
+      setClassToDelete(null)
     } catch (err: any) {
       setError(err?.message || "Erro ao deletar turma")
+      // Dar refresh mesmo em caso de erro para garantir que a lista seja atualizada
+      loadedSchoolIdRef.current = null
+      router.refresh()
+      await loadData()
+    } finally {
+      setDeleting(false)
     }
   }
 
@@ -305,7 +397,7 @@ export default function SchoolClassesPage() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => handleDelete(cls)}
+                          onClick={() => handleDeleteClick(cls)}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -386,6 +478,46 @@ export default function SchoolClassesPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* AlertDialog para deletar turma */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertCircle className="h-5 w-5 text-destructive" />
+              Deletar Turma
+            </AlertDialogTitle>
+            <AlertDialogDescription className="pt-2">
+              Tem certeza que deseja deletar a turma <strong>"{classToDelete?.name}"</strong>?
+            </AlertDialogDescription>
+            <div className="pt-2 space-y-2">
+              <p className="text-sm text-muted-foreground">Esta ação irá:</p>
+              <ul className="list-disc list-inside mt-2 space-y-1 text-sm text-muted-foreground">
+                <li>Remover todos os alunos e professores desta turma</li>
+                <li>Deletar permanentemente a turma</li>
+              </ul>
+              <p className="text-sm font-semibold text-destructive mt-2">Esta ação não pode ser desfeita.</p>
+            </div>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={deleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleting ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Deletando...
+                </>
+              ) : (
+                "Deletar Turma"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

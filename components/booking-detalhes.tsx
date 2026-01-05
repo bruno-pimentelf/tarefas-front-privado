@@ -21,11 +21,11 @@ import { Booking } from "@/lib/api/bookings"
 import {
   Admission,
   getAdmissionsByBookingAndUser,
+  clearAdmissionsCache,
 } from "@/lib/api/admissions"
 import { CriarAdmissionDialog } from "./criar-admission-dialog"
 import { EditarBookingDialog } from "./editar-booking-dialog"
 import { formatBookingDate } from "@/lib/api/utils"
-import { ThemeToggle } from "./theme-toggle"
 
 interface BookingDetalhesProps {
   booking: Booking
@@ -37,6 +37,7 @@ interface BookingDetalhesProps {
   onBookingUpdated?: (updatedBooking: Booking, turmasIds?: number[]) => void // Callback quando booking é atualizado
   turmasAssociadas?: number[] // IDs das turmas já associadas ao booking
   hideHeader?: boolean // Esconde o header do componente (útil quando já existe header na página)
+  onRefreshRef?: React.MutableRefObject<(() => void) | null> // Ref para expor função de refresh
 }
 
 export function BookingDetalhes({
@@ -49,6 +50,7 @@ export function BookingDetalhes({
   onBookingUpdated,
   turmasAssociadas = [],
   hideHeader = false,
+  onRefreshRef,
 }: BookingDetalhesProps) {
   const router = useRouter()
   const [admissions, setAdmissions] = useState<Admission[]>([])
@@ -58,12 +60,15 @@ export function BookingDetalhes({
   const [showEditarBooking, setShowEditarBooking] = useState(false)
   const [currentBooking, setCurrentBooking] = useState<Booking>(booking)
 
-  const carregarAdmissions = useCallback(async () => {
+  const carregarAdmissions = useCallback(async (forceRefresh = false) => {
     setLoading(true)
     setError(null)
 
     try {
-      const response = await getAdmissionsByBookingAndUser(currentBooking.id, userId)
+      const response = await getAdmissionsByBookingAndUser(currentBooking.id, userId, { 
+        useCache: true,
+        forceRefresh 
+      })
       setAdmissions(response || [])
     } catch (err: any) {
       setError(err?.message || "Erro ao carregar avaliações")
@@ -75,6 +80,18 @@ export function BookingDetalhes({
   useEffect(() => {
     carregarAdmissions()
   }, [carregarAdmissions])
+
+  // Expor função de refresh através da ref
+  useEffect(() => {
+    if (onRefreshRef) {
+      onRefreshRef.current = carregarAdmissions
+    }
+    return () => {
+      if (onRefreshRef) {
+        onRefreshRef.current = null
+      }
+    }
+  }, [carregarAdmissions, onRefreshRef])
 
   // Atualizar currentBooking quando booking prop mudar
   useEffect(() => {
@@ -126,16 +143,6 @@ export function BookingDetalhes({
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <ThemeToggle />
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={carregarAdmissions}
-            disabled={loading}
-            className="h-8 w-8 p-0"
-          >
-            <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
-          </Button>
           {/* Botão de editar - apenas para professores */}
           {userRole === "professor" && (
             <Button
@@ -394,7 +401,11 @@ export function BookingDetalhes({
           }}
           bookingId={currentBooking.id}
           bookingTitle={currentBooking.title}
-          onSuccess={carregarAdmissions}
+          onSuccess={() => {
+            // Limpar cache e recarregar admissions
+            clearAdmissionsCache(currentBooking.id, userId)
+            carregarAdmissions(true) // forceRefresh = true
+          }}
         />
       )}
     </div>

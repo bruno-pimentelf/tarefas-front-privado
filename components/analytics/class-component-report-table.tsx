@@ -9,7 +9,6 @@ import { Search } from "lucide-react"
 import { FaFileExcel, FaFileAlt, FaChartBar } from "react-icons/fa"
 import * as XLSX from "xlsx"
 import { ClassComponentReportResponse } from "@/lib/api/analytics"
-import { AnalyticsFiltersDialog, type AnalyticsFilters } from "./analytics-filters"
 import { TeacherClass } from "@/lib/api/bookings"
 import {
   Select,
@@ -23,27 +22,15 @@ interface ClassComponentReportTableProps {
   data: ClassComponentReportResponse
   admissionId: number
   availableClasses?: TeacherClass[]
-  onFiltersChange?: (filters: AnalyticsFilters) => void
-  currentFilters?: AnalyticsFilters
 }
 
 export function ClassComponentReportTable({
   data,
   admissionId,
   availableClasses = [],
-  onFiltersChange,
-  currentFilters = {},
 }: ClassComponentReportTableProps) {
-  const [localFilters, setLocalFilters] = useState<AnalyticsFilters>(currentFilters)
   const [searchTerm, setSearchTerm] = useState("")
   const [sortBy, setSortBy] = useState<"media" | "ano" | "componente">("media")
-
-  const handleFiltersChange = (filters: AnalyticsFilters) => {
-    setLocalFilters(filters)
-    if (onFiltersChange) {
-      onFiltersChange(filters)
-    }
-  }
 
   // Converter scores de 0-1 para 0-10
   const convertScore = (score: number): number => {
@@ -222,12 +209,6 @@ export function ClassComponentReportTable({
             </SelectContent>
           </Select>
         </div>
-        <AnalyticsFiltersDialog
-          availableClasses={availableClasses}
-          currentFilters={localFilters}
-          onFiltersChange={handleFiltersChange}
-          filterTypes={["schoolYear", "grade", "classIds"]}
-        />
         <div className="flex items-center gap-2">
           <Button 
             onClick={handleDownloadCSV}

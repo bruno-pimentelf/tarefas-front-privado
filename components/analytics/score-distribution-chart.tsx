@@ -1,9 +1,7 @@
 "use client"
 
-import { useState } from "react"
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, LabelList } from "recharts"
 import { ScoreDistributionResponse } from "@/lib/api/analytics"
-import { AnalyticsFiltersDialog, type AnalyticsFilters } from "./analytics-filters"
 import { TeacherClass } from "@/lib/api/bookings"
 import {
   ChartContainer,
@@ -17,34 +15,24 @@ interface ScoreDistributionChartProps {
   data: ScoreDistributionResponse
   admissionId: number
   availableClasses?: TeacherClass[]
-  onFiltersChange?: (filters: AnalyticsFilters) => void
-  currentFilters?: AnalyticsFilters
 }
 
 export function ScoreDistributionChart({
   data,
   admissionId,
   availableClasses = [],
-  onFiltersChange,
-  currentFilters = {},
 }: ScoreDistributionChartProps) {
-  const [localFilters, setLocalFilters] = useState<AnalyticsFilters>(currentFilters)
 
-  const handleFiltersChange = (filters: AnalyticsFilters) => {
-    setLocalFilters(filters)
-    if (onFiltersChange) {
-      onFiltersChange(filters)
-    }
-  }
+  // Adaptar dados da nova estrutura (distribution) para a estrutura esperada pela UI
+  // A nova API retorna distribution com score e studentCount
+  const distributionData = data.distribution || data.buckets?.map((b) => ({
+    score: parseInt(b.range) || 0,
+    studentCount: b.count,
+  })) || []
 
-  // Converter scores de 0-1 para 0-10 (se necessário)
-  const convertScore = (score: number): number => {
-    return score <= 1 ? score * 10 : score
-  }
-
-  const chartData = (data.buckets || []).map((item) => ({
-    nota: item.range,
-    estudantes: item.count,
+  const chartData = distributionData.map((item) => ({
+    nota: item.score.toString(),
+    estudantes: item.studentCount,
   }))
 
   const chartConfig = {
@@ -54,21 +42,11 @@ export function ScoreDistributionChart({
     },
   } satisfies ChartConfig
 
-  const totalStudents = data.totalStudents || data.buckets.reduce((sum, item) => sum + item.count, 0)
-  const maxCount = Math.max(...data.buckets.map((item) => item.count), 0)
+  const totalStudents = distributionData.reduce((sum, item) => sum + item.studentCount, 0)
+  const maxCount = Math.max(...distributionData.map((item) => item.studentCount), 0)
 
   return (
     <div className="space-y-6">
-      {/* Filtros */}
-      <div className="flex items-center justify-end p-4 bg-muted/30 rounded-lg border">
-        <AnalyticsFiltersDialog
-          availableClasses={availableClasses}
-          currentFilters={localFilters}
-          onFiltersChange={handleFiltersChange}
-          filterTypes={["schoolYear", "grade", "classIds"]}
-        />
-      </div>
-
       {/* Gráfico */}
       <div className="rounded-lg border shadow-sm bg-background p-6">
         <div className="mb-6">

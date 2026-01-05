@@ -45,6 +45,7 @@ export {
 // Re-export Admissions API functions and types
 export {
   getAdmissionsByBookingAndUser,
+  clearAdmissionsCache,
   createAdmission,
   deleteAdmission,
   type Admission,
@@ -170,6 +171,8 @@ export {
   listUsersByClass,
   listUsersBySchool,
   listAllUsers,
+  listUsersWithoutSchools,
+  listAllUsersFromSchools,
   listStudentsWithoutClass,
   listClassesByUser,
   addUserToClass,

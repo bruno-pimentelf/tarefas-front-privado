@@ -9,7 +9,7 @@ import { ThemeToggle } from "@/components/theme-toggle"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { FaSignOutAlt } from "react-icons/fa"
-import { ClipboardList, AlertCircle, Trophy, User } from "lucide-react"
+import { ClipboardList, AlertCircle, Trophy, User, UserCircle } from "lucide-react"
 import { GamificationDialog } from "@/components/gamification-dialog"
 import { DiagnosticoDialog } from "@/components/diagnostico-dialog"
 import { PerfilDialog } from "@/components/perfil-dialog"
@@ -43,22 +43,22 @@ export default function AlunoTarefasPage() {
 
   const sidebarItems = [
     {
+      icon: <User className="h-5 w-5" />,
+      label: "Dados",
+      onClick: () => router.push("/aluno/dados"),
+    },
+    {
       icon: <ClipboardList className="h-5 w-5" />,
       label: "Tarefas",
       onClick: () => router.push("/aluno/tarefas"),
     },
     {
-      icon: <AlertCircle className="h-5 w-5" />,
-      label: "Diagnóstico",
-      onClick: () => setShowDiagnostico(true),
-    },
-    {
       icon: <Trophy className="h-5 w-5" />,
-      label: "Gamificação",
+      label: "Níveis",
       onClick: () => setShowGamificacao(true),
     },
     {
-      icon: <User className="h-5 w-5" />,
+      icon: <UserCircle className="h-5 w-5" />,
       label: "Meu Perfil",
       onClick: () => setShowPerfil(true),
     },

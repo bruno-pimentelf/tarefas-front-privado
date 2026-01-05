@@ -199,7 +199,7 @@ export async function getStudentBookingsWithAdmissions(
     // Busca admissions em paralelo para todos os bookings (otimização)
     const { getAdmissionsByBookingAndUser } = await import("./admissions")
     const admissionsPromises = response.items.map((booking) =>
-      getAdmissionsByBookingAndUser(booking.id, userId).catch((err) => {
+      getAdmissionsByBookingAndUser(booking.id, userId, { useCache: true }).catch((err) => {
         console.error(`Erro ao buscar admissions do booking ${booking.id}:`, err)
         return []
       })

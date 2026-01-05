@@ -1,14 +1,10 @@
 "use client"
 
-import { useState } from "react"
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts"
 import { ComponentRangeDistributionResponse } from "@/lib/api/analytics"
-import { AnalyticsFiltersDialog, type AnalyticsFilters } from "./analytics-filters"
 import { TeacherClass } from "@/lib/api/bookings"
 import {
   ChartContainer,
-  ChartLegend,
-  ChartLegendContent,
   ChartTooltip,
   ChartTooltipContent,
   type ChartConfig,
@@ -19,25 +15,13 @@ interface ComponentRangeDistributionChartProps {
   data: ComponentRangeDistributionResponse
   admissionId: number
   availableClasses?: TeacherClass[]
-  onFiltersChange?: (filters: AnalyticsFilters) => void
-  currentFilters?: AnalyticsFilters
 }
 
 export function ComponentRangeDistributionChart({
   data,
   admissionId,
   availableClasses = [],
-  onFiltersChange,
-  currentFilters = {},
 }: ComponentRangeDistributionChartProps) {
-  const [localFilters, setLocalFilters] = useState<AnalyticsFilters>(currentFilters)
-
-  const handleFiltersChange = (filters: AnalyticsFilters) => {
-    setLocalFilters(filters)
-    if (onFiltersChange) {
-      onFiltersChange(filters)
-    }
-  }
 
   // Preparar dados para o gráfico empilhado
   const chartData = data.components.map((component) => ({
@@ -50,19 +34,19 @@ export function ComponentRangeDistributionChart({
 
   const chartConfig = {
     range_0_2_5: {
-      label: "Entre 0 e 2,5",
+      label: "Insuficiente (0,0 a 2,5)",
       color: "#ef4444", // vermelho
     },
     range_2_5_5_0: {
-      label: "Entre 2,5 e 5,0",
+      label: "Regular (2,5 a 5,0)",
       color: "#eab308", // amarelo
     },
     range_5_0_7_5: {
-      label: "Entre 5,0 e 7,5",
+      label: "Bom (5,0 a 7,5)",
       color: "#3b82f6", // azul
     },
     range_7_5_10: {
-      label: "Entre 7,5 e 10",
+      label: "Excelente (7,5 a 10,0)",
       color: "#22c55e", // verde
     },
   } satisfies ChartConfig
@@ -74,16 +58,6 @@ export function ComponentRangeDistributionChart({
 
   return (
     <div className="space-y-6">
-      {/* Filtros */}
-      <div className="flex items-center justify-end p-4 bg-muted/30 rounded-lg border">
-        <AnalyticsFiltersDialog
-          availableClasses={availableClasses}
-          currentFilters={localFilters}
-          onFiltersChange={handleFiltersChange}
-          filterTypes={["schoolYear", "grade", "classIds"]}
-        />
-      </div>
-
       {/* Gráfico */}
       <div className="rounded-lg border shadow-sm bg-background p-6">
         <div className="mb-6">
@@ -106,6 +80,41 @@ export function ComponentRangeDistributionChart({
             <div className="px-3 py-1.5 rounded-md bg-muted/50 border">
               <span className="text-xs text-muted-foreground">Componentes: </span>
               <span className="text-sm font-semibold">{data.components.length}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Legenda melhorada e mais intuitiva */}
+        <div className="mb-4 p-4 bg-muted/30 rounded-lg border">
+          <div className="text-sm font-semibold mb-3">Faixa de desempenho:</div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="flex items-center gap-2">
+              <div className="h-4 w-4 rounded-sm" style={{ backgroundColor: "#ef4444" }} />
+              <div className="flex flex-col">
+                <span className="text-xs font-medium">Insuficiente</span>
+                <span className="text-xs text-muted-foreground">0,0 a 2,5</span>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="h-4 w-4 rounded-sm" style={{ backgroundColor: "#eab308" }} />
+              <div className="flex flex-col">
+                <span className="text-xs font-medium">Regular</span>
+                <span className="text-xs text-muted-foreground">2,5 a 5,0</span>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="h-4 w-4 rounded-sm" style={{ backgroundColor: "#3b82f6" }} />
+              <div className="flex flex-col">
+                <span className="text-xs font-medium">Bom</span>
+                <span className="text-xs text-muted-foreground">5,0 a 7,5</span>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="h-4 w-4 rounded-sm" style={{ backgroundColor: "#22c55e" }} />
+              <div className="flex flex-col">
+                <span className="text-xs font-medium">Excelente</span>
+                <span className="text-xs text-muted-foreground">7,5 a 10,0</span>
+              </div>
             </div>
           </div>
         </div>
@@ -142,7 +151,6 @@ export function ComponentRangeDistributionChart({
               cursor={false}
               content={<ChartTooltipContent hideLabel />}
             />
-            <ChartLegend />
             <Bar
               dataKey="range_0_2_5"
               stackId="a"

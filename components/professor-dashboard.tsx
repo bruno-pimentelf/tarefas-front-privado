@@ -21,10 +21,12 @@ interface ProfessorDashboardProps {
   onTabChange?: (tab: string) => void
   onCountsChange?: (counts: { ativas: number; agendadas: number; finalizadas: number }) => void
   refreshTrigger?: number
+  currentUser?: { uid: string; email: string | null; displayName: string | null } | null
 }
 
-export function ProfessorDashboard({ activeTab = "ativas", onTabChange, onCountsChange, refreshTrigger }: ProfessorDashboardProps) {
-  const { currentUser } = useAuth()
+export function ProfessorDashboard({ activeTab = "ativas", onTabChange, onCountsChange, refreshTrigger, currentUser: currentUserProp }: ProfessorDashboardProps) {
+  const { currentUser: currentUserAuth } = useAuth()
+  const currentUser = currentUserProp || currentUserAuth
   
   // Estado dos bookings/tarefas da API
   const [bookings, setBookings] = useState<Booking[]>([])

@@ -1,35 +1,20 @@
 "use client"
 
-import { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ComponentStatsResponse } from "@/lib/api/analytics"
-import { AnalyticsFiltersDialog, type AnalyticsFilters } from "./analytics-filters"
 import { TeacherClass } from "@/lib/api/bookings"
-import { getComponentStats } from "@/lib/api/analytics"
 
 interface ComponentStatsCardsProps {
   data: ComponentStatsResponse
   admissionId: number
   availableClasses?: TeacherClass[]
-  onFiltersChange?: (filters: AnalyticsFilters) => void
-  currentFilters?: AnalyticsFilters
 }
 
 export function ComponentStatsCards({
   data,
   admissionId,
   availableClasses = [],
-  onFiltersChange,
-  currentFilters = {},
 }: ComponentStatsCardsProps) {
-  const [localFilters, setLocalFilters] = useState<AnalyticsFilters>(currentFilters)
-
-  const handleFiltersChange = (filters: AnalyticsFilters) => {
-    setLocalFilters(filters)
-    if (onFiltersChange) {
-      onFiltersChange(filters)
-    }
-  }
 
   const getComponentAbbreviation = (name: string): string => {
     if (name.includes("Linguagens") || name.includes("Língua")) return "LC"
@@ -49,17 +34,7 @@ export function ComponentStatsCards({
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-xl text-blue-600 dark:text-blue-400">PAINEL</CardTitle>
-          <div className="flex gap-2">
-            <AnalyticsFiltersDialog
-              availableClasses={availableClasses}
-              currentFilters={localFilters}
-              onFiltersChange={handleFiltersChange}
-              filterTypes={["schoolYear", "grade", "classIds"]}
-            />
-          </div>
-        </div>
+        <CardTitle className="text-xl text-blue-600 dark:text-blue-400">PAINEL</CardTitle>
         <CardTitle className="text-lg font-semibold mt-4">Média das notas</CardTitle>
       </CardHeader>
       <CardContent>

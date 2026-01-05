@@ -7,7 +7,7 @@ import { useAuth } from "@/contexts/auth-context"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { FaSignOutAlt, FaSync, FaDatabase, FaPlus } from "react-icons/fa"
-import { Trophy, BarChart3, BookOpen, FileText, User } from "lucide-react"
+import { Trophy, BarChart3, ClipboardList, User, UserCircle } from "lucide-react"
 import { GamificationDialog } from "@/components/gamification-dialog"
 import { EstatisticasDialog } from "@/components/estatisticas-dialog"
 import { CriarTarefaDialog } from "@/components/criar-tarefa-dialog"
@@ -73,9 +73,19 @@ export default function ProfessorTarefasPage() {
   // Sidebar items padronizados
   const sidebarItems = [
     {
+      icon: <User className="h-5 w-5" />,
+      label: "Dados",
+      onClick: () => router.push("/professor/dados"),
+    },
+    {
+      icon: <ClipboardList className="h-5 w-5" />,
+      label: "Tarefas",
+      onClick: () => router.push("/professor/tarefas"),
+    },
+    {
       icon: <BarChart3 className="h-5 w-5" />,
-      label: "Estatísticas",
-      onClick: () => router.push("/professor"),
+      label: "Relatórios",
+      onClick: () => router.push("/professor/analytics"),
     },
     {
       icon: <Trophy className="h-5 w-5" />,
@@ -83,17 +93,7 @@ export default function ProfessorTarefasPage() {
       onClick: () => router.push("/professor"),
     },
     {
-      icon: <BookOpen className="h-5 w-5" />,
-      label: "Tarefas",
-      onClick: () => router.push("/professor/tarefas"),
-    },
-    {
-      icon: <FileText className="h-5 w-5" />,
-      label: "Relatórios",
-      onClick: () => router.push("/professor/analytics"),
-    },
-    {
-      icon: <User className="h-5 w-5" />,
+      icon: <UserCircle className="h-5 w-5" />,
       label: "Trocar Perfil",
       onClick: () => router.push("/perfil"),
     },
@@ -167,6 +167,7 @@ export default function ProfessorTarefasPage() {
           activeTab={activeTab}
           onTabChange={setActiveTab}
           refreshTrigger={refreshTrigger}
+          currentUser={currentUser}
         />
       </main>
 

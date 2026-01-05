@@ -9,7 +9,6 @@ import { Search } from "lucide-react"
 import { FaFileExcel, FaFileAlt, FaChartBar, FaTrophy, FaUser, FaGraduationCap } from "react-icons/fa"
 import * as XLSX from "xlsx"
 import { StudentScoresResponse } from "@/lib/api/analytics"
-import { AnalyticsFiltersDialog, type AnalyticsFilters } from "./analytics-filters"
 import { TeacherClass } from "@/lib/api/bookings"
 import {
   Select,
@@ -24,28 +23,16 @@ interface StudentScoresTableProps {
   data: StudentScoresResponse
   admissionId: number
   availableClasses?: TeacherClass[]
-  onFiltersChange?: (filters: AnalyticsFilters) => void
-  currentFilters?: AnalyticsFilters
 }
 
 export function StudentScoresTable({
   data,
   admissionId,
   availableClasses = [],
-  onFiltersChange,
-  currentFilters = {},
 }: StudentScoresTableProps) {
   const [viewMode, setViewMode] = useState<"media" | "acertos" | "porcentagem">("media")
-  const [localFilters, setLocalFilters] = useState<AnalyticsFilters>(currentFilters)
   const [searchTerm, setSearchTerm] = useState("")
   const [sortBy, setSortBy] = useState<"media" | "ranking" | "nome">("ranking")
-
-  const handleFiltersChange = (filters: AnalyticsFilters) => {
-    setLocalFilters(filters)
-    if (onFiltersChange) {
-      onFiltersChange(filters)
-    }
-  }
 
   // Converter scores de 0-1 para 0-10
   const convertScore = (score: number | undefined): number => {
@@ -122,7 +109,7 @@ export function StudentScoresTable({
     ]
 
     const rows = sortedData.map((student) => [
-      student.rankingClass.toString(),
+      student.rankingTrieduc.toString(),
       student.rankingSchool.toString(),
       student.studentName,
       student.email,
@@ -168,7 +155,7 @@ export function StudentScoresTable({
     ]
 
     const rows = sortedData.map((student) => [
-      student.rankingClass,
+      student.rankingTrieduc,
       student.rankingSchool,
       student.studentName,
       student.email,
@@ -249,12 +236,6 @@ export function StudentScoresTable({
             </SelectContent>
           </Select>
         </div>
-        <AnalyticsFiltersDialog
-          availableClasses={availableClasses}
-          currentFilters={localFilters}
-          onFiltersChange={handleFiltersChange}
-          filterTypes={["schoolYear", "grade", "classIds"]}
-        />
         <div className="flex items-center gap-2">
           <Button 
             onClick={handleDownloadCSV}
@@ -355,8 +336,8 @@ export function StudentScoresTable({
                     style={{ animationDelay: `${index * 20}ms` }}
                   >
                     <td className="p-2 text-center sticky left-0 bg-background z-10 border-r group-hover:bg-gradient-to-r group-hover:from-primary/5 group-hover:to-transparent transition-colors">
-                      <Badge className={`${getRankingBadgeColor(student.rankingClass, sortedData.length)} border`}>
-                        #{student.rankingClass}
+                      <Badge className={`${getRankingBadgeColor(student.rankingTrieduc, sortedData.length)} border`}>
+                        #{student.rankingTrieduc}
                       </Badge>
                     </td>
                     <td className="p-2 text-center">
