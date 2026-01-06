@@ -84,10 +84,87 @@ export function TarefaCard({
       className={`group relative overflow-hidden flex flex-col transition-all duration-500 ${cardStyles.border} ${cardStyles.hover} cursor-pointer opacity-0 animate-[fadeIn_0.5s_ease-out_forwards]`}
       style={style}
     >
-      {/* Background gradient effect - mais sutil */}
-      <div className={`absolute inset-0 bg-gradient-to-br ${cardStyles.gradient} opacity-0 group-hover:opacity-50 transition-opacity duration-500`} />
+      {/* Blue fire border effect */}
+      <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none rounded-lg overflow-hidden">
+        {/* Top border - fire effect */}
+        <div 
+          className="absolute top-0 left-0 right-0 h-[3px]"
+          style={{
+            background: 'linear-gradient(90deg, transparent 0%, rgba(59, 130, 246, 0.3) 10%, rgba(96, 165, 250, 0.5) 20%, rgba(59, 130, 246, 0.4) 30%, rgba(34, 211, 238, 0.5) 40%, rgba(59, 130, 246, 0.4) 50%, rgba(96, 165, 250, 0.5) 60%, rgba(59, 130, 246, 0.3) 70%, transparent 100%)',
+            backgroundSize: '200% 100%',
+            animation: 'fireBorder 3s ease-in-out infinite',
+            boxShadow: '0 2px 8px rgba(59, 130, 246, 0.4), 0 0 12px rgba(59, 130, 246, 0.3)',
+            transformOrigin: 'center',
+          }}
+        />
+        
+        {/* Right border - fire effect */}
+        <div 
+          className="absolute top-0 right-0 bottom-0 w-[3px]"
+          style={{
+            background: 'linear-gradient(180deg, transparent 0%, rgba(59, 130, 246, 0.3) 10%, rgba(96, 165, 250, 0.5) 20%, rgba(59, 130, 246, 0.4) 30%, rgba(34, 211, 238, 0.5) 40%, rgba(59, 130, 246, 0.4) 50%, rgba(96, 165, 250, 0.5) 60%, rgba(59, 130, 246, 0.3) 70%, transparent 100%)',
+            backgroundSize: '100% 200%',
+            animation: 'fireBorder 3.5s ease-in-out infinite',
+            animationDelay: '0.5s',
+            boxShadow: '2px 0 8px rgba(59, 130, 246, 0.4), 0 0 12px rgba(59, 130, 246, 0.3)',
+          }}
+        />
+        
+        {/* Bottom border - fire effect */}
+        <div 
+          className="absolute bottom-0 left-0 right-0 h-[3px]"
+          style={{
+            background: 'linear-gradient(90deg, transparent 0%, rgba(59, 130, 246, 0.3) 10%, rgba(96, 165, 250, 0.5) 20%, rgba(59, 130, 246, 0.4) 30%, rgba(34, 211, 238, 0.5) 40%, rgba(59, 130, 246, 0.4) 50%, rgba(96, 165, 250, 0.5) 60%, rgba(59, 130, 246, 0.3) 70%, transparent 100%)',
+            backgroundSize: '200% 100%',
+            animation: 'fireBorder 3.2s ease-in-out infinite',
+            animationDelay: '1s',
+            boxShadow: '0 -2px 8px rgba(59, 130, 246, 0.4), 0 0 12px rgba(59, 130, 246, 0.3)',
+          }}
+        />
+        
+        {/* Left border - fire effect */}
+        <div 
+          className="absolute top-0 left-0 bottom-0 w-[3px]"
+          style={{
+            background: 'linear-gradient(180deg, transparent 0%, rgba(59, 130, 246, 0.3) 10%, rgba(96, 165, 250, 0.5) 20%, rgba(59, 130, 246, 0.4) 30%, rgba(34, 211, 238, 0.5) 40%, rgba(59, 130, 246, 0.4) 50%, rgba(96, 165, 250, 0.5) 60%, rgba(59, 130, 246, 0.3) 70%, transparent 100%)',
+            backgroundSize: '100% 200%',
+            animation: 'fireBorder 3.8s ease-in-out infinite',
+            animationDelay: '1.5s',
+            boxShadow: '-2px 0 8px rgba(59, 130, 246, 0.4), 0 0 12px rgba(59, 130, 246, 0.3)',
+          }}
+        />
+        
+        {/* Additional wave layers for more fire effect */}
+        {[...Array(2)].map((_, i) => (
+          <div
+            key={i}
+            className="absolute inset-0 rounded-lg"
+            style={{
+              border: `2px solid transparent`,
+              borderImage: `linear-gradient(90deg, 
+                transparent 0%, 
+                rgba(59, 130, 246, ${0.2 + i * 0.1}) 25%, 
+                rgba(96, 165, 250, ${0.3 + i * 0.1}) 50%, 
+                rgba(59, 130, 246, ${0.2 + i * 0.1}) 75%, 
+                transparent 100%
+              ) 1`,
+              animation: `fireWave ${2.5 + i * 0.3}s ease-in-out infinite`,
+              animationDelay: `${i * 0.4}s`,
+              pointerEvents: 'none',
+            }}
+          />
+        ))}
+      </div>
       
-      <CardHeader className="pb-1.5 px-3 pt-3 space-y-0.5 relative">
+      {/* Soft glow effect on hover */}
+      <div 
+        className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none rounded-lg"
+        style={{
+          animation: 'neonPulse 3s ease-in-out infinite',
+        }}
+      />
+      
+      <CardHeader className="pb-1.5 px-3 pt-3 space-y-0.5 relative z-10">
         <div className="flex items-start justify-between gap-2">
           <div className="flex-1 min-w-0">
             <CardTitle className="text-sm font-semibold leading-tight text-foreground group-hover:text-primary transition-colors duration-300">
@@ -101,7 +178,7 @@ export function TarefaCard({
           </div>
         </div>
       </CardHeader>
-      <CardContent className="space-y-1.5 pt-1 px-3 flex-1 relative">
+      <CardContent className="space-y-1.5 pt-1 px-3 flex-1 relative z-10">
         <div className="flex items-center gap-2 text-xs text-foreground/65 group-hover:text-foreground/80 transition-colors duration-300">
           <div className="flex items-center justify-center h-5 w-5 rounded-md bg-muted/40 group-hover:bg-muted/60 transition-colors duration-300">
             <FaCalendar className="h-3 w-3 text-muted-foreground" />
@@ -134,7 +211,7 @@ export function TarefaCard({
         )}
       </CardContent>
       {role === "aluno" && isAtiva && !concluida && (
-        <CardFooter className="pt-2 px-3 mt-auto border-t border-border/50 relative">
+        <CardFooter className="pt-2 px-3 mt-auto border-t border-border/50 relative z-10">
           <Button
             onClick={onVerDetalhes}
             variant="outline"
@@ -149,7 +226,7 @@ export function TarefaCard({
         </CardFooter>
       )}
       {role === "aluno" && concluida && (
-        <CardFooter className="pt-2 px-3 mt-auto border-t border-border/50 relative">
+        <CardFooter className="pt-2 px-3 mt-auto border-t border-border/50 relative z-10">
           <Button
             onClick={onIniciar}
             variant="outline"
@@ -162,7 +239,7 @@ export function TarefaCard({
         </CardFooter>
       )}
       {role === "professor" && (
-        <CardFooter className="pt-2 px-3 mt-auto border-t border-border/50 relative">
+        <CardFooter className="pt-2 px-3 mt-auto border-t border-border/50 relative z-10">
           <Button 
             onClick={onVerDetalhes} 
             variant="outline" 

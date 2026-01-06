@@ -184,3 +184,156 @@
     transform: translateY(0);
   }
 }
+
+@keyframes animatedGradient {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    transform: translateX(-200%) translateY(-200%) rotate(45deg);
+  }
+  100% {
+    transform: translateX(200%) translateY(200%) rotate(45deg);
+  }
+}
+
+/* Smooth Game-style animations */
+@keyframes holographic {
+  0% {
+    background-position: 0% 50%;
+    filter: hue-rotate(0deg) brightness(1);
+  }
+  50% {
+    background-position: 100% 50%;
+    filter: hue-rotate(60deg) brightness(1.1);
+  }
+  100% {
+    background-position: 0% 50%;
+    filter: hue-rotate(120deg) brightness(1);
+  }
+}
+
+@keyframes neonPulse {
+  0%, 100% {
+    box-shadow: 
+      0 0 8px rgba(59, 130, 246, 0.3),
+      0 0 16px rgba(59, 130, 246, 0.2),
+      inset 0 0 8px rgba(59, 130, 246, 0.1);
+    border-color: rgba(59, 130, 246, 0.4);
+  }
+  50% {
+    box-shadow: 
+      0 0 12px rgba(59, 130, 246, 0.4),
+      0 0 24px rgba(59, 130, 246, 0.3),
+      inset 0 0 12px rgba(59, 130, 246, 0.15);
+    border-color: rgba(59, 130, 246, 0.6);
+  }
+}
+
+@keyframes cyberScan {
+  0% {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  50% {
+    opacity: 0.6;
+  }
+  100% {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+}
+
+@keyframes energyField {
+  0% {
+    transform: rotate(0deg) scale(1);
+    opacity: 0.2;
+  }
+  50% {
+    opacity: 0.35;
+  }
+  100% {
+    transform: rotate(360deg) scale(1);
+    opacity: 0.2;
+  }
+}
+
+@keyframes particleBurst {
+  0% {
+    transform: translate(0, 0) scale(0);
+    opacity: 0;
+  }
+  20% {
+    opacity: 0.7;
+  }
+  100% {
+    transform: translate(var(--tx, 0), var(--ty, 0)) scale(0.8);
+    opacity: 0;
+  }
+}
+
+@keyframes borderFlow {
+  0% {
+    background-position: 0% 0%, 0% 100%, 0% 0%, 100% 0%;
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 0.6;
+  }
+  100% {
+    background-position: 0% 0%, 0% 100%, 0% 0%, 0% 0%;
+    opacity: 0.4;
+  }
+}
+
+/* Smooth blue fire border animation */
+@keyframes fireBorder {
+  0% {
+    background-position: 0% 0%, 0% 0%, 0% 0%, 0% 0%;
+    filter: hue-rotate(0deg);
+  }
+  25% {
+    background-position: 25% 0%, 0% 25%, 25% 100%, 100% 25%;
+    filter: hue-rotate(5deg);
+  }
+  50% {
+    background-position: 50% 0%, 0% 50%, 50% 100%, 100% 50%;
+    filter: hue-rotate(0deg);
+  }
+  75% {
+    background-position: 75% 0%, 0% 75%, 75% 100%, 100% 75%;
+    filter: hue-rotate(-5deg);
+  }
+  100% {
+    background-position: 100% 0%, 0% 100%, 100% 100%, 100% 100%;
+    filter: hue-rotate(0deg);
+  }
+}
+
+@keyframes fireWave {
+  0%, 100% {
+    transform: translateY(0) scaleY(1);
+    opacity: 0.6;
+  }
+  25% {
+    transform: translateY(-2px) scaleY(1.1);
+    opacity: 0.8;
+  }
+  50% {
+    transform: translateY(0) scaleY(1);
+    opacity: 0.7;
+  }
+  75% {
+    transform: translateY(2px) scaleY(0.9);
+    opacity: 0.8;
+  }
+}

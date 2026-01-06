@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback, useMemo } from "react"
+import { useRouter } from "next/navigation"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { TarefaCard } from "@/components/tarefa-card"
@@ -26,6 +27,7 @@ interface ProfessorDashboardProps {
 
 export function ProfessorDashboard({ activeTab = "ativas", onTabChange, onCountsChange, refreshTrigger, currentUser: currentUserProp }: ProfessorDashboardProps) {
   const { currentUser: currentUserAuth } = useAuth()
+  const router = useRouter()
   const currentUser = currentUserProp || currentUserAuth
   
   // Estado dos bookings/tarefas da API
@@ -147,7 +149,9 @@ export function ProfessorDashboard({ activeTab = "ativas", onTabChange, onCounts
 
   // Callback quando uma tarefa é criada com sucesso
   const handleTarefaCriada = () => {
+    // Recarregar bookings após criar tarefa
     carregarBookings()
+    router.refresh()
   }
 
   // Handler para ver detalhes do booking

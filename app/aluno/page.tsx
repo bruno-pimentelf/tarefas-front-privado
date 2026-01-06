@@ -72,7 +72,7 @@ export default function AlunoPage() {
     // Taxa de acerto da API (já vem como número decimal, ex: 0.8033 = 80.33%)
     const taxaAcerto = studentStats?.accuracyRate 
       ? Math.round(studentStats.accuracyRate * 100 * 100) / 100 // Arredondar para 2 casas decimais
-      : 0
+        : 0
 
     return {
       tarefasCompletas: studentStats?.finishedRecordsCount || tarefasCompletas,
@@ -157,8 +157,8 @@ export default function AlunoPage() {
 
       <main className="ml-16 relative pt-16">
         <div className="container mx-auto px-4 py-6 max-w-7xl">
-            {/* Estatísticas Gerais */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          {/* Estatísticas Gerais */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-semibold flex items-center gap-1.5">

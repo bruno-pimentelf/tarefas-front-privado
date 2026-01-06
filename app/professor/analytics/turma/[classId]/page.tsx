@@ -100,18 +100,19 @@ export default function TurmaAnalyticsPage() {
         // Verificar cada admission em paralelo para otimizar
         const validationPromises = allAdmissions.map(async (admission) => {
           try {
-            // Tentar buscar dados de analytics para esta turma
+            // Tentar buscar dados de analytics para esta turma específica
             // Se retornar dados (não 404), significa que a admission pertence à turma
             await getItemAnalysis(admission.id, { classIds: [classId] })
             return admission
           } catch (err: any) {
-            // Se retornar 404, a admission não pertence a esta turma
+            // Se retornar 404, a admission não pertence a esta turma - excluir
             if (err?.status === 404) {
               return null
             }
-            // Para outros erros, ainda incluímos a admission (pode ser erro temporário)
+            // Para outros erros, também excluir para garantir que apenas admissions válidas sejam exibidas
+            // Isso evita exibir admissions que não pertencem à turma
             console.warn(`Erro ao validar admission ${admission.id} para turma ${classId}:`, err)
-            return admission
+            return null
           }
         })
         
@@ -340,10 +341,89 @@ export default function TurmaAnalyticsPage() {
                     {filteredAdmissions.map((admission) => (
                       <Card
                         key={admission.id}
-                        className="border-2 shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer hover:scale-[1.02]"
+                        className="group border-2 shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer hover:scale-[1.02] relative overflow-hidden"
                         onClick={() => router.push(`/professor/analytics/turma/${classId}/tarefa/${admission.id}`)}
                       >
-                        <CardHeader>
+                        {/* Blue fire border effect */}
+                        <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none rounded-lg overflow-hidden">
+                          {/* Top border - fire effect */}
+                          <div 
+                            className="absolute top-0 left-0 right-0 h-[3px]"
+                            style={{
+                              background: 'linear-gradient(90deg, transparent 0%, rgba(59, 130, 246, 0.3) 10%, rgba(96, 165, 250, 0.5) 20%, rgba(59, 130, 246, 0.4) 30%, rgba(34, 211, 238, 0.5) 40%, rgba(59, 130, 246, 0.4) 50%, rgba(96, 165, 250, 0.5) 60%, rgba(59, 130, 246, 0.3) 70%, transparent 100%)',
+                              backgroundSize: '200% 100%',
+                              animation: 'fireBorder 3s ease-in-out infinite',
+                              boxShadow: '0 2px 8px rgba(59, 130, 246, 0.4), 0 0 12px rgba(59, 130, 246, 0.3)',
+                              transformOrigin: 'center',
+                            }}
+                          />
+                          
+                          {/* Right border - fire effect */}
+                          <div 
+                            className="absolute top-0 right-0 bottom-0 w-[3px]"
+                            style={{
+                              background: 'linear-gradient(180deg, transparent 0%, rgba(59, 130, 246, 0.3) 10%, rgba(96, 165, 250, 0.5) 20%, rgba(59, 130, 246, 0.4) 30%, rgba(34, 211, 238, 0.5) 40%, rgba(59, 130, 246, 0.4) 50%, rgba(96, 165, 250, 0.5) 60%, rgba(59, 130, 246, 0.3) 70%, transparent 100%)',
+                              backgroundSize: '100% 200%',
+                              animation: 'fireBorder 3.5s ease-in-out infinite',
+                              animationDelay: '0.5s',
+                              boxShadow: '2px 0 8px rgba(59, 130, 246, 0.4), 0 0 12px rgba(59, 130, 246, 0.3)',
+                            }}
+                          />
+                          
+                          {/* Bottom border - fire effect */}
+                          <div 
+                            className="absolute bottom-0 left-0 right-0 h-[3px]"
+                            style={{
+                              background: 'linear-gradient(90deg, transparent 0%, rgba(59, 130, 246, 0.3) 10%, rgba(96, 165, 250, 0.5) 20%, rgba(59, 130, 246, 0.4) 30%, rgba(34, 211, 238, 0.5) 40%, rgba(59, 130, 246, 0.4) 50%, rgba(96, 165, 250, 0.5) 60%, rgba(59, 130, 246, 0.3) 70%, transparent 100%)',
+                              backgroundSize: '200% 100%',
+                              animation: 'fireBorder 3.2s ease-in-out infinite',
+                              animationDelay: '1s',
+                              boxShadow: '0 -2px 8px rgba(59, 130, 246, 0.4), 0 0 12px rgba(59, 130, 246, 0.3)',
+                            }}
+                          />
+                          
+                          {/* Left border - fire effect */}
+                          <div 
+                            className="absolute top-0 left-0 bottom-0 w-[3px]"
+                            style={{
+                              background: 'linear-gradient(180deg, transparent 0%, rgba(59, 130, 246, 0.3) 10%, rgba(96, 165, 250, 0.5) 20%, rgba(59, 130, 246, 0.4) 30%, rgba(34, 211, 238, 0.5) 40%, rgba(59, 130, 246, 0.4) 50%, rgba(96, 165, 250, 0.5) 60%, rgba(59, 130, 246, 0.3) 70%, transparent 100%)',
+                              backgroundSize: '100% 200%',
+                              animation: 'fireBorder 3.8s ease-in-out infinite',
+                              animationDelay: '1.5s',
+                              boxShadow: '-2px 0 8px rgba(59, 130, 246, 0.4), 0 0 12px rgba(59, 130, 246, 0.3)',
+                            }}
+                          />
+                          
+                          {/* Additional wave layers for more fire effect */}
+                          {[...Array(2)].map((_, i) => (
+                            <div
+                              key={i}
+                              className="absolute inset-0 rounded-lg"
+                              style={{
+                                border: `2px solid transparent`,
+                                borderImage: `linear-gradient(90deg, 
+                                  transparent 0%, 
+                                  rgba(59, 130, 246, ${0.2 + i * 0.1}) 25%, 
+                                  rgba(96, 165, 250, ${0.3 + i * 0.1}) 50%, 
+                                  rgba(59, 130, 246, ${0.2 + i * 0.1}) 75%, 
+                                  transparent 100%
+                                ) 1`,
+                                animation: `fireWave ${2.5 + i * 0.3}s ease-in-out infinite`,
+                                animationDelay: `${i * 0.4}s`,
+                                pointerEvents: 'none',
+                              }}
+                            />
+                          ))}
+                        </div>
+                        
+                        {/* Soft glow effect on hover */}
+                        <div 
+                          className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none rounded-lg"
+                          style={{
+                            animation: 'neonPulse 3s ease-in-out infinite',
+                          }}
+                        />
+                        <CardHeader className="relative z-10">
                           <CardTitle className="flex items-center gap-3">
                             <div className="p-2 bg-primary/10 rounded-lg">
                               <ClipboardList className="h-5 w-5 text-primary" />
@@ -356,7 +436,7 @@ export default function TurmaAnalyticsPage() {
                             </div>
                           </CardTitle>
                         </CardHeader>
-                        <CardContent>
+                        <CardContent className="relative z-10">
                           {admission.record?.finishedAt ? (
                             <div className="space-y-2">
                               <div className="text-xs text-muted-foreground">

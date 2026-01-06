@@ -165,7 +165,6 @@ export default function AnalyticsPage() {
                         </div>
                         <div className="flex-1">
                           <p className="text-lg font-semibold">{turma.name}</p>
-                          <p className="text-xs text-muted-foreground">{turma.grade}</p>
                         </div>
                       </CardTitle>
                     </CardHeader>

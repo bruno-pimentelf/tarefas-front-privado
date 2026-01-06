@@ -188,6 +188,7 @@ export default function ProfessorTarefasPage() {
         onOpenChange={setShowCriarTarefa}
         onSuccess={() => {
           setShowCriarTarefa(false)
+          router.refresh()
         }}
       />
       <PerfilDialog

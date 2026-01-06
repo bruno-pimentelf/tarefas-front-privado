@@ -129,7 +129,7 @@ export {
   type StudentScoresResponse,
   type StudentScore,
   type ScoreDistributionResponse,
-  type ScoreDistributionBucket,
+  type ScoreDistributionItem,
   type ComponentRangeDistributionResponse,
   type ComponentRangeDistribution,
   type StudentStats,

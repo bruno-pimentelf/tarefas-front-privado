@@ -7,7 +7,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Loader2, AlertCircle } from "lucide-react"
-import { getTeacherClasses, type TeacherClass } from "@/lib/api/bookings"
+import { getTeacherClasses, getStudentBookings, type TeacherClass } from "@/lib/api/bookings"
 import {
   getItemAnalysis,
   getClassComponentReport,
@@ -22,6 +22,7 @@ import {
   type ScoreDistributionResponse,
   type ComponentRangeDistributionResponse,
 } from "@/lib/api/analytics"
+import { getAdmissionsByBookingAndUser, type Admission } from "@/lib/api/admissions"
 import { ItemAnalysisTable } from "@/components/analytics/item-analysis-table"
 import { ClassComponentReportTable } from "@/components/analytics/class-component-report-table"
 import { ComponentStatsCards } from "@/components/analytics/component-stats-cards"
@@ -43,6 +44,7 @@ export default function TarefaAnalyticsPage() {
   const [activeTab, setActiveTab] = useState("item-analysis")
   const [availableClasses, setAvailableClasses] = useState<TeacherClass[]>([])
   const [loadingOptions, setLoadingOptions] = useState(false)
+  const [admissionTitle, setAdmissionTitle] = useState<string>("Relatórios e Estatísticas")
 
   // Estados de loading para cada endpoint
   const [loadingStates, setLoadingStates] = useState({
@@ -77,6 +79,37 @@ export default function TarefaAnalyticsPage() {
       router.push("/auth")
     }
   }, [currentUser, router])
+
+  // Buscar o título da admission
+  useEffect(() => {
+    const carregarTituloAdmission = async () => {
+      if (!currentUser || !admissionId) return
+
+      try {
+        // Buscar todos os bookings do professor
+        const bookingsResponse = await getStudentBookings(currentUser.uid, 1, 100)
+        const allBookings = bookingsResponse.items || []
+
+        // Buscar admissions de cada booking até encontrar a admission desejada
+        for (const booking of allBookings) {
+          try {
+            const admissions = await getAdmissionsByBookingAndUser(booking.id, currentUser.uid, { useCache: true })
+            const foundAdmission = admissions.find((a) => a.id === admissionId)
+            if (foundAdmission) {
+              setAdmissionTitle(foundAdmission.title)
+              return
+            }
+          } catch (err) {
+            console.error(`Erro ao buscar admissions do booking ${booking.id}:`, err)
+          }
+        }
+      } catch (err) {
+        console.error("Erro ao carregar título da admission:", err)
+      }
+    }
+
+    carregarTituloAdmission()
+  }, [currentUser, admissionId])
 
   // Função para verificar se uma tab tem dados carregados
   const hasDataForTab = (tabName: string): boolean => {
@@ -272,7 +305,7 @@ export default function TarefaAnalyticsPage() {
                   <FaArrowLeft className="h-4 w-4" />
                   <span className="text-sm">Voltar</span>
                 </Button>
-                <h2 className="text-base font-semibold">Relatórios e Estatísticas</h2>
+                <h2 className="text-base font-semibold">{admissionTitle}</h2>
               </div>
               <div className="flex items-center gap-2">
                 <ThemeToggle />

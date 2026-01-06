@@ -362,7 +362,6 @@ export default function ProfessorDadosPage() {
                             <GraduationCap className="h-4 w-4 text-primary" />
                             <div>
                               <p className="font-medium">{turma.name}</p>
-                              <p className="text-xs text-muted-foreground">{turma.grade}</p>
                             </div>
                           </div>
                           <Button variant="ghost" size="sm" className="h-8">
@@ -388,9 +387,6 @@ export default function ProfessorDadosPage() {
               <Users className="h-5 w-5 text-primary" />
               Alunos da Turma: {selectedClass?.name}
             </DialogTitle>
-            <DialogDescription>
-              {selectedClass?.grade && `Série: ${selectedClass.grade}`}
-            </DialogDescription>
           </DialogHeader>
 
           {loadingStudents ? (

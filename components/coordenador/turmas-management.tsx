@@ -127,6 +127,8 @@ export function TurmasManagement() {
           schoolYear: schoolYear.trim(),
         }
         await createClass(createData)
+        // Refresh da página após criar turma
+        router.refresh()
       }
       setShowDialog(false)
       resetForm()
